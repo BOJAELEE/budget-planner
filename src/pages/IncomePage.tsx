@@ -4,6 +4,7 @@ import type { Income } from '../types';
 import { AmountInput } from '../components/AmountInput';
 import { formatKRW } from '../lib/format';
 import { incomeTotal } from '../lib/calc';
+import { BackupPanel } from '../components/BackupPanel';
 
 export default function IncomePage() {
   const repo = useRepository();
@@ -45,6 +46,7 @@ export default function IncomePage() {
       <div className="rounded-2xl bg-brand-soft p-4 text-sm">
         수입합계 <b>{formatKRW(incomeTotal(items))}</b>
       </div>
+      <BackupPanel />
     </div>
   );
 }
