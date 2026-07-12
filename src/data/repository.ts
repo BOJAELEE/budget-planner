@@ -1,4 +1,7 @@
-import type { FixedCost, Income, MonthlyCardActual, CardMethod } from '../types';
+import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod } from '../types';
+
+export type ExtraSpendingInput = { yearMonth: string; card: CardMethod; name: string; amount: number };
+export type ExtraSpendingPatch = Partial<{ card: CardMethod; name: string; amount: number }>;
 
 export interface Repository {
   listFixedCosts(): Promise<FixedCost[]>;
@@ -15,4 +18,11 @@ export interface Repository {
   setActual(yearMonth: string, card: CardMethod, amount: number): Promise<void>;
   listAllActuals(): Promise<MonthlyCardActual[]>;
   deleteAllActuals(): Promise<void>;
+
+  listExtraSpendings(yearMonth: string): Promise<ExtraSpending[]>;
+  addExtraSpending(data: ExtraSpendingInput): Promise<ExtraSpending>;
+  updateExtraSpending(id: string, patch: ExtraSpendingPatch): Promise<void>;
+  deleteExtraSpending(id: string): Promise<void>;
+  listAllExtraSpendings(): Promise<ExtraSpending[]>;
+  deleteAllExtraSpendings(): Promise<void>;
 }

@@ -1,5 +1,5 @@
-import type { FixedCost, Income, MonthlyCardActual, CardMethod } from '../types';
-import type { Repository } from './repository';
+import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod } from '../types';
+import type { Repository, ExtraSpendingInput, ExtraSpendingPatch } from './repository';
 import { SEED_FIXED_COSTS, SEED_INCOMES } from './seedData';
 
 const uid = () =>
@@ -9,6 +9,7 @@ export class MemoryRepository implements Repository {
   private fixedCosts: FixedCost[] = [];
   private incomes: Income[] = [];
   private actuals: MonthlyCardActual[] = [];
+  private extras: ExtraSpending[] = [];
 
   async listFixedCosts() {
     return [...this.fixedCosts].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -57,6 +58,30 @@ export class MemoryRepository implements Repository {
   }
   async deleteAllActuals() {
     this.actuals = [];
+  }
+
+  async listExtraSpendings(yearMonth: string) {
+    return this.extras
+      .filter((e) => e.yearMonth === yearMonth)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  async addExtraSpending(data: ExtraSpendingInput) {
+    const item: ExtraSpending = { ...data, id: uid(), createdAt: new Date().toISOString() };
+    this.extras.push(item);
+    return item;
+  }
+  async updateExtraSpending(id: string, patch: ExtraSpendingPatch) {
+    const i = this.extras.findIndex((e) => e.id === id);
+    if (i >= 0) this.extras[i] = { ...this.extras[i], ...patch };
+  }
+  async deleteExtraSpending(id: string) {
+    this.extras = this.extras.filter((e) => e.id !== id);
+  }
+  async listAllExtraSpendings() {
+    return [...this.extras];
+  }
+  async deleteAllExtraSpendings() {
+    this.extras = [];
   }
 }
 

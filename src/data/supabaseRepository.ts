@@ -1,5 +1,5 @@
-import type { FixedCost, Income, MonthlyCardActual, CardMethod } from '../types';
-import type { Repository } from './repository';
+import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod } from '../types';
+import type { Repository, ExtraSpendingInput, ExtraSpendingPatch } from './repository';
 import { getSupabase } from '../lib/supabase';
 
 // DB(snake_case) ↔ 도메인(camelCase) 매핑
@@ -10,6 +10,9 @@ const toFixed = (r: any): FixedCost => ({
 const fromFixed = (d: Partial<Omit<FixedCost, 'id'>>) => ({
   payment_method: d.paymentMethod, category: d.category, name: d.name,
   amount: d.amount, variability: d.variability, active: d.active, sort_order: d.sortOrder,
+});
+const toExtra = (r: any): ExtraSpending => ({
+  id: r.id, yearMonth: r.year_month, card: r.card, name: r.name, amount: r.amount, createdAt: r.created_at,
 });
 
 export class SupabaseRepository implements Repository {
@@ -80,6 +83,40 @@ export class SupabaseRepository implements Repository {
       .from('monthly_card_actuals')
       .delete()
       .not('id', 'is', null);
+    if (error) throw error;
+  }
+
+  async listExtraSpendings(yearMonth: string) {
+    const { data, error } = await this.db
+      .from('extra_spendings').select('*')
+      .eq('year_month', yearMonth).order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(toExtra);
+  }
+  async addExtraSpending(d: ExtraSpendingInput) {
+    const { data, error } = await this.db.from('extra_spendings')
+      .insert({ year_month: d.yearMonth, card: d.card, name: d.name, amount: d.amount })
+      .select().single();
+    if (error) throw error;
+    return toExtra(data);
+  }
+  async updateExtraSpending(id: string, patch: ExtraSpendingPatch) {
+    const { error } = await this.db.from('extra_spendings')
+      .update({ card: patch.card, name: patch.name, amount: patch.amount }).eq('id', id);
+    if (error) throw error;
+  }
+  async deleteExtraSpending(id: string) {
+    const { error } = await this.db.from('extra_spendings').delete().eq('id', id);
+    if (error) throw error;
+  }
+  async listAllExtraSpendings() {
+    const { data, error } = await this.db
+      .from('extra_spendings').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(toExtra);
+  }
+  async deleteAllExtraSpendings() {
+    const { error } = await this.db.from('extra_spendings').delete().not('id', 'is', null);
     if (error) throw error;
   }
 }

@@ -27,4 +27,17 @@ describe('MemoryRepository', () => {
     expect(list).toHaveLength(1);
     expect(list[0].actualAmount).toBe(120000);
   });
+  it('추가지출 CRUD + 월 필터', async () => {
+    const repo = createSeededMemoryRepository();
+    const a = await repo.addExtraSpending({ yearMonth: '2026-07', card: '현대카드', name: '코스트코', amount: 120000 });
+    await repo.addExtraSpending({ yearMonth: '2026-06', card: '신한카드', name: '지난달', amount: 5000 });
+    expect(await repo.listExtraSpendings('2026-07')).toHaveLength(1);
+    expect(await repo.listAllExtraSpendings()).toHaveLength(2);
+    await repo.updateExtraSpending(a.id, { amount: 130000 });
+    expect((await repo.listExtraSpendings('2026-07'))[0].amount).toBe(130000);
+    await repo.deleteExtraSpending(a.id);
+    expect(await repo.listExtraSpendings('2026-07')).toHaveLength(0);
+    await repo.deleteAllExtraSpendings();
+    expect(await repo.listAllExtraSpendings()).toHaveLength(0);
+  });
 });
