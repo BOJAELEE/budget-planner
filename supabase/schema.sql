@@ -34,3 +34,20 @@ alter table monthly_card_actuals enable row level security;
 create policy "anon all fixed_costs" on fixed_costs for all using (true) with check (true);
 create policy "anon all incomes" on incomes for all using (true) with check (true);
 create policy "anon all actuals" on monthly_card_actuals for all using (true) with check (true);
+
+-- 추가지출(고정비 외 결제를 항목 단위로 기록). created_at 자동.
+create table if not exists extra_spendings (
+  id uuid primary key default gen_random_uuid(),
+  year_month text not null,
+  card text not null,
+  name text not null,
+  amount integer not null check (amount >= 0),
+  created_at timestamptz not null default now()
+);
+alter table extra_spendings enable row level security;
+create policy "anon all extra_spendings" on extra_spendings for all using (true) with check (true);
+
+-- 개인용 anon 접근 권한 부여(신규 테이블 포함).
+grant usage on schema public to anon, authenticated;
+grant all privileges on all tables in schema public to anon, authenticated;
+alter default privileges in schema public grant all on tables to anon, authenticated;
