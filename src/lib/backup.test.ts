@@ -41,4 +41,19 @@ describe('backup', () => {
     expect(actuals.find((a) => a.yearMonth === '2026-07')).toBeDefined();
     expect(actuals).toHaveLength(1);
   });
+
+  it('백업에 추가지출 포함 (교체 복원)', async () => {
+    const src = createSeededMemoryRepository();
+    await src.addExtraSpending({ yearMonth: '2026-07', card: '현대카드', name: '코스트코', amount: 120000 });
+    const json = await exportData(src);
+
+    const dst = createSeededMemoryRepository();
+    await dst.addExtraSpending({ yearMonth: '2026-01', card: '신한카드', name: '옛날', amount: 999 });
+    await importData(dst, json);
+
+    const extras = await dst.listAllExtraSpendings();
+    expect(extras).toHaveLength(1);
+    expect(extras[0].name).toBe('코스트코');
+    expect(extras[0].amount).toBe(120000);
+  });
 });
