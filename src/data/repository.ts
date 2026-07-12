@@ -14,4 +14,5 @@ export interface Repository {
   listActuals(yearMonth: string): Promise<MonthlyCardActual[]>;
   setActual(yearMonth: string, card: CardMethod, amount: number): Promise<void>;
   listAllActuals(): Promise<MonthlyCardActual[]>;
+  deleteAllActuals(): Promise<void>;
 }

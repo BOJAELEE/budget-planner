@@ -75,4 +75,11 @@ export class SupabaseRepository implements Repository {
       id: r.id, yearMonth: r.year_month, paymentMethod: r.payment_method, actualAmount: r.actual_amount,
     }));
   }
+  async deleteAllActuals() {
+    const { error } = await this.db
+      .from('monthly_card_actuals')
+      .delete()
+      .not('id', 'is', null);
+    if (error) throw error;
+  }
 }

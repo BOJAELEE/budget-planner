@@ -55,6 +55,9 @@ export class MemoryRepository implements Repository {
   async listAllActuals() {
     return [...this.actuals];
   }
+  async deleteAllActuals() {
+    this.actuals = [];
+  }
 }
 
 export function createSeededMemoryRepository(): MemoryRepository {
