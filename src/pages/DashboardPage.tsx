@@ -10,9 +10,18 @@ const nowYearMonth = () => new Date().toISOString().slice(0, 7);
 
 export default function DashboardPage() {
   const [yearMonth] = useState(nowYearMonth());
-  const { loading, derived } = useBudget(yearMonth);
+  const { loading, error, derived } = useBudget(yearMonth);
 
   if (loading) return <div className="p-8 text-center text-gray-400">불러오는 중…</div>;
+  if (error) return (
+    <div className="p-6 m-4 rounded-2xl bg-white shadow-card text-sm">
+      <div className="font-semibold text-neg mb-2">데이터를 불러오지 못했습니다</div>
+      <div className="text-gray-500 break-all">{error}</div>
+      <div className="mt-3 text-gray-400">
+        Supabase에 <b>extra_spendings</b> 테이블이 있는지 확인하세요.
+      </div>
+    </div>
+  );
 
   return (
     <div className="p-4 space-y-4">

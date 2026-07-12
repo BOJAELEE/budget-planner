@@ -13,13 +13,21 @@ export function useBudget(yearMonth: string) {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [extras, setExtras] = useState<ExtraSpending[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
-    const [fc, inc, ex] = await Promise.all([
-      repo.listFixedCosts(), repo.listIncomes(), repo.listExtraSpendings(yearMonth),
-    ]);
-    setFixedCosts(fc); setIncomes(inc); setExtras(ex); setLoading(false);
+    setError(null);
+    try {
+      const [fc, inc, ex] = await Promise.all([
+        repo.listFixedCosts(), repo.listIncomes(), repo.listExtraSpendings(yearMonth),
+      ]);
+      setFixedCosts(fc); setIncomes(inc); setExtras(ex);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
   }, [repo, yearMonth]);
 
   useEffect(() => { void reload(); }, [reload]);
@@ -41,5 +49,5 @@ export function useBudget(yearMonth: string) {
     };
   }, [fixedCosts, incomes, extras]);
 
-  return { fixedCosts, incomes, extras, loading, reload, derived };
+  return { fixedCosts, incomes, extras, loading, error, reload, derived };
 }
