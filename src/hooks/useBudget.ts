@@ -1,25 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRepository } from '../data/RepositoryContext';
-import type { FixedCost, Income, MonthlyCardActual, CardMethod } from '../types';
+import type { FixedCost, Income, ExtraSpending, CardMethod } from '../types';
 import { CARD_METHODS } from '../types';
 import {
-  transferTotal, cardBaseline, incomeTotal, totalBudget, remaining,
-  extraCardSpending, categoryBreakdown,
+  transferTotal, cardBaseline, incomeTotal, categoryBreakdown,
+  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, totalBudgetV2, remainingV2,
 } from '../lib/calc';
 
 export function useBudget(yearMonth: string) {
   const repo = useRepository();
   const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
-  const [actuals, setActuals] = useState<MonthlyCardActual[]>([]);
+  const [extras, setExtras] = useState<ExtraSpending[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
     setLoading(true);
-    const [fc, inc, act] = await Promise.all([
-      repo.listFixedCosts(), repo.listIncomes(), repo.listActuals(yearMonth),
+    const [fc, inc, ex] = await Promise.all([
+      repo.listFixedCosts(), repo.listIncomes(), repo.listExtraSpendings(yearMonth),
     ]);
-    setFixedCosts(fc); setIncomes(inc); setActuals(act); setLoading(false);
+    setFixedCosts(fc); setIncomes(inc); setExtras(ex); setLoading(false);
   }, [repo, yearMonth]);
 
   useEffect(() => { void reload(); }, [reload]);
@@ -28,23 +28,18 @@ export function useBudget(yearMonth: string) {
     const cardBaselines = Object.fromEntries(
       CARD_METHODS.map((c) => [c, cardBaseline(fixedCosts, c)]),
     ) as Record<CardMethod, number>;
-    const actualByCard = Object.fromEntries(
-      CARD_METHODS.map((c) => [c, actuals.find((a) => a.paymentMethod === c)?.actualAmount ?? 0]),
-    ) as Record<CardMethod, number>;
-    const extraByCard = Object.fromEntries(
-      CARD_METHODS.map((c) => [c, extraCardSpending(fixedCosts, c, actualByCard[c])]),
-    ) as Record<CardMethod, number>;
     return {
       transferSum: transferTotal(fixedCosts),
       cardBaselines,
-      actualByCard,
-      extraByCard,
-      totalBudget: totalBudget(fixedCosts, actuals),
+      extraByCard: extraByCardFromSpendings(extras),
+      fixedTotal: fixedCostsTotal(fixedCosts),
+      extraTotal: extraSpendingTotal(extras),
+      totalBudget: totalBudgetV2(fixedCosts, extras),
       incomeSum: incomeTotal(incomes),
-      remaining: remaining(fixedCosts, incomes, actuals),
+      remaining: remainingV2(fixedCosts, incomes, extras),
       breakdown: categoryBreakdown(fixedCosts),
     };
-  }, [fixedCosts, incomes, actuals]);
+  }, [fixedCosts, incomes, extras]);
 
-  return { fixedCosts, incomes, actuals, loading, reload, derived };
+  return { fixedCosts, incomes, extras, loading, reload, derived };
 }
