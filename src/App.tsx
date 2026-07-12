@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { BottomNav } from './components/BottomNav';
 import DashboardPage from './pages/DashboardPage';
+import ExtraSpendingPage from './pages/ExtraSpendingPage';
 import FixedCostsPage from './pages/FixedCostsPage';
 import IncomePage from './pages/IncomePage';
 import HistoryPage from './pages/HistoryPage';
@@ -11,6 +12,7 @@ export default function App() {
       <div className="mx-auto max-w-md pb-16">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/extra" element={<ExtraSpendingPage />} />
           <Route path="/fixed" element={<FixedCostsPage />} />
           <Route path="/income" element={<IncomePage />} />
           <Route path="/history" element={<HistoryPage />} />
