@@ -1,0 +1,20 @@
+# 개인 금융정보 — 절대 커밋/푸시 금지
+*.xls
+*.xlsx
+*.XLXS.xlsx
+_parsed_*.txt
+
+# 로컬 환경/비밀키
+.env
+.env.local
+*.local
+
+# 의존성/빌드
+node_modules/
+dist/
+build/
+.vite/
+
+# OS
+.DS_Store
+Thumbs.db
