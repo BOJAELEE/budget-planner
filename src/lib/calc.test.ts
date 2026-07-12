@@ -58,5 +58,6 @@ describe('calc', () => {
     expect(r[0].amount).toBeGreaterThanOrEqual(r[r.length - 1].amount);
     const 용돈 = r.find((x) => x.category === '용돈');
     expect(용돈?.amount).toBe(200000); // 비활성 저금 100000은 제외
+    expect(r.find((x) => x.category === '저금')).toBeUndefined();
   });
 });
