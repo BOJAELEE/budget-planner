@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   transferTotal, cardBaseline, incomeTotal, actualsTotal,
   totalBudget, remaining, extraCardSpending, categoryBreakdown,
+  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, totalBudgetV2, remainingV2,
 } from './calc';
-import type { FixedCost, Income, MonthlyCardActual } from '../types';
+import type { FixedCost, Income, MonthlyCardActual, ExtraSpending } from '../types';
 
 const fc = (over: Partial<FixedCost>): FixedCost => ({
   id: Math.random().toString(), paymentMethod: '신한카드', category: '구독',
@@ -59,5 +60,41 @@ describe('calc', () => {
     const 용돈 = r.find((x) => x.category === '용돈');
     expect(용돈?.amount).toBe(200000); // 비활성 저금 100000은 제외
     expect(r.find((x) => x.category === '저금')).toBeUndefined();
+  });
+});
+
+const ex = (over: Partial<ExtraSpending>): ExtraSpending => ({
+  id: Math.random().toString(), yearMonth: '2026-07', card: '현대카드',
+  name: 'x', amount: 1000, createdAt: new Date().toISOString(), ...over,
+});
+
+describe('extra spending calc', () => {
+  const costs: FixedCost[] = [
+    fc({ paymentMethod: '현대카드', amount: 54000 }),
+    fc({ paymentMethod: '현금이체', amount: 150000 }),
+    fc({ paymentMethod: '현금이체(자동)', amount: 200000, active: false }), // 비활성 제외
+  ];
+  it('fixedCostsTotal은 활성 고정비 전체 합', () => {
+    expect(fixedCostsTotal(costs)).toBe(204000);
+  });
+  it('extraSpendingTotal', () => {
+    expect(extraSpendingTotal([ex({ amount: 30000 }), ex({ amount: 20000 })])).toBe(50000);
+  });
+  it('extraByCardFromSpendings는 카드별 합, 없으면 0', () => {
+    const r = extraByCardFromSpendings([
+      ex({ card: '현대카드', amount: 30000 }),
+      ex({ card: '현대카드', amount: 5000 }),
+      ex({ card: '신한카드', amount: 7000 }),
+    ]);
+    expect(r['현대카드']).toBe(35000);
+    expect(r['신한카드']).toBe(7000);
+    expect(r['삼성카드']).toBe(0);
+  });
+  it('totalBudgetV2 = 고정비합 + 추가지출합', () => {
+    expect(totalBudgetV2(costs, [ex({ amount: 100000 })])).toBe(304000);
+  });
+  it('remainingV2 = 수입 − totalBudgetV2', () => {
+    const incomes: Income[] = [{ id: 'a', name: '월급', amount: 1000000, active: true }];
+    expect(remainingV2(costs, incomes, [ex({ amount: 100000 })])).toBe(696000);
   });
 });

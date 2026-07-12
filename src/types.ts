@@ -39,6 +39,15 @@ export interface MonthlyCardActual {
   actualAmount: number;
 }
 
+export interface ExtraSpending {
+  id: string;
+  yearMonth: string; // "2026-07"
+  card: CardMethod;
+  name: string;
+  amount: number;
+  createdAt: string; // ISO timestamp, 자동 기록
+}
+
 export function isCardMethod(m: PaymentMethod): m is CardMethod {
   return (CARD_METHODS as readonly string[]).includes(m);
 }

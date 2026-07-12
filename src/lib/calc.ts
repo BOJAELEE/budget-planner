@@ -1,5 +1,5 @@
-import type { FixedCost, Income, MonthlyCardActual, CardMethod, Category } from '../types';
-import { TRANSFER_METHODS } from '../types';
+import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod, Category } from '../types';
+import { TRANSFER_METHODS, CARD_METHODS } from '../types';
 
 const activeAmount = (items: { amount: number; active: boolean }[]) =>
   items.filter((i) => i.active).reduce((a, i) => a + i.amount, 0);
@@ -36,6 +36,30 @@ export function extraCardSpending(
   fixedCosts: FixedCost[], card: CardMethod, actualAmount: number,
 ): number {
   return actualAmount - cardBaseline(fixedCosts, card);
+}
+
+export function fixedCostsTotal(fixedCosts: FixedCost[]): number {
+  return activeAmount(fixedCosts);
+}
+
+export function extraSpendingTotal(items: ExtraSpending[]): number {
+  return items.reduce((a, x) => a + x.amount, 0);
+}
+
+export function extraByCardFromSpendings(items: ExtraSpending[]): Record<CardMethod, number> {
+  const r = Object.fromEntries(CARD_METHODS.map((c) => [c, 0])) as Record<CardMethod, number>;
+  for (const it of items) r[it.card] += it.amount;
+  return r;
+}
+
+export function totalBudgetV2(fixedCosts: FixedCost[], extras: ExtraSpending[]): number {
+  return fixedCostsTotal(fixedCosts) + extraSpendingTotal(extras);
+}
+
+export function remainingV2(
+  fixedCosts: FixedCost[], incomes: Income[], extras: ExtraSpending[],
+): number {
+  return incomeTotal(incomes) - totalBudgetV2(fixedCosts, extras);
 }
 
 export function categoryBreakdown(
