@@ -1,0 +1,28 @@
+name: Keep Supabase Active
+
+on:
+  schedule:
+    # Daily at 12:17 KST (03:17 UTC). GitHub Actions schedules can run a few minutes late.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run a lightweight database query
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          test -n "$SUPABASE_URL"
+          test -n "$SUPABASE_ANON_KEY"
+          curl --fail --silent --show-error \
+            "$SUPABASE_URL/rest/v1/extra_spendings?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Accept: application/json" \
+            --output /dev/null
