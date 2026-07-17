@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRepository } from '../data/RepositoryContext';
 import type { FixedCost, CardMethod } from '../types';
-import { CARD_METHODS, CATEGORIES, PAYMENT_METHODS } from '../types';
+import { CATEGORIES, PAYMENT_METHODS, TRANSFER_METHODS } from '../types';
 import { FixedCostEditor, type FixedCostDraft } from '../components/FixedCostEditor';
 import { formatKRW } from '../lib/format';
 import { sortedFixedCosts, transferTotal } from '../lib/calc';
@@ -11,13 +11,17 @@ const blankDraft: FixedCostDraft = {
   variability: '고정', active: true, sortOrder: 999,
 };
 
+const fixedCostCardFilters: readonly CardMethod[] = ['신한카드', '현대카드', '삼성카드'];
+type FixedCostFilter = 'all' | CardMethod | 'transfer' | 'variable';
+type FixedCostSortMode = 'category' | 'amount' | 'cardAmount' | 'categoryAmount' | 'default';
+
 export default function FixedCostsPage() {
   const repo = useRepository();
   const [items, setItems] = useState<FixedCost[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const [sortMode, setSortMode] = useState<'category' | 'amount' | 'default'>('category');
-  const [cardFilter, setCardFilter] = useState<CardMethod | 'all'>('all');
+  const [sortMode, setSortMode] = useState<FixedCostSortMode>('category');
+  const [cardFilter, setCardFilter] = useState<FixedCostFilter>('all');
 
   const load = async () => setItems(await repo.listFixedCosts());
   useEffect(() => { void load(); }, []);
@@ -31,17 +35,23 @@ export default function FixedCostsPage() {
     if (confirm('삭제할까요?')) { await repo.deleteFixedCost(id); await load(); }
   };
   const visibleItems = useMemo(() => items.filter(
-    (item) => cardFilter === 'all' || item.paymentMethod === cardFilter,
+    (item) => cardFilter === 'all'
+      || (cardFilter === 'transfer' && (TRANSFER_METHODS as readonly string[]).includes(item.paymentMethod))
+      || (cardFilter === 'variable' && item.variability === '변동')
+      || item.paymentMethod === cardFilter,
   ), [items, cardFilter]);
   const groups = useMemo(() => {
-    const groupBy = sortMode === 'category'
+    if (sortMode === 'amount') {
+      return [{ label: '전체 고액순', items: sortedFixedCosts(visibleItems, true) }];
+    }
+    const groupBy = sortMode === 'category' || sortMode === 'categoryAmount'
       ? CATEGORIES.map((category) => ({
         label: category,
-        items: sortedFixedCosts(visibleItems.filter((item) => item.category === category), false),
+        items: sortedFixedCosts(visibleItems.filter((item) => item.category === category), sortMode === 'categoryAmount'),
       }))
       : PAYMENT_METHODS.map((method) => ({
         label: method,
-        items: sortedFixedCosts(visibleItems.filter((item) => item.paymentMethod === method), sortMode === 'amount'),
+        items: sortedFixedCosts(visibleItems.filter((item) => item.paymentMethod === method), sortMode === 'cardAmount'),
       }));
     return groupBy.filter((group) => group.items.length > 0);
   }, [sortMode, visibleItems]);
@@ -64,10 +74,12 @@ export default function FixedCostsPage() {
             aria-label="카드사 필터"
             className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-gray-900"
             value={cardFilter}
-            onChange={(event) => setCardFilter(event.target.value as CardMethod | 'all')}
+            onChange={(event) => setCardFilter(event.target.value as FixedCostFilter)}
           >
             <option value="all">전체</option>
-            {CARD_METHODS.map((value) => <option key={value} value={value}>{value}</option>)}
+            {fixedCostCardFilters.map((value) => <option key={value} value={value}>{value}</option>)}
+            <option value="transfer">현금이체</option>
+            <option value="variable">변동금액</option>
           </select>
         </label>
         <label className="flex items-center gap-2">
@@ -76,10 +88,12 @@ export default function FixedCostsPage() {
             aria-label="고정비 정렬"
             className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-gray-900"
             value={sortMode}
-            onChange={(event) => setSortMode(event.target.value as 'category' | 'amount' | 'default')}
+            onChange={(event) => setSortMode(event.target.value as FixedCostSortMode)}
           >
             <option value="category">카테고리별</option>
-            <option value="amount">고액순</option>
+            <option value="amount">전체 고액순</option>
+            <option value="cardAmount">카드사별 고액순</option>
+            <option value="categoryAmount">카테고리별 고액순</option>
             <option value="default">기본순</option>
           </select>
         </label>
