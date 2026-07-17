@@ -47,7 +47,7 @@ export default function DashboardPage() {
       </section>
 
       <section
-        className="rounded-2xl border border-white/10 bg-gradient-to-br from-violet-950 via-slate-800 to-sky-950 p-5 shadow-card space-y-5"
+        className="budget-overview rounded-2xl border p-5 shadow-card space-y-5"
         aria-label="예산과 저축 현황"
       >
         <BudgetProgress
@@ -56,7 +56,7 @@ export default function DashboardPage() {
           denominator={derived.incomeSum}
           detail={`${formatKRW(derived.totalBudget)} / ${formatKRW(derived.incomeSum)}`}
           balance={budgetRemaining}
-          colorClass="bg-violet-400"
+          colorClass="bg-sage"
         />
         <BudgetProgress
           label="예비 생활비 사용"
@@ -64,7 +64,7 @@ export default function DashboardPage() {
           denominator={derived.savings.reserveLiving}
           detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.reserveLiving)}`}
           balance={reserveLivingRemaining}
-          colorClass="bg-cyan-400"
+          colorClass="bg-aqua"
         />
         <BudgetProgress
           label="전체 저축 사용"
@@ -72,7 +72,7 @@ export default function DashboardPage() {
           denominator={derived.savings.totalSavings}
           detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.totalSavings)}`}
           balance={savingsAfterShortage}
-          colorClass="bg-sky-400"
+          colorClass="bg-mist"
         />
         <BudgetProgress
           label="저축 잔액"
@@ -81,7 +81,7 @@ export default function DashboardPage() {
           detail={`${formatKRW(savingsAfterShortage)} / ${formatKRW(derived.savings.totalSavings)}`}
           subdetail={`여행 저금 ${formatKRW(derived.savings.travelSaving)} · 예비 생활비 ${formatKRW(derived.savings.reserveLiving)}`}
           balance={savingsAfterShortage}
-          colorClass="bg-emerald-300"
+          colorClass="bg-mint"
         />
       </section>
 
@@ -173,17 +173,17 @@ function BudgetProgress({
   return (
     <div className="space-y-2.5">
       <div className="flex items-baseline justify-between gap-2 text-base">
-        <span className="min-w-0 font-semibold text-white">{label}</span>
+        <span className="budget-label min-w-0 font-semibold">{label}</span>
         <span className="flex shrink-0 items-baseline gap-3 text-right">
-          <span className={balance < 0 ? 'font-semibold text-neg' : 'font-semibold text-amber-300'}>잔액 {formatKRW(balance)}</span>
-          <span className={isAlert ? 'font-semibold text-neg' : 'text-slate-200'}>{Math.round(percentage)}%</span>
+          <span className={balance < 0 ? 'font-semibold text-neg' : 'budget-balance font-semibold'}>잔액 {formatKRW(balance)}</span>
+          <span className={isAlert ? 'font-semibold text-neg' : 'budget-percentage'}>{Math.round(percentage)}%</span>
         </span>
       </div>
-      <div className="h-3 overflow-hidden rounded-full bg-slate-600/80">
+      <div className="budget-track h-3 overflow-hidden rounded-full">
         <div className={`h-full rounded-full ${isAlert ? 'bg-neg' : colorClass}`} style={{ width: `${width}%` }} />
       </div>
-      <div className={isAlert ? 'text-sm text-neg' : 'text-sm text-slate-300'}>{detail}</div>
-      {subdetail && <div className="text-sm text-slate-400">{subdetail}</div>}
+      <div className={isAlert ? 'text-sm text-neg' : 'budget-detail text-sm'}>{detail}</div>
+      {subdetail && <div className="budget-detail text-sm">{subdetail}</div>}
     </div>
   );
 }

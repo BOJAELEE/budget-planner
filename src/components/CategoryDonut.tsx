@@ -1,7 +1,7 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatKRW } from '../lib/format';
 
-const COLORS = ['#43B5FF', '#6EE7B7', '#7BC7FF', '#A9B6FF', '#7FE0D4', '#4C8CC7', '#8EA5BA', '#5F94D1'];
+const COLORS = ['#8FAE9A', '#8AB8B1', '#98B7C7', '#A99CC6', '#B99A76', '#8DB7A1', '#B7C2B8', '#789B8E'];
 
 export function CategoryDonut({ data }: { data: { category: string; amount: number }[] }) {
   return (
