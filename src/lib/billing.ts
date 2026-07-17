@@ -6,6 +6,10 @@ const BILLING_CUTOFF_DAY: Record<CardMethod, number> = {
   삼성카드: 19,
 };
 
+export function billingCutoffDay(card: CardMethod): number {
+  return BILLING_CUTOFF_DAY[card];
+}
+
 export function billingMonthFor(card: CardMethod, spentOn: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(spentOn);
   if (!match) throw new Error('사용일은 YYYY-MM-DD 형식이어야 합니다.');
@@ -22,7 +26,7 @@ export function billingMonthFor(card: CardMethod, spentOn: string): string {
     throw new Error('유효하지 않은 사용일입니다.');
   }
 
-  const offset = day <= BILLING_CUTOFF_DAY[card] ? 1 : 2;
+  const offset = day <= billingCutoffDay(card) ? 1 : 2;
   const billingDate = new Date(Date.UTC(year, month - 1 + offset, 1));
   return `${billingDate.getUTCFullYear()}-${String(billingDate.getUTCMonth() + 1).padStart(2, '0')}`;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { billingMonthFor, spentOnFromCreatedAt } from './billing';
+import { billingCutoffDay, billingMonthFor, spentOnFromCreatedAt } from './billing';
 
 describe('billingMonthFor', () => {
   it.each([
@@ -18,6 +18,14 @@ describe('billingMonthFor', () => {
 
   it('연도 경계를 넘는 청구월을 계산한다', () => {
     expect(billingMonthFor('현대카드', '2026-12-20')).toBe('2027-02');
+  });
+});
+
+describe('billingCutoffDay', () => {
+  it('returns the selected card cutoff day', () => {
+    expect(billingCutoffDay('현대카드')).toBe(19);
+    expect(billingCutoffDay('신한카드')).toBe(16);
+    expect(billingCutoffDay('삼성카드')).toBe(19);
   });
 });
 

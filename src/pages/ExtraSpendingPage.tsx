@@ -5,7 +5,8 @@ import { CARD_METHODS } from '../types';
 import { AmountInput } from '../components/AmountInput';
 import { formatKRW } from '../lib/format';
 import { extraSpendingTotal } from '../lib/calc';
-import { billingMonthFor, dateInKorea, formatYearMonth } from '../lib/billing';
+import { billingCutoffDay, billingMonthFor, dateInKorea, formatYearMonth } from '../lib/billing';
+import { BillingDatePicker } from '../components/BillingDatePicker';
 
 const nowYearMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -28,6 +29,7 @@ export default function ExtraSpendingPage() {
   ), [allItems, billingMonth]);
   const items = allItems.filter((item) => item.yearMonth === billingMonth);
   const calculatedBillingMonth = billingMonthFor(card, spentOn);
+  const cutoffDay = billingCutoffDay(card);
 
   const add = async () => {
     if (!name.trim() || amount <= 0) return;
@@ -66,15 +68,10 @@ export default function ExtraSpendingPage() {
           >
             {CARD_METHODS.map((value) => <option key={value}>{value}</option>)}
           </select>
-          <input
-            aria-label="사용일"
-            className="rounded-lg border border-gray-200 px-2 py-2"
-            type="date"
-            value={spentOn}
-            onChange={(event) => setSpentOn(event.target.value || dateInKorea())}
-          />
+          <BillingDatePicker card={card} value={spentOn} onChange={setSpentOn} />
         </div>
         <div><AmountInput value={amount} onCommit={setAmount} /></div>
+        <p className="text-sm font-medium text-amber-300">{card}은 매월 {cutoffDay}일까지 다음 달 청구, 이후 사용분은 다다음 달 청구</p>
         <p className="text-xs text-gray-500">예상 청구월: <b>{formatYearMonth(calculatedBillingMonth)}</b></p>
         <button
           className="w-full rounded-lg bg-brand text-white py-2 disabled:opacity-40"
@@ -146,7 +143,7 @@ function ExtraRowEditor({
         <select className="rounded-lg border px-2 py-1" value={card} onChange={(event) => setCard(event.target.value as CardMethod)}>
           {CARD_METHODS.map((value) => <option key={value}>{value}</option>)}
         </select>
-        <input className="rounded-lg border px-2 py-1" type="date" value={spentOn} onChange={(event) => setSpentOn(event.target.value || item.spentOn)} />
+        <BillingDatePicker card={card} value={spentOn} onChange={setSpentOn} />
       </div>
       <AmountInput value={amount} onCommit={setAmount} />
       <p className="text-xs text-gray-500">예상 청구월: {formatYearMonth(nextBillingMonth)}</p>
