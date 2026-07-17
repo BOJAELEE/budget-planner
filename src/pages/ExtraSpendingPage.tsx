@@ -4,30 +4,33 @@ import type { ExtraSpending, CardMethod } from '../types';
 import { CARD_METHODS } from '../types';
 import { AmountInput } from '../components/AmountInput';
 import { formatKRW } from '../lib/format';
-import { extraSpendingTotal } from '../lib/calc';
-import { billingCutoffDay, billingMonthFor, dateInKorea, formatYearMonth } from '../lib/billing';
+import { extraSpendingTotal, sortedExtraSpendings } from '../lib/calc';
+import {
+  billingCutoffDay, billingMonthFor, dateInKorea, defaultBillingYearMonth, formatYearMonth,
+} from '../lib/billing';
 import { BillingDatePicker } from '../components/BillingDatePicker';
-
-const nowYearMonth = () => new Date().toISOString().slice(0, 7);
 
 export default function ExtraSpendingPage() {
   const repo = useRepository();
   const [allItems, setAllItems] = useState<ExtraSpending[]>([]);
-  const [billingMonth, setBillingMonth] = useState(nowYearMonth());
+  const [billingMonth, setBillingMonth] = useState(defaultBillingYearMonth);
   const [name, setName] = useState('');
   const [card, setCard] = useState<CardMethod>('현대카드');
   const [amount, setAmount] = useState(0);
   const [spentOn, setSpentOn] = useState(dateInKorea());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [sortByAmount, setSortByAmount] = useState(false);
 
   const load = async () => setAllItems(await repo.listAllExtraSpendings());
   useEffect(() => { void load(); }, [repo]);
 
   const months = useMemo(() => (
-    [...new Set([billingMonth, nowYearMonth(), ...allItems.map((item) => item.yearMonth)])]
+    [...new Set([billingMonth, defaultBillingYearMonth(), ...allItems.map((item) => item.yearMonth)])]
       .sort((a, b) => b.localeCompare(a))
   ), [allItems, billingMonth]);
-  const items = allItems.filter((item) => item.yearMonth === billingMonth);
+  const items = useMemo(() => sortedExtraSpendings(
+    allItems.filter((item) => item.yearMonth === billingMonth), sortByAmount,
+  ), [allItems, billingMonth, sortByAmount]);
   const calculatedBillingMonth = billingMonthFor(card, spentOn);
   const cutoffDay = billingCutoffDay(card);
 
@@ -82,7 +85,8 @@ export default function ExtraSpendingPage() {
         </button>
       </section>
 
-      <label className="flex items-center justify-end gap-2 text-sm font-medium text-gray-600">
+      <div className="flex items-center justify-end gap-2 text-sm font-medium text-gray-600">
+        <label className="flex items-center gap-2">
         목록 청구월
         <select
           className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-gray-900"
@@ -90,8 +94,18 @@ export default function ExtraSpendingPage() {
           onChange={(event) => setBillingMonth(event.target.value)}
         >
           {months.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
-        </select>
-      </label>
+          </select>
+        </label>
+        <button
+          type="button"
+          aria-pressed={sortByAmount}
+          aria-label={sortByAmount ? '최신순으로 정렬' : '고액순으로 정렬'}
+          className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-gray-700"
+          onClick={() => setSortByAmount((value) => !value)}
+        >
+          {sortByAmount ? '최신순' : '고액순'}
+        </button>
+      </div>
 
       {items.length === 0 ? (
         <p className="text-gray-400 text-sm text-center py-6">선택한 청구월에 추가지출이 없습니다.</p>

@@ -39,6 +39,13 @@ export function dateInKorea(date: Date = new Date()): string {
   return `${value('year')}-${value('month')}-${value('day')}`;
 }
 
+/** The billing month selected when opening the dashboard or extra-spending page. */
+export function defaultBillingYearMonth(date: Date = new Date()): string {
+  const [year, month, day] = dateInKorea(date).split('-').map(Number);
+  const billingDate = new Date(Date.UTC(year, month - 1 + (day >= 2 ? 1 : 0), 1));
+  return `${billingDate.getUTCFullYear()}-${String(billingDate.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
 export function spentOnFromCreatedAt(createdAt: string | undefined): string {
   const date = createdAt ? new Date(createdAt) : new Date();
   return Number.isNaN(date.getTime()) ? dateInKorea() : dateInKorea(date);

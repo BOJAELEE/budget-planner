@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { billingCutoffDay, billingMonthFor, spentOnFromCreatedAt } from './billing';
+import { billingCutoffDay, billingMonthFor, defaultBillingYearMonth, spentOnFromCreatedAt } from './billing';
 
 describe('billingMonthFor', () => {
   it.each([
@@ -32,5 +32,16 @@ describe('billingCutoffDay', () => {
 describe('spentOnFromCreatedAt', () => {
   it('기존 기록시각을 한국 시간의 사용일로 변환한다', () => {
     expect(spentOnFromCreatedAt('2026-06-30T15:30:00.000Z')).toBe('2026-07-01');
+  });
+});
+
+describe('defaultBillingYearMonth', () => {
+  it.each([
+    ['2026-07-01T12:00:00.000Z', '2026-07'],
+    ['2026-07-02T12:00:00.000Z', '2026-08'],
+    ['2026-07-31T12:00:00.000Z', '2026-08'],
+    ['2026-12-02T12:00:00.000Z', '2027-01'],
+  ])('uses the next billing month from the second day: %s', (date, expected) => {
+    expect(defaultBillingYearMonth(new Date(date))).toBe(expected);
   });
 });

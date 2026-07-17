@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { useBudget } from '../hooks/useBudget';
 import { CARD_METHODS } from '../types';
 import { formatKRW } from '../lib/format';
-import { formatYearMonth } from '../lib/billing';
-
-const nowYearMonth = () => new Date().toISOString().slice(0, 7);
+import { defaultBillingYearMonth, formatYearMonth } from '../lib/billing';
+import { displayPercentage } from '../lib/calc';
 
 export default function DashboardPage() {
-  const [yearMonth, setYearMonth] = useState(nowYearMonth());
+  const [yearMonth, setYearMonth] = useState(defaultBillingYearMonth);
   const { loading, error, derived, availableMonths } = useBudget(yearMonth);
 
   if (loading) return <div className="p-8 text-center text-gray-400">불러오는 중입니다.</div>;
@@ -166,9 +165,10 @@ function BudgetProgress({
   balance: number;
   colorClass: string;
 }) {
-  const percentage = denominator > 0 ? (numerator / denominator) * 100 : 0;
-  const isAlert = percentage > 100 || numerator < 0;
-  const width = Math.min(Math.max(percentage, 0), 100);
+  const rawPercentage = denominator > 0 ? (numerator / denominator) * 100 : 0;
+  const percentage = displayPercentage(numerator, denominator);
+  const isAlert = rawPercentage > 100 || numerator < 0;
+  const width = percentage;
 
   return (
     <div className="space-y-2.5">

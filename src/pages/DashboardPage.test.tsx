@@ -4,14 +4,15 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { RepositoryProvider } from '../data/RepositoryContext';
 import { createSeededMemoryRepository } from '../data/memoryRepository';
+import { defaultBillingYearMonth } from '../lib/billing';
 import DashboardPage from './DashboardPage';
 
 describe('DashboardPage', () => {
   it('카드별 고정금액과 추가지출, 예산 요약을 표시한다', async () => {
-    const yearMonth = new Date().toISOString().slice(0, 7);
-    const previousMonth = new Date(`${yearMonth}-01T00:00:00Z`);
-    previousMonth.setUTCMonth(previousMonth.getUTCMonth() - 1);
-    const spentOn = `${previousMonth.toISOString().slice(0, 7)}-01`;
+    const yearMonth = defaultBillingYearMonth();
+    const spendingMonth = new Date(`${yearMonth}-01T00:00:00Z`);
+    spendingMonth.setUTCMonth(spendingMonth.getUTCMonth() - 1);
+    const spentOn = `${spendingMonth.toISOString().slice(0, 7)}-01`;
     const repo = createSeededMemoryRepository();
     await repo.addExtraSpending({ card: '현대카드', name: '식비', amount: 100000, spentOn });
     await repo.addExtraSpending({ card: '신한카드', name: '외식', amount: 50000, spentOn });

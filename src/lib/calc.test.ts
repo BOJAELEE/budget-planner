@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   transferTotal, cardBaseline, incomeTotal, actualsTotal,
   totalBudget, remaining, extraCardSpending, categoryBreakdown,
-  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, totalBudgetV2, remainingV2, savingsTotals,
+  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, sortedExtraSpendings, displayPercentage, totalBudgetV2, remainingV2, savingsTotals,
 } from './calc';
 import type { FixedCost, Income, MonthlyCardActual, ExtraSpending } from '../types';
 
@@ -79,6 +79,21 @@ describe('extra spending calc', () => {
   });
   it('extraSpendingTotal', () => {
     expect(extraSpendingTotal([ex({ amount: 30000 }), ex({ amount: 20000 })])).toBe(50000);
+  });
+  it('sorts extras by amount and uses recency for ties', () => {
+    const items = [
+      ex({ id: 'old', amount: 10000, spentOn: '2026-06-10', createdAt: '2026-06-10T01:00:00.000Z' }),
+      ex({ id: 'new', amount: 10000, spentOn: '2026-06-11', createdAt: '2026-06-11T01:00:00.000Z' }),
+      ex({ id: 'high', amount: 20000, spentOn: '2026-06-09', createdAt: '2026-06-09T01:00:00.000Z' }),
+    ];
+
+    expect(sortedExtraSpendings(items, false).map((item) => item.id)).toEqual(['new', 'old', 'high']);
+    expect(sortedExtraSpendings(items, true).map((item) => item.id)).toEqual(['high', 'new', 'old']);
+  });
+  it('clamps displayed percentages from zero through one hundred', () => {
+    expect(displayPercentage(120, 100)).toBe(100);
+    expect(displayPercentage(-10, 100)).toBe(0);
+    expect(displayPercentage(100, 0)).toBe(0);
   });
   it('extraByCardFromSpendings는 카드별 합, 없으면 0', () => {
     const r = extraByCardFromSpendings([

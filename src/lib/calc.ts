@@ -64,6 +64,18 @@ export function extraSpendingTotal(items: ExtraSpending[]): number {
   return items.reduce((a, x) => a + x.amount, 0);
 }
 
+export function sortedExtraSpendings(items: ExtraSpending[], sortByAmount: boolean): ExtraSpending[] {
+  return [...items].sort((a, b) => {
+    if (sortByAmount && a.amount !== b.amount) return b.amount - a.amount;
+    return b.spentOn.localeCompare(a.spentOn) || b.createdAt.localeCompare(a.createdAt);
+  });
+}
+
+export function displayPercentage(numerator: number, denominator: number): number {
+  if (denominator <= 0) return 0;
+  return Math.min(Math.max((numerator / denominator) * 100, 0), 100);
+}
+
 export function extraByCardFromSpendings(items: ExtraSpending[]): Record<CardMethod, number> {
   const r = Object.fromEntries(CARD_METHODS.map((c) => [c, 0])) as Record<CardMethod, number>;
   for (const it of items) r[it.card] += it.amount;
