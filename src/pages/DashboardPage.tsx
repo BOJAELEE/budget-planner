@@ -20,11 +20,13 @@ export default function DashboardPage() {
   );
 
   const shortage = Math.max(derived.totalBudget - derived.incomeSum, 0);
+  const budgetRemaining = derived.incomeSum - derived.totalBudget;
+  const reserveLivingRemaining = derived.savings.reserveLiving - shortage;
   const savingsAfterShortage = derived.savings.totalSavings - shortage;
 
   return (
     <main className="p-4 space-y-4">
-      <label className="block text-sm font-medium text-gray-600">
+      <label className="block text-base font-medium text-gray-600">
         청구월
         <select
           className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base text-gray-900"
@@ -45,7 +47,7 @@ export default function DashboardPage() {
       </section>
 
       <section
-        className="rounded-2xl border border-white/10 bg-gradient-to-br from-violet-950 via-slate-800 to-sky-950 p-4 shadow-card space-y-4"
+        className="rounded-2xl border border-white/10 bg-gradient-to-br from-violet-950 via-slate-800 to-sky-950 p-5 shadow-card space-y-5"
         aria-label="예산과 저축 현황"
       >
         <BudgetProgress
@@ -53,6 +55,7 @@ export default function DashboardPage() {
           numerator={derived.totalBudget}
           denominator={derived.incomeSum}
           detail={`${formatKRW(derived.totalBudget)} / ${formatKRW(derived.incomeSum)}`}
+          balance={budgetRemaining}
           colorClass="bg-violet-400"
         />
         <BudgetProgress
@@ -60,6 +63,7 @@ export default function DashboardPage() {
           numerator={shortage}
           denominator={derived.savings.reserveLiving}
           detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.reserveLiving)}`}
+          balance={reserveLivingRemaining}
           colorClass="bg-cyan-400"
         />
         <BudgetProgress
@@ -67,6 +71,7 @@ export default function DashboardPage() {
           numerator={shortage}
           denominator={derived.savings.totalSavings}
           detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.totalSavings)}`}
+          balance={savingsAfterShortage}
           colorClass="bg-sky-400"
         />
         <BudgetProgress
@@ -75,6 +80,7 @@ export default function DashboardPage() {
           denominator={derived.savings.totalSavings}
           detail={`${formatKRW(savingsAfterShortage)} / ${formatKRW(derived.savings.totalSavings)}`}
           subdetail={`여행 저금 ${formatKRW(derived.savings.travelSaving)} · 예비 생활비 ${formatKRW(derived.savings.reserveLiving)}`}
+          balance={savingsAfterShortage}
           colorClass="bg-emerald-300"
         />
       </section>
@@ -132,9 +138,9 @@ function SummaryLink({
       aria-label={ariaLabel}
       className="rounded-2xl bg-white p-4 shadow-card transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
     >
-      <span className="block text-sm text-gray-500">{label}</span>
-      <strong className="mt-1 block text-lg text-gray-900">{formatKRW(amount)}</strong>
-      {children && <span className="mt-1 block">{children}</span>}
+      <span className="block text-base text-gray-500">{label}</span>
+      <strong className="mt-1 block text-xl tracking-tight text-gray-900">{formatKRW(amount)}</strong>
+      {children && <span className="mt-1 block text-sm">{children}</span>}
     </Link>
   );
 }
@@ -142,21 +148,22 @@ function SummaryLink({
 function SummaryCard({ label, amount, children }: { label: string; amount: number; children?: React.ReactNode }) {
   return (
     <div className="rounded-2xl bg-white p-4 shadow-card">
-      <div className="text-sm text-gray-500">{label}</div>
-      <strong className="mt-1 block text-lg text-gray-900">{formatKRW(amount)}</strong>
-      {children && <span className="mt-1 block">{children}</span>}
+      <div className="text-base text-gray-500">{label}</div>
+      <strong className="mt-1 block text-xl tracking-tight text-gray-900">{formatKRW(amount)}</strong>
+      {children && <span className="mt-1 block text-sm">{children}</span>}
     </div>
   );
 }
 
 function BudgetProgress({
-  label, numerator, denominator, detail, subdetail, colorClass,
+  label, numerator, denominator, detail, subdetail, balance, colorClass,
 }: {
   label: string;
   numerator: number;
   denominator: number;
   detail: string;
   subdetail?: string;
+  balance: number;
   colorClass: string;
 }) {
   const percentage = denominator > 0 ? (numerator / denominator) * 100 : 0;
@@ -164,16 +171,18 @@ function BudgetProgress({
   const width = Math.min(Math.max(percentage, 0), 100);
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between gap-3 text-sm">
-        <span className="font-semibold text-white">{label}</span>
+    <div className="space-y-2.5">
+      <div className="flex items-baseline justify-between gap-3 text-base">
+        <span className="min-w-0 font-semibold text-white">
+          {label} <span className={balance < 0 ? 'text-neg' : 'text-amber-300'}>잔액 {formatKRW(balance)}</span>
+        </span>
         <span className={isAlert ? 'font-semibold text-neg' : 'text-slate-200'}>{Math.round(percentage)}%</span>
       </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-slate-600/80">
+      <div className="h-3 overflow-hidden rounded-full bg-slate-600/80">
         <div className={`h-full rounded-full ${isAlert ? 'bg-neg' : colorClass}`} style={{ width: `${width}%` }} />
       </div>
-      <div className={isAlert ? 'text-xs text-neg' : 'text-xs text-slate-300'}>{detail}</div>
-      {subdetail && <div className="text-xs text-slate-400">{subdetail}</div>}
+      <div className={isAlert ? 'text-sm text-neg' : 'text-sm text-slate-300'}>{detail}</div>
+      {subdetail && <div className="text-sm text-slate-400">{subdetail}</div>}
     </div>
   );
 }

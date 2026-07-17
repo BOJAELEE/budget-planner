@@ -63,3 +63,16 @@
 @media (min-width: 448px) {
   .app-shell { box-shadow: 0 0 48px rgba(0, 0, 0, 0.24); }
 }
+
+/* Galaxy Z Fold cover displays benefit from a larger minimum text size. */
+@media (max-width: 447px) {
+  .app-shell .text-xs {
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+  }
+
+  .app-shell .text-sm {
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+  }
+}
