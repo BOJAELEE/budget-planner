@@ -71,6 +71,13 @@ export function sortedExtraSpendings(items: ExtraSpending[], sortByAmount: boole
   });
 }
 
+export function sortedFixedCosts(items: FixedCost[], sortByAmount: boolean): FixedCost[] {
+  return [...items].sort((a, b) => {
+    if (sortByAmount && a.amount !== b.amount) return b.amount - a.amount;
+    return a.sortOrder - b.sortOrder || a.id.localeCompare(b.id);
+  });
+}
+
 export function displayPercentage(numerator: number, denominator: number): number {
   if (denominator <= 0) return 0;
   return Math.min(Math.max((numerator / denominator) * 100, 0), 100);

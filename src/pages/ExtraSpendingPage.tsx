@@ -20,6 +20,7 @@ export default function ExtraSpendingPage() {
   const [spentOn, setSpentOn] = useState(dateInKorea());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sortByAmount, setSortByAmount] = useState(false);
+  const [cardFilter, setCardFilter] = useState<CardMethod | 'all'>('all');
 
   const load = async () => setAllItems(await repo.listAllExtraSpendings());
   useEffect(() => { void load(); }, [repo]);
@@ -29,8 +30,8 @@ export default function ExtraSpendingPage() {
       .sort((a, b) => b.localeCompare(a))
   ), [allItems, billingMonth]);
   const items = useMemo(() => sortedExtraSpendings(
-    allItems.filter((item) => item.yearMonth === billingMonth), sortByAmount,
-  ), [allItems, billingMonth, sortByAmount]);
+    allItems.filter((item) => item.yearMonth === billingMonth && (cardFilter === 'all' || item.card === cardFilter)), sortByAmount,
+  ), [allItems, billingMonth, cardFilter, sortByAmount]);
   const calculatedBillingMonth = billingMonthFor(card, spentOn);
   const cutoffDay = billingCutoffDay(card);
 
@@ -85,7 +86,7 @@ export default function ExtraSpendingPage() {
         </button>
       </section>
 
-      <div className="flex items-center justify-end gap-2 text-sm font-medium text-gray-600">
+      <div className="flex flex-wrap items-center justify-end gap-2 text-sm font-medium text-gray-600">
         <label className="flex items-center gap-2">
         목록 청구월
         <select
@@ -94,6 +95,18 @@ export default function ExtraSpendingPage() {
           onChange={(event) => setBillingMonth(event.target.value)}
         >
           {months.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-2">
+          카드사
+          <select
+            aria-label="카드사 필터"
+            className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-gray-900"
+            value={cardFilter}
+            onChange={(event) => setCardFilter(event.target.value as CardMethod | 'all')}
+          >
+            <option value="all">전체</option>
+            {CARD_METHODS.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
         </label>
         <button

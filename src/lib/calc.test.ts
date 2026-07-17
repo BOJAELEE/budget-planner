@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   transferTotal, cardBaseline, incomeTotal, actualsTotal,
   totalBudget, remaining, extraCardSpending, categoryBreakdown,
-  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, sortedExtraSpendings, displayPercentage, totalBudgetV2, remainingV2, savingsTotals,
+  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, sortedExtraSpendings, sortedFixedCosts, displayPercentage, totalBudgetV2, remainingV2, savingsTotals,
 } from './calc';
 import type { FixedCost, Income, MonthlyCardActual, ExtraSpending } from '../types';
 
@@ -94,6 +94,16 @@ describe('extra spending calc', () => {
     expect(displayPercentage(120, 100)).toBe(100);
     expect(displayPercentage(-10, 100)).toBe(0);
     expect(displayPercentage(100, 0)).toBe(0);
+  });
+  it('sorts fixed costs by amount or their configured order', () => {
+    const items = [
+      fc({ id: 'later', amount: 10000, sortOrder: 2 }),
+      fc({ id: 'high', amount: 20000, sortOrder: 3 }),
+      fc({ id: 'first', amount: 10000, sortOrder: 1 }),
+    ];
+
+    expect(sortedFixedCosts(items, false).map((item) => item.id)).toEqual(['first', 'later', 'high']);
+    expect(sortedFixedCosts(items, true).map((item) => item.id)).toEqual(['high', 'first', 'later']);
   });
   it('extraByCardFromSpendings는 카드별 합, 없으면 0', () => {
     const r = extraByCardFromSpendings([
