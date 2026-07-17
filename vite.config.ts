@@ -9,12 +9,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon-192.png', 'icon-512.png'],
+      includeAssets: ['favicon.svg', 'app-icon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: '가계부 예산 계산기',
         short_name: '가계부',
-        theme_color: '#3182F6',
-        background_color: '#F9FAFB',
+        theme_color: '#081421',
+        background_color: '#081421',
         display: 'standalone',
         start_url: '/budget-planner/',
         scope: '/budget-planner/',
