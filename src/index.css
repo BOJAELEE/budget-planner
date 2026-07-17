@@ -64,6 +64,18 @@
 .app-shell .text-white { color: #2f3b35; }
 .app-shell .bg-brand.text-white { color: #ffffff; }
 
+/* Additional spending is softly grouped without a heavy divider. */
+.app-shell .card-budget-table .extra-before-cell { border-right-color: transparent; }
+.app-shell .card-budget-table .extra-header {
+  background: #fff4cc;
+  color: #625626;
+}
+.app-shell .card-budget-table .extra-cell {
+  background: #fffbed;
+  color: #534a28;
+}
+.app-shell .card-budget-table tfoot .extra-cell { background: #fff8dd; }
+
 .app-shell nav {
   max-width: 28rem;
   margin: 0 auto;

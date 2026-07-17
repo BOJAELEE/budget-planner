@@ -86,13 +86,13 @@ export default function DashboardPage() {
       </section>
 
       <section className="overflow-hidden rounded-2xl bg-white shadow-card" aria-label="카드별 예산">
-        <table aria-label="카드별 예산" className="w-full table-fixed border-collapse text-center text-sm">
+        <table aria-label="카드별 예산" className="card-budget-table w-full table-fixed border-collapse text-center text-sm">
           <thead className="bg-gray-50 text-gray-600">
             <tr>
               <th scope="col" className="border-b border-r border-gray-200 px-1 py-3 font-semibold">카드</th>
               <th scope="col" className="border-b border-r border-gray-200 px-1 py-3 font-semibold">합계</th>
-              <th scope="col" className="border-b border-r border-gray-200 px-1 py-3 font-semibold">고정금액</th>
-              <th scope="col" className="border-b border-gray-200 px-1 py-3 font-semibold">추가지출</th>
+              <th scope="col" className="extra-before-cell border-b border-r border-gray-200 px-1 py-3 font-semibold">고정금액</th>
+              <th scope="col" className="extra-header border-b border-gray-200 px-1 py-3 font-semibold">추가지출</th>
             </tr>
           </thead>
           <tbody>
@@ -103,8 +103,8 @@ export default function DashboardPage() {
                 <tr key={card}>
                   <th scope="row" className="border-b border-r border-gray-200 px-1 py-3 font-medium">{card}</th>
                   <td className="border-b border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(fixed + extra)}</td>
-                  <td className="border-b border-r border-gray-200 px-1 py-3">{formatKRW(fixed)}</td>
-                  <td className="border-b border-gray-200 px-1 py-3">{formatKRW(extra)}</td>
+                  <td className="extra-before-cell border-b border-r border-gray-200 px-1 py-3">{formatKRW(fixed)}</td>
+                  <td className="extra-cell border-b border-gray-200 px-1 py-3">{formatKRW(extra)}</td>
                 </tr>
               );
             })}
@@ -113,8 +113,8 @@ export default function DashboardPage() {
             <tr>
               <th scope="row" className="border-r border-gray-200 px-1 py-3 font-semibold">총합계</th>
               <td className="border-r border-gray-200 px-1 py-3 font-bold">{formatKRW(derived.totalBudget)}</td>
-              <td className="border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(derived.fixedTotal)}</td>
-              <td className="px-1 py-3 font-semibold">{formatKRW(derived.extraTotal)}</td>
+              <td className="extra-before-cell border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(derived.fixedTotal)}</td>
+              <td className="extra-cell px-1 py-3 font-semibold">{formatKRW(derived.extraTotal)}</td>
             </tr>
           </tfoot>
         </table>
