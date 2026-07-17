@@ -1,6 +1,7 @@
 import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod } from '../types';
 import type { Repository, ExtraSpendingInput, ExtraSpendingPatch } from './repository';
 import { getSupabase } from '../lib/supabase';
+import { billingMonthFor } from '../lib/billing';
 
 // DB(snake_case) ↔ 도메인(camelCase) 매핑
 const toFixed = (r: any): FixedCost => ({
@@ -12,7 +13,8 @@ const fromFixed = (d: Partial<Omit<FixedCost, 'id'>>) => ({
   amount: d.amount, variability: d.variability, active: d.active, sort_order: d.sortOrder,
 });
 const toExtra = (r: any): ExtraSpending => ({
-  id: r.id, yearMonth: r.year_month, card: r.card, name: r.name, amount: r.amount, createdAt: r.created_at,
+  id: r.id, yearMonth: r.year_month, card: r.card, name: r.name, amount: r.amount,
+  spentOn: r.spent_on, createdAt: r.created_at,
 });
 
 export class SupabaseRepository implements Repository {
@@ -89,20 +91,31 @@ export class SupabaseRepository implements Repository {
   async listExtraSpendings(yearMonth: string) {
     const { data, error } = await this.db
       .from('extra_spendings').select('*')
-      .eq('year_month', yearMonth).order('created_at', { ascending: false });
+      .eq('year_month', yearMonth).order('spent_on', { ascending: false });
     if (error) throw error;
     return (data ?? []).map(toExtra);
   }
   async addExtraSpending(d: ExtraSpendingInput) {
     const { data, error } = await this.db.from('extra_spendings')
-      .insert({ year_month: d.yearMonth, card: d.card, name: d.name, amount: d.amount })
+      .insert({
+        year_month: billingMonthFor(d.card, d.spentOn), card: d.card,
+        name: d.name, amount: d.amount, spent_on: d.spentOn,
+      })
       .select().single();
     if (error) throw error;
     return toExtra(data);
   }
   async updateExtraSpending(id: string, patch: ExtraSpendingPatch) {
+    const { data: current, error: loadError } = await this.db
+      .from('extra_spendings').select('*').eq('id', id).single();
+    if (loadError) throw loadError;
+    const card = patch.card ?? current.card as CardMethod;
+    const spentOn = patch.spentOn ?? current.spent_on;
     const { error } = await this.db.from('extra_spendings')
-      .update({ card: patch.card, name: patch.name, amount: patch.amount }).eq('id', id);
+      .update({
+        card: patch.card, name: patch.name, amount: patch.amount, spent_on: patch.spentOn,
+        year_month: billingMonthFor(card, spentOn),
+      }).eq('id', id);
     if (error) throw error;
   }
   async deleteExtraSpending(id: string) {
@@ -111,7 +124,7 @@ export class SupabaseRepository implements Repository {
   }
   async listAllExtraSpendings() {
     const { data, error } = await this.db
-      .from('extra_spendings').select('*').order('created_at', { ascending: false });
+      .from('extra_spendings').select('*').order('spent_on', { ascending: false });
     if (error) throw error;
     return (data ?? []).map(toExtra);
   }

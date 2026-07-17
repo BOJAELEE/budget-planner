@@ -65,7 +65,7 @@ describe('calc', () => {
 
 const ex = (over: Partial<ExtraSpending>): ExtraSpending => ({
   id: Math.random().toString(), yearMonth: '2026-07', card: '현대카드',
-  name: 'x', amount: 1000, createdAt: new Date().toISOString(), ...over,
+  name: 'x', amount: 1000, spentOn: '2026-06-10', createdAt: new Date().toISOString(), ...over,
 });
 
 describe('extra spending calc', () => {

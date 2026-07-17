@@ -41,10 +41,11 @@ export interface MonthlyCardActual {
 
 export interface ExtraSpending {
   id: string;
-  yearMonth: string; // "2026-07"
+  yearMonth: string; // 청구월, "2026-07"
   card: CardMethod;
   name: string;
   amount: number;
+  spentOn: string; // 실제 사용일, "2026-07-01"
   createdAt: string; // ISO timestamp, 자동 기록
 }
 

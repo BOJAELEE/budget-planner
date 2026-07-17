@@ -1,7 +1,7 @@
 import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod } from '../types';
 
-export type ExtraSpendingInput = { yearMonth: string; card: CardMethod; name: string; amount: number };
-export type ExtraSpendingPatch = Partial<{ card: CardMethod; name: string; amount: number }>;
+export type ExtraSpendingInput = { card: CardMethod; name: string; amount: number; spentOn: string };
+export type ExtraSpendingPatch = Partial<{ card: CardMethod; name: string; amount: number; spentOn: string }>;
 
 export interface Repository {
   listFixedCosts(): Promise<FixedCost[]>;

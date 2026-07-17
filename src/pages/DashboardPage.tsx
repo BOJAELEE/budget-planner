@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { useBudget } from '../hooks/useBudget';
 import { CARD_METHODS } from '../types';
 import { formatKRW } from '../lib/format';
+import { formatYearMonth } from '../lib/billing';
 
 const nowYearMonth = () => new Date().toISOString().slice(0, 7);
 
 export default function DashboardPage() {
-  const [yearMonth] = useState(nowYearMonth());
-  const { loading, error, derived } = useBudget(yearMonth);
+  const [yearMonth, setYearMonth] = useState(nowYearMonth());
+  const { loading, error, derived, availableMonths } = useBudget(yearMonth);
 
   if (loading) return <div className="p-8 text-center text-gray-400">불러오는 중입니다.</div>;
   if (error) return (
@@ -22,6 +23,16 @@ export default function DashboardPage() {
 
   return (
     <main className="p-4 space-y-4">
+      <label className="block text-sm font-medium text-gray-600">
+        청구월
+        <select
+          className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base text-gray-900"
+          value={yearMonth}
+          onChange={(event) => setYearMonth(event.target.value)}
+        >
+          {availableMonths.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
+        </select>
+      </label>
       <section className="grid grid-cols-2 gap-3" aria-label="월간 예산 요약">
         <SummaryLink label="고정금액" amount={derived.fixedTotal} to="/fixed" ariaLabel="고정금액 관리" />
         <SummaryLink label="추가지출" amount={derived.extraTotal} to="/extra" ariaLabel="추가지출 관리" />

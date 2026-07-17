@@ -1,6 +1,7 @@
 import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod } from '../types';
 import type { Repository, ExtraSpendingInput, ExtraSpendingPatch } from './repository';
 import { SEED_FIXED_COSTS, SEED_INCOMES } from './seedData';
+import { billingMonthFor } from '../lib/billing';
 
 const uid = () =>
   (globalThis.crypto?.randomUUID?.() ?? `id_${Math.random().toString(36).slice(2)}`);
@@ -63,16 +64,24 @@ export class MemoryRepository implements Repository {
   async listExtraSpendings(yearMonth: string) {
     return this.extras
       .filter((e) => e.yearMonth === yearMonth)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      .sort((a, b) => b.spentOn.localeCompare(a.spentOn) || b.createdAt.localeCompare(a.createdAt));
   }
   async addExtraSpending(data: ExtraSpendingInput) {
-    const item: ExtraSpending = { ...data, id: uid(), createdAt: new Date().toISOString() };
+    const item: ExtraSpending = {
+      ...data,
+      yearMonth: billingMonthFor(data.card, data.spentOn),
+      id: uid(),
+      createdAt: new Date().toISOString(),
+    };
     this.extras.push(item);
     return item;
   }
   async updateExtraSpending(id: string, patch: ExtraSpendingPatch) {
     const i = this.extras.findIndex((e) => e.id === id);
-    if (i >= 0) this.extras[i] = { ...this.extras[i], ...patch };
+    if (i >= 0) {
+      const next = { ...this.extras[i], ...patch };
+      this.extras[i] = { ...next, yearMonth: billingMonthFor(next.card, next.spentOn) };
+    }
   }
   async deleteExtraSpending(id: string) {
     this.extras = this.extras.filter((e) => e.id !== id);

@@ -12,6 +12,7 @@ export function useBudget(yearMonth: string) {
   const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [extras, setExtras] = useState<ExtraSpending[]>([]);
+  const [allExtras, setAllExtras] = useState<ExtraSpending[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,10 +20,10 @@ export function useBudget(yearMonth: string) {
     setLoading(true);
     setError(null);
     try {
-      const [fc, inc, ex] = await Promise.all([
-        repo.listFixedCosts(), repo.listIncomes(), repo.listExtraSpendings(yearMonth),
+      const [fc, inc, ex, allEx] = await Promise.all([
+        repo.listFixedCosts(), repo.listIncomes(), repo.listExtraSpendings(yearMonth), repo.listAllExtraSpendings(),
       ]);
-      setFixedCosts(fc); setIncomes(inc); setExtras(ex);
+      setFixedCosts(fc); setIncomes(inc); setExtras(ex); setAllExtras(allEx);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -49,5 +50,9 @@ export function useBudget(yearMonth: string) {
     };
   }, [fixedCosts, incomes, extras]);
 
-  return { fixedCosts, incomes, extras, loading, error, reload, derived };
+  const availableMonths = useMemo(() => (
+    [...new Set([yearMonth, ...allExtras.map((extra) => extra.yearMonth)])].sort((a, b) => b.localeCompare(a))
+  ), [allExtras, yearMonth]);
+
+  return { fixedCosts, incomes, extras, loading, error, reload, derived, availableMonths };
 }

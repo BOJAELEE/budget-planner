@@ -1,10 +1,11 @@
 import type { Repository } from '../data/repository';
+import { spentOnFromCreatedAt } from './billing';
 
 export async function exportData(repo: Repository): Promise<string> {
   const [fixedCosts, incomes, actuals, extraSpendings] = await Promise.all([
     repo.listFixedCosts(), repo.listIncomes(), repo.listAllActuals(), repo.listAllExtraSpendings(),
   ]);
-  return JSON.stringify({ version: 1, fixedCosts, incomes, actuals, extraSpendings }, null, 2);
+  return JSON.stringify({ version: 2, fixedCosts, incomes, actuals, extraSpendings }, null, 2);
 }
 
 export async function importData(repo: Repository, json: string): Promise<void> {
@@ -39,6 +40,11 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     await repo.setActual(a.yearMonth, a.paymentMethod, a.actualAmount);
   }
   for (const e of data.extraSpendings ?? []) {
-    await repo.addExtraSpending({ yearMonth: e.yearMonth, card: e.card, name: e.name, amount: e.amount });
+    await repo.addExtraSpending({
+      card: e.card,
+      name: e.name,
+      amount: e.amount,
+      spentOn: typeof e.spentOn === 'string' ? e.spentOn : spentOnFromCreatedAt(e.createdAt),
+    });
   }
 }

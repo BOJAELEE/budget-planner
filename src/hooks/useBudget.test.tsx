@@ -8,8 +8,8 @@ import type { ReactNode } from 'react';
 describe('useBudget', () => {
   it('시드 + 추가지출 로드 후 파생값 계산(V2)', async () => {
     const repo = createSeededMemoryRepository();
-    await repo.addExtraSpending({ yearMonth: '2026-07', card: '현대카드', name: '코스트코', amount: 100000 });
-    await repo.addExtraSpending({ yearMonth: '2026-07', card: '신한카드', name: '외식', amount: 50000 });
+    await repo.addExtraSpending({ card: '현대카드', name: '코스트코', amount: 100000, spentOn: '2026-06-10' });
+    await repo.addExtraSpending({ card: '신한카드', name: '외식', amount: 50000, spentOn: '2026-06-10' });
     const wrapper = ({ children }: { children: ReactNode }) => (
       <RepositoryProvider repo={repo}>{children}</RepositoryProvider>
     );
@@ -27,5 +27,6 @@ describe('useBudget', () => {
     expect(result.current.derived.extraByCard['현대카드']).toBe(100000);
     expect(result.current.derived.extraByCard['신한카드']).toBe(50000);
     expect(result.current.derived.extraByCard['삼성카드']).toBe(0);
+    expect(result.current.availableMonths).toContain('2026-07');
   });
 });

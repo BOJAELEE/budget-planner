@@ -42,8 +42,30 @@ create table if not exists extra_spendings (
   card text not null,
   name text not null,
   amount integer not null check (amount >= 0),
+  spent_on date not null default current_date,
   created_at timestamptz not null default now()
 );
+
+-- 기존 데이터는 입력 시각을 한국 시간의 실제 사용일로 간주하여 청구월을 다시 계산한다.
+alter table extra_spendings add column if not exists spent_on date;
+alter table extra_spendings alter column spent_on set default current_date;
+update extra_spendings
+set spent_on = (created_at at time zone 'Asia/Seoul')::date
+where spent_on is null;
+update extra_spendings
+set year_month = to_char(
+  spent_on + make_interval(months => case
+    when extract(day from spent_on) <= case card
+      when '신한카드' then 16
+      when '현대카드' then 19
+      when '삼성카드' then 19
+      else 19
+    end then 1
+    else 2
+  end),
+  'YYYY-MM'
+);
+alter table extra_spendings alter column spent_on set not null;
 alter table extra_spendings enable row level security;
 create policy "anon all extra_spendings" on extra_spendings for all using (true) with check (true);
 

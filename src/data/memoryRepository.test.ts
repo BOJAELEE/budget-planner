@@ -29,12 +29,15 @@ describe('MemoryRepository', () => {
   });
   it('추가지출 CRUD + 월 필터', async () => {
     const repo = createSeededMemoryRepository();
-    const a = await repo.addExtraSpending({ yearMonth: '2026-07', card: '현대카드', name: '코스트코', amount: 120000 });
-    await repo.addExtraSpending({ yearMonth: '2026-06', card: '신한카드', name: '지난달', amount: 5000 });
+    const a = await repo.addExtraSpending({ card: '현대카드', name: '코스트코', amount: 120000, spentOn: '2026-06-10' });
+    await repo.addExtraSpending({ card: '신한카드', name: '지난달', amount: 5000, spentOn: '2026-05-10' });
     expect(await repo.listExtraSpendings('2026-07')).toHaveLength(1);
     expect(await repo.listAllExtraSpendings()).toHaveLength(2);
     await repo.updateExtraSpending(a.id, { amount: 130000 });
     expect((await repo.listExtraSpendings('2026-07'))[0].amount).toBe(130000);
+    await repo.updateExtraSpending(a.id, { spentOn: '2026-06-20' });
+    expect(await repo.listExtraSpendings('2026-07')).toHaveLength(0);
+    expect(await repo.listExtraSpendings('2026-08')).toHaveLength(1);
     await repo.deleteExtraSpending(a.id);
     expect(await repo.listExtraSpendings('2026-07')).toHaveLength(0);
     await repo.deleteAllExtraSpendings();

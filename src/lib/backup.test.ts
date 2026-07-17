@@ -44,16 +44,34 @@ describe('backup', () => {
 
   it('백업에 추가지출 포함 (교체 복원)', async () => {
     const src = createSeededMemoryRepository();
-    await src.addExtraSpending({ yearMonth: '2026-07', card: '현대카드', name: '코스트코', amount: 120000 });
+    await src.addExtraSpending({ card: '현대카드', name: '코스트코', amount: 120000, spentOn: '2026-06-10' });
     const json = await exportData(src);
 
     const dst = createSeededMemoryRepository();
-    await dst.addExtraSpending({ yearMonth: '2026-01', card: '신한카드', name: '옛날', amount: 999 });
+    await dst.addExtraSpending({ card: '신한카드', name: '옛날', amount: 999, spentOn: '2025-12-10' });
     await importData(dst, json);
 
     const extras = await dst.listAllExtraSpendings();
     expect(extras).toHaveLength(1);
     expect(extras[0].name).toBe('코스트코');
     expect(extras[0].amount).toBe(120000);
+    expect(extras[0].spentOn).toBe('2026-06-10');
+  });
+
+  it('imports legacy extras with a billing month calculated from the created time', async () => {
+    const repo = new MemoryRepository();
+    await importData(repo, JSON.stringify({
+      version: 1,
+      fixedCosts: [],
+      incomes: [],
+      extraSpendings: [{
+        yearMonth: '2026-07', card: '현대카드', name: '기존 항목', amount: 1000,
+        createdAt: '2026-07-20T01:00:00.000Z',
+      }],
+    }));
+
+    const [extra] = await repo.listAllExtraSpendings();
+    expect(extra.spentOn).toBe('2026-07-20');
+    expect(extra.yearMonth).toBe('2026-09');
   });
 });
