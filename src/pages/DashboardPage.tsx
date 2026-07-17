@@ -1,8 +1,6 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useBudget } from '../hooks/useBudget';
-import { StatCard } from '../components/StatCard';
-import { CategoryDonut } from '../components/CategoryDonut';
-import { CardCalculator } from '../components/CardCalculator';
 import { CARD_METHODS } from '../types';
 import { formatKRW } from '../lib/format';
 
@@ -12,62 +10,92 @@ export default function DashboardPage() {
   const [yearMonth] = useState(nowYearMonth());
   const { loading, error, derived } = useBudget(yearMonth);
 
-  if (loading) return <div className="p-8 text-center text-gray-400">불러오는 중…</div>;
+  if (loading) return <div className="p-8 text-center text-gray-400">불러오는 중입니다.</div>;
   if (error) return (
     <div className="p-6 m-4 rounded-2xl bg-white shadow-card text-sm">
-      <div className="font-semibold text-neg mb-2">데이터를 불러오지 못했습니다</div>
+      <div className="font-semibold text-neg mb-2">데이터를 불러오지 못했습니다.</div>
       <div className="text-gray-500 break-all">{error}</div>
-      <div className="mt-3 text-gray-400">
-        Supabase에 <b>extra_spendings</b> 테이블이 있는지 확인하세요.
-      </div>
     </div>
   );
 
+  const shortage = Math.max(derived.totalBudget - derived.incomeSum, 0);
+
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-xl font-bold">{yearMonth.replace('-', '년 ')}월</h1>
+    <main className="p-4 space-y-4">
+      <section className="grid grid-cols-2 gap-3" aria-label="월간 예산 요약">
+        <SummaryLink label="고정금액" amount={derived.fixedTotal} to="/fixed" ariaLabel="고정금액 관리" />
+        <SummaryLink label="추가지출" amount={derived.extraTotal} to="/extra" ariaLabel="추가지출 관리" />
+        <SummaryCard label="총필요 예산" amount={derived.totalBudget} />
+        <SummaryLink label="현재예산" amount={derived.incomeSum} to="/income" ariaLabel="수입 관리">
+          {shortage > 0 && <span className="text-sm font-semibold text-neg">부족금액 {formatKRW(shortage)}</span>}
+        </SummaryLink>
+      </section>
 
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard label="총 필요 예산" amount={derived.totalBudget} />
-        <StatCard
-          label="잔여금액"
-          amount={derived.remaining}
-          tone={derived.remaining < 0 ? 'neg' : 'pos'}
-        />
-      </div>
+      <section className="overflow-hidden rounded-2xl bg-white shadow-card" aria-label="카드별 예산">
+        <table aria-label="카드별 예산" className="w-full table-fixed border-collapse text-center text-sm">
+          <thead className="bg-gray-50 text-gray-600">
+            <tr>
+              <th scope="col" className="border-b border-r border-gray-200 px-1 py-3 font-semibold">카드</th>
+              <th scope="col" className="border-b border-r border-gray-200 px-1 py-3 font-semibold">합계</th>
+              <th scope="col" className="border-b border-r border-gray-200 px-1 py-3 font-semibold">고정금액</th>
+              <th scope="col" className="border-b border-gray-200 px-1 py-3 font-semibold">추가지출</th>
+            </tr>
+          </thead>
+          <tbody>
+            {CARD_METHODS.map((card) => {
+              const fixed = derived.cardBaselines[card];
+              const extra = derived.extraByCard[card];
+              return (
+                <tr key={card}>
+                  <th scope="row" className="border-b border-r border-gray-200 px-1 py-3 font-medium">{card}</th>
+                  <td className="border-b border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(fixed + extra)}</td>
+                  <td className="border-b border-r border-gray-200 px-1 py-3">{formatKRW(fixed)}</td>
+                  <td className="border-b border-gray-200 px-1 py-3">{formatKRW(extra)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot className="bg-gray-50">
+            <tr>
+              <th scope="row" className="border-r border-gray-200 px-1 py-3 font-semibold">총합계</th>
+              <td className="border-r border-gray-200 px-1 py-3 font-bold">{formatKRW(derived.totalBudget)}</td>
+              <td className="border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(derived.fixedTotal)}</td>
+              <td className="px-1 py-3 font-semibold">{formatKRW(derived.extraTotal)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </section>
+    </main>
+  );
+}
 
-      <div className="rounded-2xl bg-white shadow-card p-4 space-y-3">
-        <div className="text-sm text-gray-500">
-          카드별 (고정비 기준선 · 이번달 추가지출)
-        </div>
-        {CARD_METHODS.map((card) => (
-          <div key={card} className="flex justify-between items-center text-sm">
-            <span className="font-medium">{card}</span>
-            <span className="text-gray-500">
-              기준선 {formatKRW(derived.cardBaselines[card])} ·{' '}
-              추가지출{' '}
-              <b className={derived.extraByCard[card] > 0 ? 'text-neg' : 'text-gray-400'}>
-                {formatKRW(derived.extraByCard[card])}
-              </b>
-            </span>
-          </div>
-        ))}
-        <div className="border-t border-gray-100 pt-2 flex justify-between text-sm">
-          <span className="text-gray-500">이번달 추가지출 합계</span>
-          <b className={derived.extraTotal > 0 ? 'text-neg' : 'text-gray-700'}>
-            {formatKRW(derived.extraTotal)}
-          </b>
-        </div>
-      </div>
+function SummaryLink({
+  label, amount, to, ariaLabel, children,
+}: {
+  label: string;
+  amount: number;
+  to: string;
+  ariaLabel: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <Link
+      to={to}
+      aria-label={ariaLabel}
+      className="rounded-2xl bg-white p-4 shadow-card transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+    >
+      <span className="block text-sm text-gray-500">{label}</span>
+      <strong className="mt-1 block text-lg text-gray-900">{formatKRW(amount)}</strong>
+      {children && <span className="mt-1 block">{children}</span>}
+    </Link>
+  );
+}
 
-      <div className="rounded-2xl bg-white shadow-card p-4 text-sm text-gray-600">
-        전체 고정비 <b>{formatKRW(derived.fixedTotal)}</b> · 수입합계{' '}
-        <b>{formatKRW(derived.incomeSum)}</b>
-      </div>
-
-      <CategoryDonut data={derived.breakdown} />
-
-      <CardCalculator yearMonth={yearMonth} transferSum={derived.transferSum} />
+function SummaryCard({ label, amount }: { label: string; amount: number }) {
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-card">
+      <div className="text-sm text-gray-500">{label}</div>
+      <strong className="mt-1 block text-lg text-gray-900">{formatKRW(amount)}</strong>
     </div>
   );
 }
