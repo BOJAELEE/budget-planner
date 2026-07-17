@@ -172,7 +172,7 @@ function BudgetProgress({
 
   return (
     <div className="space-y-2.5">
-      <div className="flex items-baseline justify-between gap-3 text-base">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-base">
         <span className="min-w-0 font-semibold text-white">
           {label} <span className={balance < 0 ? 'text-neg' : 'text-amber-300'}>잔액 {formatKRW(balance)}</span>
         </span>
