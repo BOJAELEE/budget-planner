@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   transferTotal, cardBaseline, incomeTotal, actualsTotal,
   totalBudget, remaining, extraCardSpending, categoryBreakdown,
-  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, totalBudgetV2, remainingV2,
+  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, totalBudgetV2, remainingV2, savingsTotals,
 } from './calc';
 import type { FixedCost, Income, MonthlyCardActual, ExtraSpending } from '../types';
 
@@ -96,5 +96,19 @@ describe('extra spending calc', () => {
   it('remainingV2 = 수입 − totalBudgetV2', () => {
     const incomes: Income[] = [{ id: 'a', name: '월급', amount: 1000000, active: true }];
     expect(remainingV2(costs, incomes, [ex({ amount: 100000 })])).toBe(696000);
+  });
+});
+
+describe('savings totals', () => {
+  it('여행 저금과 두 예비 생활비 항목을 활성 항목만 합산한다', () => {
+    const result = savingsTotals([
+      fc({ name: '여행 저금', amount: 250000 }),
+      fc({ name: '예비 생활비(월급통장에서)', amount: 300000 }),
+      fc({ name: '예비 생활비(양육 수당통장에서)', amount: 105000 }),
+      fc({ name: '예비 생활비(중지)', amount: 90000, active: false }),
+      fc({ name: '다른 저금', amount: 100000 }),
+    ]);
+
+    expect(result).toEqual({ travelSaving: 250000, reserveLiving: 405000, totalSavings: 655000 });
   });
 });

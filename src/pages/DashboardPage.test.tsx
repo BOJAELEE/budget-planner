@@ -29,6 +29,8 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('row', { name: /현대카드/ })).toHaveTextContent('₩204,000');
     expect(screen.getByRole('row', { name: /신한카드/ })).toHaveTextContent('₩881,816');
     expect(screen.getByRole('row', { name: /총합계/ })).toHaveTextContent('₩5,749,868');
+    expect(screen.getByRole('region', { name: '예산과 저축 현황' })).toHaveTextContent('예비 생활비 사용');
+    expect(screen.getByText('여행 저금 ₩250,000 · 예비 생활비 ₩405,000')).toBeInTheDocument();
   });
 
   it('관리 타일은 대응하는 화면으로 연결한다', async () => {

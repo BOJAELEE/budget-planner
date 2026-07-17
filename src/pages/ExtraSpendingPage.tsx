@@ -48,19 +48,7 @@ export default function ExtraSpendingPage() {
 
   return (
     <main className="p-4 space-y-4">
-      <div className="flex items-end justify-between gap-3">
-        <h1 className="text-xl font-bold">추가지출</h1>
-        <label className="text-sm font-medium text-gray-600">
-          청구월
-          <select
-            className="ml-2 rounded-lg border border-gray-200 bg-white px-2 py-1 text-gray-900"
-            value={billingMonth}
-            onChange={(event) => setBillingMonth(event.target.value)}
-          >
-            {months.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
-          </select>
-        </label>
-      </div>
+      <h1 className="text-xl font-bold">추가지출</h1>
 
       <section className="rounded-2xl bg-white shadow-card p-4 space-y-3" aria-label="추가지출 입력">
         <input
@@ -96,6 +84,17 @@ export default function ExtraSpendingPage() {
           추가지출 기록
         </button>
       </section>
+
+      <label className="flex items-center justify-end gap-2 text-sm font-medium text-gray-600">
+        목록 청구월
+        <select
+          className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-gray-900"
+          value={billingMonth}
+          onChange={(event) => setBillingMonth(event.target.value)}
+        >
+          {months.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
+        </select>
+      </label>
 
       {items.length === 0 ? (
         <p className="text-gray-400 text-sm text-center py-6">선택한 청구월에 추가지출이 없습니다.</p>

@@ -20,6 +20,7 @@ export default function DashboardPage() {
   );
 
   const shortage = Math.max(derived.totalBudget - derived.incomeSum, 0);
+  const savingsAfterShortage = derived.savings.totalSavings - shortage;
 
   return (
     <main className="p-4 space-y-4">
@@ -36,10 +37,46 @@ export default function DashboardPage() {
       <section className="grid grid-cols-2 gap-3" aria-label="월간 예산 요약">
         <SummaryLink label="고정금액" amount={derived.fixedTotal} to="/fixed" ariaLabel="고정금액 관리" />
         <SummaryLink label="추가지출" amount={derived.extraTotal} to="/extra" ariaLabel="추가지출 관리" />
-        <SummaryCard label="총필요 예산" amount={derived.totalBudget} />
         <SummaryLink label="현재예산" amount={derived.incomeSum} to="/income" ariaLabel="수입 관리">
-          {shortage > 0 && <span className="text-sm font-semibold text-neg">부족금액 {formatKRW(shortage)}</span>}
         </SummaryLink>
+        <SummaryCard label="총필요 예산" amount={derived.totalBudget}>
+          {shortage > 0 && <span className="text-sm font-semibold text-neg">부족금액 {formatKRW(shortage)}</span>}
+        </SummaryCard>
+      </section>
+
+      <section
+        className="rounded-2xl border border-white/10 bg-gradient-to-br from-violet-950 via-slate-800 to-sky-950 p-4 shadow-card space-y-4"
+        aria-label="예산과 저축 현황"
+      >
+        <BudgetProgress
+          label="월간 예산"
+          numerator={derived.totalBudget}
+          denominator={derived.incomeSum}
+          detail={`${formatKRW(derived.totalBudget)} / ${formatKRW(derived.incomeSum)}`}
+          colorClass="bg-violet-400"
+        />
+        <BudgetProgress
+          label="예비 생활비 사용"
+          numerator={shortage}
+          denominator={derived.savings.reserveLiving}
+          detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.reserveLiving)}`}
+          colorClass="bg-cyan-400"
+        />
+        <BudgetProgress
+          label="전체 저축 사용"
+          numerator={shortage}
+          denominator={derived.savings.totalSavings}
+          detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.totalSavings)}`}
+          colorClass="bg-sky-400"
+        />
+        <BudgetProgress
+          label="저축 잔액"
+          numerator={savingsAfterShortage}
+          denominator={derived.savings.totalSavings}
+          detail={`${formatKRW(savingsAfterShortage)} / ${formatKRW(derived.savings.totalSavings)}`}
+          subdetail={`여행 저금 ${formatKRW(derived.savings.travelSaving)} · 예비 생활비 ${formatKRW(derived.savings.reserveLiving)}`}
+          colorClass="bg-emerald-300"
+        />
       </section>
 
       <section className="overflow-hidden rounded-2xl bg-white shadow-card" aria-label="카드별 예산">
@@ -102,11 +139,41 @@ function SummaryLink({
   );
 }
 
-function SummaryCard({ label, amount }: { label: string; amount: number }) {
+function SummaryCard({ label, amount, children }: { label: string; amount: number; children?: React.ReactNode }) {
   return (
     <div className="rounded-2xl bg-white p-4 shadow-card">
       <div className="text-sm text-gray-500">{label}</div>
       <strong className="mt-1 block text-lg text-gray-900">{formatKRW(amount)}</strong>
+      {children && <span className="mt-1 block">{children}</span>}
+    </div>
+  );
+}
+
+function BudgetProgress({
+  label, numerator, denominator, detail, subdetail, colorClass,
+}: {
+  label: string;
+  numerator: number;
+  denominator: number;
+  detail: string;
+  subdetail?: string;
+  colorClass: string;
+}) {
+  const percentage = denominator > 0 ? (numerator / denominator) * 100 : 0;
+  const isAlert = percentage > 100 || numerator < 0;
+  const width = Math.min(Math.max(percentage, 0), 100);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between gap-3 text-sm">
+        <span className="font-semibold text-white">{label}</span>
+        <span className={isAlert ? 'font-semibold text-neg' : 'text-slate-200'}>{Math.round(percentage)}%</span>
+      </div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-slate-600/80">
+        <div className={`h-full rounded-full ${isAlert ? 'bg-neg' : colorClass}`} style={{ width: `${width}%` }} />
+      </div>
+      <div className={isAlert ? 'text-xs text-neg' : 'text-xs text-slate-300'}>{detail}</div>
+      {subdetail && <div className="text-xs text-slate-400">{subdetail}</div>}
     </div>
   );
 }

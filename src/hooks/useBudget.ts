@@ -5,6 +5,7 @@ import { CARD_METHODS } from '../types';
 import {
   transferTotal, cardBaseline, incomeTotal, categoryBreakdown,
   fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, totalBudgetV2, remainingV2,
+  savingsTotals,
 } from '../lib/calc';
 
 export function useBudget(yearMonth: string) {
@@ -46,6 +47,7 @@ export function useBudget(yearMonth: string) {
       totalBudget: totalBudgetV2(fixedCosts, extras),
       incomeSum: incomeTotal(incomes),
       remaining: remainingV2(fixedCosts, incomes, extras),
+      savings: savingsTotals(fixedCosts),
       breakdown: categoryBreakdown(fixedCosts),
     };
   }, [fixedCosts, incomes, extras]);

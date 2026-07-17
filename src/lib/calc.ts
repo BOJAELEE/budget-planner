@@ -42,6 +42,24 @@ export function fixedCostsTotal(fixedCosts: FixedCost[]): number {
   return activeAmount(fixedCosts);
 }
 
+export function savingsTotals(fixedCosts: FixedCost[]) {
+  let travelSaving = 0;
+  let reserveLiving = 0;
+
+  for (const cost of fixedCosts) {
+    if (!cost.active) continue;
+    const normalizedName = cost.name.replace(/\s/g, '');
+    if (normalizedName.includes('여행저금')) travelSaving += cost.amount;
+    if (normalizedName.includes('예비생활비')) reserveLiving += cost.amount;
+  }
+
+  return {
+    travelSaving,
+    reserveLiving,
+    totalSavings: travelSaving + reserveLiving,
+  };
+}
+
 export function extraSpendingTotal(items: ExtraSpending[]): number {
   return items.reduce((a, x) => a + x.amount, 0);
 }
