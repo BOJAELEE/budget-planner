@@ -172,11 +172,12 @@ function BudgetProgress({
 
   return (
     <div className="space-y-2.5">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-base">
-        <span className="min-w-0 font-semibold text-white">
-          {label} <span className={balance < 0 ? 'text-neg' : 'text-amber-300'}>잔액 {formatKRW(balance)}</span>
+      <div className="flex items-baseline justify-between gap-2 text-base">
+        <span className="min-w-0 font-semibold text-white">{label}</span>
+        <span className="flex shrink-0 items-baseline gap-3 text-right">
+          <span className={balance < 0 ? 'font-semibold text-neg' : 'font-semibold text-amber-300'}>잔액 {formatKRW(balance)}</span>
+          <span className={isAlert ? 'font-semibold text-neg' : 'text-slate-200'}>{Math.round(percentage)}%</span>
         </span>
-        <span className={isAlert ? 'font-semibold text-neg' : 'text-slate-200'}>{Math.round(percentage)}%</span>
       </div>
       <div className="h-3 overflow-hidden rounded-full bg-slate-600/80">
         <div className={`h-full rounded-full ${isAlert ? 'bg-neg' : colorClass}`} style={{ width: `${width}%` }} />
