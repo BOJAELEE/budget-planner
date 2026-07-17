@@ -4,11 +4,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: { DEFAULT: '#3182F6', soft: '#E8F1FE' },
-        pos: '#1DB47C',
-        neg: '#F04452',
+        brand: { DEFAULT: '#43B5FF', soft: '#113A5D' },
+        pos: '#6EE7B7',
+        neg: '#FF7A8A',
       },
-      boxShadow: { card: '0 2px 12px rgba(0,0,0,0.06)' },
+      boxShadow: { card: '0 12px 28px rgba(2,8,16,0.32)' },
     },
   },
   plugins: [],

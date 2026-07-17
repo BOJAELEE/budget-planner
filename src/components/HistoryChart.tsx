@@ -14,8 +14,8 @@ export function HistoryChart({
             formatKRW(Number(v))
           }
         />
-        <Bar dataKey="totalBudget" fill="#3182F6" name="총 필요 예산" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="remaining" fill="#1DB47C" name="잔여금액" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="totalBudget" fill="#43B5FF" name="총 필요 예산" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="remaining" fill="#6EE7B7" name="잔여금액" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

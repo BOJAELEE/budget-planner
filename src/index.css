@@ -2,4 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-body { @apply bg-gray-50 text-gray-900; }
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900;
+    background: #081421;
+    color: #f4f8fd;
+  }
+
+  button, input, select { font: inherit; }
+}
+
+/* Cobalt Ledger: deep financial blue surfaces with a single, highly legible accent. */
+.app-shell {
+  background: #091d33;
+  color: #f4f8fd;
+}
+
+.app-shell .bg-white { background-color: #102945; }
+.app-shell .bg-gray-50 { background-color: #0d2036; }
+.app-shell .bg-gray-100 { background-color: #173653; }
+.app-shell .bg-brand-soft { background-color: #113a5d; color: #e6f4ff; }
+.app-shell .bg-amber-100 { background-color: #4c3b18; }
+.app-shell .text-amber-700 { color: #f8d37d; }
+
+.app-shell .text-gray-900,
+.app-shell .text-gray-700 { color: #f4f8fd; }
+.app-shell .text-gray-600 { color: #c2d1df; }
+.app-shell .text-gray-500 { color: #a9bacd; }
+.app-shell .text-gray-400 { color: #8ea5ba; }
+.app-shell .border,
+.app-shell .border-gray-100,
+.app-shell .border-gray-200 { border-color: #24425f; }
+
+.app-shell .shadow-card { box-shadow: 0 12px 28px rgba(2, 8, 16, 0.32); }
+.app-shell input,
+.app-shell select {
+  background: #0b1b2e;
+  color: #f4f8fd;
+  border-color: #2b4a67;
+}
+.app-shell input::placeholder { color: #7f98ae; }
+.app-shell option { background: #102945; color: #f4f8fd; }
+.app-shell input:focus,
+.app-shell select:focus {
+  border-color: #43b5ff;
+  outline: 2px solid rgba(67, 181, 255, 0.28);
+  outline-offset: 1px;
+}
+.app-shell .focus\:ring-brand:focus { --tw-ring-color: #43b5ff; }
+.app-shell .focus\:ring-offset-2:focus { --tw-ring-offset-color: #091d33; }
+
+.app-shell nav {
+  max-width: 28rem;
+  margin: 0 auto;
+  background: rgba(8, 20, 33, 0.96);
+  border-color: #1d3853;
+  backdrop-filter: blur(14px);
+}
+
+@media (min-width: 448px) {
+  .app-shell { box-shadow: 0 0 48px rgba(0, 0, 0, 0.24); }
+}
