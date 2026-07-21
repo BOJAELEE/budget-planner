@@ -27,6 +27,9 @@ describe('useBudget', () => {
     expect(result.current.derived.extraByCard['현대카드']).toBe(100000);
     expect(result.current.derived.extraByCard['신한카드']).toBe(50000);
     expect(result.current.derived.extraByCard['삼성카드']).toBe(0);
+    expect(result.current.derived.cardFixedTotal).toBe(935816);
+    expect(result.current.derived.cardExtraTotal).toBe(150000);
+    expect(result.current.derived.cardTotal).toBe(1085816);
     expect(result.current.availableMonths).toContain('2026-07');
   });
 });

@@ -111,9 +111,9 @@ export default function DashboardPage() {
           <tfoot className="bg-gray-50">
             <tr>
               <th scope="row" className="border-r border-gray-200 px-1 py-3 font-semibold">총합계</th>
-              <td className="border-r border-gray-200 px-1 py-3 font-bold">{formatKRW(derived.totalBudget)}</td>
-              <td className="extra-before-cell border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(derived.fixedTotal)}</td>
-              <td className="extra-cell px-1 py-3 font-semibold">{formatKRW(derived.extraTotal)}</td>
+              <td className="border-r border-gray-200 px-1 py-3 font-bold">{formatKRW(derived.cardTotal)}</td>
+              <td className="extra-before-cell border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(derived.cardFixedTotal)}</td>
+              <td className="extra-cell px-1 py-3 font-semibold">{formatKRW(derived.cardExtraTotal)}</td>
             </tr>
           </tfoot>
         </table>

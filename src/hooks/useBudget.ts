@@ -38,10 +38,16 @@ export function useBudget(yearMonth: string) {
     const cardBaselines = Object.fromEntries(
       CARD_METHODS.map((c) => [c, cardBaseline(fixedCosts, c)]),
     ) as Record<CardMethod, number>;
+    const extraByCard = extraByCardFromSpendings(extras);
+    const cardFixedTotal = CARD_METHODS.reduce((sum, card) => sum + cardBaselines[card], 0);
+    const cardExtraTotal = CARD_METHODS.reduce((sum, card) => sum + extraByCard[card], 0);
     return {
       transferSum: transferTotal(fixedCosts),
       cardBaselines,
-      extraByCard: extraByCardFromSpendings(extras),
+      extraByCard,
+      cardFixedTotal,
+      cardExtraTotal,
+      cardTotal: cardFixedTotal + cardExtraTotal,
       fixedTotal: fixedCostsTotal(fixedCosts),
       extraTotal: extraSpendingTotal(extras),
       totalBudget: totalBudgetV2(fixedCosts, extras),

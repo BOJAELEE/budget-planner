@@ -21,15 +21,15 @@ describe('DashboardPage', () => {
 
     await waitFor(() => expect(screen.getByRole('table', { name: '카드별 예산' })).toBeInTheDocument());
 
-    expect(screen.getAllByText('₩5,599,868')).toHaveLength(2);
+    expect(screen.getAllByText('₩5,599,868')).toHaveLength(1);
     expect(screen.getAllByText('₩150,000')).toHaveLength(2);
-    expect(screen.getAllByText('₩5,749,868')).toHaveLength(2);
+    expect(screen.getAllByText('₩5,749,868')).toHaveLength(1);
     expect(screen.getByText('₩5,505,000')).toBeInTheDocument();
     expect(screen.getByText('부족금액 ₩244,868')).toBeInTheDocument();
     expect(screen.getByLabelText('청구월')).toHaveValue(yearMonth);
     expect(screen.getByRole('row', { name: /현대카드/ })).toHaveTextContent('₩204,000');
     expect(screen.getByRole('row', { name: /신한카드/ })).toHaveTextContent('₩881,816');
-    expect(screen.getByRole('row', { name: /총합계/ })).toHaveTextContent('₩5,749,868');
+    expect(screen.getByRole('row', { name: /총합계/ })).toHaveTextContent('₩1,085,816');
     expect(screen.getByRole('region', { name: '예산과 저축 현황' })).toHaveTextContent('예비 생활비 사용');
     expect(screen.getByText('잔액 -₩244,868')).toBeInTheDocument();
     expect(screen.getAllByText('잔액 ₩410,132')).toHaveLength(2);
