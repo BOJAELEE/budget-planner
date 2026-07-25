@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useBudget } from '../hooks/useBudget';
 import { CARD_METHODS } from '../types';
 import { formatKRW } from '../lib/format';
@@ -24,6 +23,11 @@ export default function DashboardPage() {
   const budgetRemaining = derived.incomeSum - derived.totalBudget;
   const reserveLivingRemaining = derived.savings.reserveLiving - shortage;
   const savingsAfterShortage = derived.savings.totalSavings - shortage;
+  const currentAccountBalance = Math.max(
+    0,
+    Object.values(derived.balanceProjection.balancesAfter).reduce((sum, amount) => sum + amount, 0),
+  );
+  const nextMonthBalance = Math.max(0, currentAccountBalance + savingsAfterShortage);
 
   return (
     <main className="p-4 space-y-4">
@@ -37,15 +41,15 @@ export default function DashboardPage() {
           {availableMonths.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
         </select>
       </label>
-      <section className="grid grid-cols-2 gap-3" aria-label="월간 예산 요약">
-        <SummaryLink label="고정금액" amount={derived.fixedTotal} to="/fixed" ariaLabel="고정금액 관리" />
-        <SummaryLink label="추가지출" amount={derived.extraTotal} to="/extra" ariaLabel="추가지출 관리" />
-        <SummaryLink label="적용 수입" amount={derived.incomeSum} to="/income" ariaLabel="수입 관리">
-          <span>{formatYearMonth(derived.incomeYearMonth)} 기준</span>
-        </SummaryLink>
+      <section className="grid grid-cols-2 gap-3" aria-label="대시보드 요약">
         <SummaryCard label="총필요 예산" amount={derived.totalBudget}>
-          {shortage > 0 && <span className="text-sm font-semibold text-neg">부족금액 {formatKRW(shortage)}</span>}
+          <>추가지출 {formatKRW(derived.extraTotal)}</>
         </SummaryCard>
+        <SummaryCard label="미충당 금액" amount={derived.balanceProjection.uncoveredAmount} />
+        <SummaryCard label="금월 잔고" amount={currentAccountBalance}>
+          <>저축 금액 {formatKRW(savingsAfterShortage)}</>
+        </SummaryCard>
+        <SummaryCard label="익월 잔고" amount={nextMonthBalance} />
       </section>
 
       <section
@@ -143,28 +147,6 @@ export default function DashboardPage() {
         </table>
       </section>
     </main>
-  );
-}
-
-function SummaryLink({
-  label, amount, to, ariaLabel, children,
-}: {
-  label: string;
-  amount: number;
-  to: string;
-  ariaLabel: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <Link
-      to={to}
-      aria-label={ariaLabel}
-      className="rounded-2xl bg-white p-4 shadow-card transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
-    >
-      <span className="block text-base text-gray-500">{label}</span>
-      <strong className="mt-1 block text-xl tracking-tight text-gray-900">{formatKRW(amount)}</strong>
-      {children && <span className="mt-1 block text-sm">{children}</span>}
-    </Link>
   );
 }
 
