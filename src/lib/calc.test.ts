@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   transferTotal, cardBaseline, incomeTotal, actualsTotal,
   totalBudget, remaining, extraCardSpending, categoryBreakdown,
-  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, sortedExtraSpendings, sortedFixedCosts, displayPercentage, totalBudgetV2, remainingV2, savingsTotals, projectBalanceUsage, buildMonthlyBalanceSeries,
+  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, sortedExtraSpendings, sortedFixedCosts, displayPercentage, totalBudgetV2, remainingV2, savingsTotals, balanceUsageAmount, projectBalanceUsage, buildMonthlyBalanceSeries,
 } from './calc';
 import type { FixedCost, Income, MonthlyCardActual, ExtraSpending } from '../types';
 
@@ -161,6 +161,16 @@ describe('balance usage projection', () => {
     const result = projectBalanceUsage(balances, 700000);
     expect(result.balancesAfter).toEqual({ '월급통장': 0, '비상금통장': 0, '여행통장': 0 });
     expect(result.uncoveredAmount).toBe(100000);
+  });
+
+  it('uses savings before calculating account usage and the uncovered amount', () => {
+    const balances = { '월급통장': 7160, '비상금통장': 411783, '여행통장': 260030 };
+    const accountUsage = balanceUsageAmount(1754546, 655000);
+    const result = projectBalanceUsage(balances, accountUsage);
+
+    expect(accountUsage).toBe(1099546);
+    expect(result.uncoveredAmount).toBe(420573);
+    expect(balanceUsageAmount(500000, 655000)).toBe(0);
   });
 });
 

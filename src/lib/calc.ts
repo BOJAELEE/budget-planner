@@ -60,6 +60,11 @@ export function savingsTotals(fixedCosts: FixedCost[]) {
   };
 }
 
+/** Amount that must be covered by account balances after pausing this month's savings. */
+export function balanceUsageAmount(shortageAmount: number, totalSavings: number): number {
+  return Math.max(Math.max(0, shortageAmount) - Math.max(0, totalSavings), 0);
+}
+
 export function extraSpendingTotal(items: ExtraSpending[]): number {
   return items.reduce((a, x) => a + x.amount, 0);
 }

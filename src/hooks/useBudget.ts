@@ -5,7 +5,7 @@ import { CARD_METHODS } from '../types';
 import {
   transferTotal, cardBaseline, incomeTotal, categoryBreakdown,
   fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings,
-  savingsTotals, buildMonthlyBalanceSeries, projectBalanceUsage,
+  savingsTotals, balanceUsageAmount, buildMonthlyBalanceSeries, projectBalanceUsage,
 } from '../lib/calc';
 import { dateInKorea, nextYearMonth, previousYearMonth } from '../lib/billing';
 
@@ -48,7 +48,8 @@ export function useBudget(yearMonth: string) {
       const throughMonth = knownMonths.sort((a, b) => b.localeCompare(a))[0] > yearMonth
         ? knownMonths.sort((a, b) => b.localeCompare(a))[0]
         : yearMonth;
-      const shortagesByMonth: Record<string, number> = {};
+      const balanceUsageByMonth: Record<string, number> = {};
+      const monthlySavings = savingsTotals(fc).totalSavings;
       await Promise.all(monthRange(firstMonth, throughMonth).map(async (month) => {
         const monthExtras = allEx.filter((item) => item.yearMonth === month);
         const byCard = extraByCardFromSpendings(monthExtras);
@@ -57,9 +58,10 @@ export function useBudget(yearMonth: string) {
           card, allActuals.find((item) => item.yearMonth === month && item.paymentMethod === card)?.actualAmount ?? expectedByCard[card],
         ])) as Record<CardMethod, number>;
         const budget = transferTotal(fc) + CARD_METHODS.reduce((sum, card) => sum + actualByCard[card], 0);
-        shortagesByMonth[month] = Math.max(budget - incomeTotal(await repo.listIncomes(previousYearMonth(month))), 0);
+        const shortage = Math.max(budget - incomeTotal(await repo.listIncomes(previousYearMonth(month))), 0);
+        balanceUsageByMonth[month] = balanceUsageAmount(shortage, monthlySavings);
       }));
-      const series = buildMonthlyBalanceSeries(storedBalances, shortagesByMonth, throughMonth);
+      const series = buildMonthlyBalanceSeries(storedBalances, balanceUsageByMonth, throughMonth);
       const currentCalendarMonth = dateInKorea().slice(0, 7);
       const persistedAutomaticBalances = series.automaticBalances.filter((item) => item.yearMonth <= currentCalendarMonth);
       await repo.replaceAutomaticMonthlyAccountBalances(persistedAutomaticBalances);
@@ -118,13 +120,15 @@ export function useBudget(yearMonth: string) {
     const totalBudget = transferTotal(fixedCosts) + actualCardTotal;
     const incomeSum = incomeTotal(incomes);
     const shortage = Math.max(totalBudget - incomeSum, 0);
-    const currentBalanceProjection = projectBalanceUsage(balanceProjection.startingBalances, shortage);
+    const savings = savingsTotals(fixedCosts);
+    const balanceUsage = balanceUsageAmount(shortage, savings.totalSavings);
+    const currentBalanceProjection = projectBalanceUsage(balanceProjection.startingBalances, balanceUsage);
     return {
       transferSum: transferTotal(fixedCosts), cardBaselines, extraByCard, expectedByCard, enteredActualByCard, actualByCard,
       cardFixedTotal, cardExtraTotal, expectedCardTotal, actualCardTotal,
       fixedTotal: fixedCostsTotal(fixedCosts), extraTotal: extraSpendingTotal(extras), totalBudget, incomeSum,
-      remaining: incomeSum - totalBudget, shortage,
-      savings: savingsTotals(fixedCosts), balanceProjection: currentBalanceProjection, breakdown: categoryBreakdown(fixedCosts),
+      remaining: incomeSum - totalBudget, shortage, balanceUsage,
+      savings, balanceProjection: currentBalanceProjection, breakdown: categoryBreakdown(fixedCosts),
     };
   }, [fixedCosts, incomes, extras, actuals, balanceProjection]);
 
