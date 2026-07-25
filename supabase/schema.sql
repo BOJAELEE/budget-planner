@@ -20,7 +20,7 @@ create table if not exists income_templates (
 
 create table if not exists monthly_incomes (
   id uuid primary key default gen_random_uuid(),
-  year_month text not null check (year_month ~ '^\\d{4}-\\d{2}$'),
+  year_month text not null check (year_month ~ '^\d{4}-\d{2}$'),
   income_type text not null check (income_type in ('고정수입', '변동수입', '기타수입')),
   template_id uuid references income_templates(id) on delete set null,
   name text not null,
