@@ -4,6 +4,7 @@ import DashboardPage from './pages/DashboardPage';
 import ExtraSpendingPage from './pages/ExtraSpendingPage';
 import FixedCostsPage from './pages/FixedCostsPage';
 import IncomePage from './pages/IncomePage';
+import BalancePage from './pages/BalancePage';
 import HistoryPage from './pages/HistoryPage';
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/extra" element={<ExtraSpendingPage />} />
           <Route path="/fixed" element={<FixedCostsPage />} />
           <Route path="/income" element={<IncomePage />} />
+          <Route path="/balance" element={<BalancePage />} />
           <Route path="/history" element={<HistoryPage />} />
         </Routes>
         <BottomNav />

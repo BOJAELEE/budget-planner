@@ -5,6 +5,7 @@ const tabs = [
   { to: '/extra', label: '추가지출' },
   { to: '/fixed', label: '고정비' },
   { to: '/income', label: '수입' },
+  { to: '/balance', label: '잔고' },
   { to: '/history', label: '히스토리' },
 ];
 

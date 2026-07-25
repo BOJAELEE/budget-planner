@@ -1,7 +1,9 @@
-import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod } from '../types';
+import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, AccountBalance, BalanceSettlement } from '../types';
 import type { Repository, ExtraSpendingInput, ExtraSpendingPatch, IncomeInput } from './repository';
 import { SEED_FIXED_COSTS, SEED_INCOME_TEMPLATES } from './seedData';
 import { billingMonthFor } from '../lib/billing';
+import { ACCOUNT_NAMES } from '../types';
+import { projectBalanceUsage } from '../lib/calc';
 
 const uid = () =>
   (globalThis.crypto?.randomUUID?.() ?? `id_${Math.random().toString(36).slice(2)}`);
@@ -12,6 +14,10 @@ export class MemoryRepository implements Repository {
   private incomeTemplates: IncomeTemplate[] = [];
   private actuals: MonthlyCardActual[] = [];
   private extras: ExtraSpending[] = [];
+  private accountBalances: AccountBalance[] = ACCOUNT_NAMES.map((accountName, index) => ({
+    id: `account-${index + 1}`, accountName, amount: 0, sortOrder: index + 1,
+  }));
+  private balanceSettlements: BalanceSettlement[] = [];
 
   async listFixedCosts() {
     return [...this.fixedCosts].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -141,6 +147,42 @@ export class MemoryRepository implements Repository {
   }
   async deleteAllExtraSpendings() {
     this.extras = [];
+  }
+
+  async listAccountBalances() {
+    return [...this.accountBalances].sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+  async updateAccountBalance(accountName: AccountName, amount: number) {
+    this.accountBalances = this.accountBalances.map((item) => (
+      item.accountName === accountName ? { ...item, amount: Math.max(0, Math.round(amount)) } : item
+    ));
+  }
+  async getBalanceSettlement(yearMonth: string) {
+    const item = this.balanceSettlements.find((settlement) => settlement.yearMonth === yearMonth);
+    return item ? { ...item, allocations: [...item.allocations] } : null;
+  }
+  async listAllBalanceSettlements() {
+    return this.balanceSettlements
+      .map((item) => ({ ...item, allocations: [...item.allocations] }))
+      .sort((a, b) => b.yearMonth.localeCompare(a.yearMonth));
+  }
+  async confirmBalanceUsage(yearMonth: string, shortageAmount: number) {
+    const previous = await this.getBalanceSettlement(yearMonth);
+    const balances = Object.fromEntries(this.accountBalances.map((item) => [item.accountName, item.amount])) as Record<AccountName, number>;
+    const projection = projectBalanceUsage(balances, shortageAmount, previous?.allocations);
+    this.accountBalances = this.accountBalances.map((item) => ({ ...item, amount: projection.balancesAfter[item.accountName] }));
+    const settlement: BalanceSettlement = {
+      id: previous?.id ?? uid(), yearMonth, shortageAmount: Math.max(0, Math.round(shortageAmount)),
+      confirmedAt: new Date().toISOString(), allocations: projection.allocations,
+    };
+    this.balanceSettlements = [...this.balanceSettlements.filter((item) => item.yearMonth !== yearMonth), settlement];
+  }
+  async replaceBalanceData(balances: AccountBalance[], settlements: BalanceSettlement[]) {
+    this.accountBalances = ACCOUNT_NAMES.map((accountName, index) => {
+      const source = balances.find((item) => item.accountName === accountName);
+      return { id: source?.id ?? `account-${index + 1}`, accountName, amount: Math.max(0, source?.amount ?? 0), sortOrder: index + 1 };
+    });
+    this.balanceSettlements = settlements.map((item) => ({ ...item, allocations: [...item.allocations] }));
   }
 }
 

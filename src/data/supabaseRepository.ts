@@ -1,4 +1,4 @@
-import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod } from '../types';
+import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, AccountBalance, BalanceSettlement } from '../types';
 import type { Repository, ExtraSpendingInput, ExtraSpendingPatch, IncomeInput } from './repository';
 import { getSupabase } from '../lib/supabase';
 import { billingMonthFor } from '../lib/billing';
@@ -22,6 +22,19 @@ const toIncomeTemplate = (r: any): IncomeTemplate => ({
 const toIncome = (r: any): Income => ({
   id: r.id, yearMonth: r.year_month, type: r.income_type, name: r.name,
   amount: r.amount, active: r.active, templateId: r.template_id ?? undefined,
+});
+const toAccountBalance = (r: any): AccountBalance => ({
+  id: r.id, accountName: r.account_name, amount: r.amount, sortOrder: r.sort_order,
+});
+const toBalanceSettlement = (r: any): BalanceSettlement => ({
+  id: r.id,
+  yearMonth: r.year_month,
+  shortageAmount: r.shortage_amount,
+  confirmedAt: r.confirmed_at,
+  allocations: (r.balance_settlement_allocations ?? []).map((allocation: any) => ({
+    accountName: allocation.account_name,
+    amount: allocation.amount,
+  })),
 });
 
 export class SupabaseRepository implements Repository {
@@ -199,5 +212,65 @@ export class SupabaseRepository implements Repository {
   async deleteAllExtraSpendings() {
     const { error } = await this.db.from('extra_spendings').delete().not('id', 'is', null);
     if (error) throw error;
+  }
+
+  async listAccountBalances() {
+    const { data, error } = await this.db.from('account_balances').select('*').order('sort_order');
+    if (error) throw error;
+    return (data ?? []).map(toAccountBalance);
+  }
+  async updateAccountBalance(accountName: AccountName, amount: number) {
+    const { error } = await this.db.from('account_balances')
+      .update({ amount: Math.max(0, Math.round(amount)) })
+      .eq('account_name', accountName);
+    if (error) throw error;
+  }
+  async getBalanceSettlement(yearMonth: string) {
+    const { data, error } = await this.db.from('balance_settlements')
+      .select('id, year_month, shortage_amount, confirmed_at, balance_settlement_allocations(account_name, amount)')
+      .eq('year_month', yearMonth)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? toBalanceSettlement(data) : null;
+  }
+  async listAllBalanceSettlements() {
+    const { data, error } = await this.db.from('balance_settlements')
+      .select('id, year_month, shortage_amount, confirmed_at, balance_settlement_allocations(account_name, amount)')
+      .order('year_month', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(toBalanceSettlement);
+  }
+  async confirmBalanceUsage(yearMonth: string, shortageAmount: number) {
+    const { error } = await this.db.rpc('confirm_balance_usage', {
+      p_year_month: yearMonth,
+      p_shortage_amount: Math.max(0, Math.round(shortageAmount)),
+    });
+    if (error) throw error;
+  }
+  async replaceBalanceData(balances: AccountBalance[], settlements: BalanceSettlement[]) {
+    const { error: deleteError } = await this.db.from('balance_settlements').delete().not('id', 'is', null);
+    if (deleteError) throw deleteError;
+    for (const balance of balances) {
+      const { error } = await this.db.from('account_balances')
+        .update({ amount: Math.max(0, Math.round(balance.amount)) })
+        .eq('account_name', balance.accountName);
+      if (error) throw error;
+    }
+    for (const settlement of settlements) {
+      const { data, error } = await this.db.from('balance_settlements').insert({
+        year_month: settlement.yearMonth,
+        shortage_amount: Math.max(0, Math.round(settlement.shortageAmount)),
+        confirmed_at: settlement.confirmedAt,
+      }).select('id').single();
+      if (error) throw error;
+      if (settlement.allocations.length > 0) {
+        const { error: allocationError } = await this.db.from('balance_settlement_allocations').insert(
+          settlement.allocations.map((allocation) => ({
+            settlement_id: data.id, account_name: allocation.accountName, amount: Math.max(0, Math.round(allocation.amount)),
+          })),
+        );
+        if (allocationError) throw allocationError;
+      }
+    }
   }
 }

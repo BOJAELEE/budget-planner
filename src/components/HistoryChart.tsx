@@ -1,12 +1,12 @@
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatKRW } from '../lib/format';
 
 export function HistoryChart({
   data,
-}: { data: { yearMonth: string; totalBudget: number; remaining: number }[] }) {
+}: { data: { yearMonth: string; totalBudget: number }[] }) {
   return (
     <ResponsiveContainer width="100%" height={260}>
-      <BarChart data={data}>
+      <LineChart data={data}>
         <XAxis dataKey="yearMonth" tick={{ fontSize: 11 }} />
         <YAxis hide />
         <Tooltip
@@ -14,9 +14,8 @@ export function HistoryChart({
             formatKRW(Number(v))
           }
         />
-        <Bar dataKey="totalBudget" fill="#8FAE9A" name="총 필요 예산" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="remaining" fill="#78A991" name="잔여금액" radius={[4, 4, 0, 0]} />
-      </BarChart>
+        <Line type="monotone" dataKey="totalBudget" stroke="#6e957b" strokeWidth={3} dot={{ r: 4 }} name="총 필요예산" />
+      </LineChart>
     </ResponsiveContainer>
   );
 }

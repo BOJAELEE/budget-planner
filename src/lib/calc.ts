@@ -1,5 +1,5 @@
-import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod, Category } from '../types';
-import { TRANSFER_METHODS, CARD_METHODS } from '../types';
+import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod, Category, AccountName, BalanceAllocation } from '../types';
+import { TRANSFER_METHODS, CARD_METHODS, ACCOUNT_NAMES } from '../types';
 
 const activeAmount = (items: { amount: number; active: boolean }[]) =>
   items.filter((i) => i.active).reduce((a, i) => a + i.amount, 0);
@@ -110,4 +110,38 @@ export function categoryBreakdown(
   return [...map.entries()]
     .map(([category, amount]) => ({ category, amount }))
     .sort((a, b) => b.amount - a.amount);
+}
+
+export type BalanceProjection = {
+  startingBalances: Record<AccountName, number>;
+  balancesAfter: Record<AccountName, number>;
+  allocations: BalanceAllocation[];
+  uncoveredAmount: number;
+};
+
+export function projectBalanceUsage(
+  balances: Record<AccountName, number>,
+  shortageAmount: number,
+  previousAllocations: BalanceAllocation[] = [],
+): BalanceProjection {
+  const startingBalances = Object.fromEntries(
+    ACCOUNT_NAMES.map((accountName) => [accountName, Math.max(0, balances[accountName] ?? 0)]),
+  ) as Record<AccountName, number>;
+
+  for (const allocation of previousAllocations) {
+    startingBalances[allocation.accountName] += Math.max(0, allocation.amount);
+  }
+
+  const balancesAfter = { ...startingBalances };
+  const allocations: BalanceAllocation[] = [];
+  let remainingAmount = Math.max(0, shortageAmount);
+
+  for (const accountName of ACCOUNT_NAMES) {
+    const amount = Math.min(balancesAfter[accountName], remainingAmount);
+    if (amount > 0) allocations.push({ accountName, amount });
+    balancesAfter[accountName] -= amount;
+    remainingAmount -= amount;
+  }
+
+  return { startingBalances, balancesAfter, allocations, uncoveredAmount: remainingAmount };
 }

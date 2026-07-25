@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useRepository } from '../data/RepositoryContext';
 import type { FixedCost } from '../types';
-import { fixedCostsTotal, incomeTotal } from '../lib/calc';
+import { fixedCostsTotal } from '../lib/calc';
 import { HistoryChart } from '../components/HistoryChart';
+import { ExtraSpendingChart } from '../components/ExtraSpendingChart';
 import { formatKRW } from '../lib/format';
 
 export default function HistoryPage() {
   const repo = useRepository();
-  const [rows, setRows] = useState<{ yearMonth: string; totalBudget: number; remaining: number }[]>([]);
+  const [rows, setRows] = useState<{ yearMonth: string; totalBudget: number; extraSpending: number }[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -23,10 +24,9 @@ export default function HistoryPage() {
       const result = await Promise.all(months
         .sort((a, b) => a.localeCompare(b))
         .map(async (yearMonth) => {
-          const income = incomeTotal(await repo.listIncomes(yearMonth));
           const extraSum = byMonth.get(yearMonth) ?? 0;
           const totalBudget = fixedTotal + extraSum;
-          return { yearMonth, totalBudget, remaining: income - totalBudget };
+          return { yearMonth, totalBudget, extraSpending: extraSum };
         }));
       setRows(result);
     })();
@@ -39,13 +39,12 @@ export default function HistoryPage() {
         <p className="text-gray-400 text-sm">아직 데이터가 없습니다. 추가지출을 기록하면 월별로 쌓입니다.</p>
       ) : (
         <>
-          <div className="rounded-2xl bg-white shadow-card p-4"><HistoryChart data={rows} /></div>
+          <section className="rounded-2xl bg-white shadow-card p-4"><h2 className="mb-2 font-bold">총 필요예산</h2><HistoryChart data={rows} /></section>
+          <section className="rounded-2xl bg-white shadow-card p-4"><h2 className="mb-2 font-bold">추가지출</h2><ExtraSpendingChart data={rows} /></section>
           {rows.map((r) => (
             <div key={r.yearMonth} className="flex justify-between rounded-xl bg-white shadow-card px-3 py-2 text-sm">
               <span className="font-medium">{r.yearMonth}</span>
-              <span>예산 {formatKRW(r.totalBudget)} · 잔여{' '}
-                <b className={r.remaining < 0 ? 'text-neg' : 'text-pos'}>{formatKRW(r.remaining)}</b>
-              </span>
+              <span>예산 {formatKRW(r.totalBudget)} · 추가지출 {formatKRW(r.extraSpending)}</span>
             </div>
           ))}
         </>

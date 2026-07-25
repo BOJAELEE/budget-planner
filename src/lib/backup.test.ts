@@ -74,4 +74,18 @@ describe('backup', () => {
     expect(extra.spentOn).toBe('2026-07-20');
     expect(extra.yearMonth).toBe('2026-09');
   });
+
+  it('exports and restores balances with confirmed usage history', async () => {
+    const src = createSeededMemoryRepository();
+    await src.updateAccountBalance('월급통장', 100000);
+    await src.updateAccountBalance('비상금통장', 200000);
+    await src.confirmBalanceUsage('2026-07', 150000);
+    const json = await exportData(src);
+
+    const dst = new MemoryRepository();
+    await importData(dst, json);
+
+    expect((await dst.listAccountBalances()).map((item) => item.amount)).toEqual([0, 150000, 0]);
+    expect(await dst.getBalanceSettlement('2026-07')).not.toBeNull();
+  });
 });

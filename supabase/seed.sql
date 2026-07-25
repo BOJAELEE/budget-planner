@@ -42,3 +42,7 @@ insert into fixed_costs (payment_method, category, name, amount, variability, ac
 insert into income_templates (name, default_amount, active) values
 ('월급',5400000,true),
 ('아동수당',105000,true);
+
+insert into account_balances (account_name, amount, sort_order) values
+('월급통장', 0, 1), ('비상금통장', 0, 2), ('여행통장', 0, 3)
+on conflict (account_name) do nothing;

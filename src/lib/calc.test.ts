@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   transferTotal, cardBaseline, incomeTotal, actualsTotal,
   totalBudget, remaining, extraCardSpending, categoryBreakdown,
-  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, sortedExtraSpendings, sortedFixedCosts, displayPercentage, totalBudgetV2, remainingV2, savingsTotals,
+  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, sortedExtraSpendings, sortedFixedCosts, displayPercentage, totalBudgetV2, remainingV2, savingsTotals, projectBalanceUsage,
 } from './calc';
 import type { FixedCost, Income, MonthlyCardActual, ExtraSpending } from '../types';
 
@@ -135,5 +135,31 @@ describe('savings totals', () => {
     ]);
 
     expect(result).toEqual({ travelSaving: 250000, reserveLiving: 405000, totalSavings: 655000 });
+  });
+});
+
+describe('balance usage projection', () => {
+  const balances = { '월급통장': 100000, '비상금통장': 200000, '여행통장': 300000 };
+
+  it('uses the salary account first when it is sufficient', () => {
+    const result = projectBalanceUsage(balances, 80000);
+    expect(result.allocations).toEqual([{ accountName: '월급통장', amount: 80000 }]);
+    expect(result.balancesAfter).toEqual({ '월급통장': 20000, '비상금통장': 200000, '여행통장': 300000 });
+    expect(result.uncoveredAmount).toBe(0);
+  });
+
+  it('continues to the next account when a balance is insufficient', () => {
+    const result = projectBalanceUsage(balances, 250000);
+    expect(result.allocations).toEqual([
+      { accountName: '월급통장', amount: 100000 },
+      { accountName: '비상금통장', amount: 150000 },
+    ]);
+    expect(result.balancesAfter['비상금통장']).toBe(50000);
+  });
+
+  it('reports the amount that cannot be covered by all accounts', () => {
+    const result = projectBalanceUsage(balances, 700000);
+    expect(result.balancesAfter).toEqual({ '월급통장': 0, '비상금통장': 0, '여행통장': 0 });
+    expect(result.uncoveredAmount).toBe(100000);
   });
 });

@@ -17,6 +17,29 @@ export type Variability = '고정' | '변동';
 export const INCOME_TYPES = ['고정수입', '변동수입', '기타수입'] as const;
 export type IncomeType = (typeof INCOME_TYPES)[number];
 
+export const ACCOUNT_NAMES = ['월급통장', '비상금통장', '여행통장'] as const;
+export type AccountName = (typeof ACCOUNT_NAMES)[number];
+
+export interface AccountBalance {
+  id: string;
+  accountName: AccountName;
+  amount: number;
+  sortOrder: number;
+}
+
+export interface BalanceAllocation {
+  accountName: AccountName;
+  amount: number;
+}
+
+export interface BalanceSettlement {
+  id: string;
+  yearMonth: string;
+  shortageAmount: number;
+  confirmedAt: string;
+  allocations: BalanceAllocation[];
+}
+
 export interface FixedCost {
   id: string;
   paymentMethod: PaymentMethod;

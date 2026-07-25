@@ -6,10 +6,12 @@ import { formatKRW } from '../lib/format';
 import { defaultBillingYearMonth, formatYearMonth } from '../lib/billing';
 import { displayPercentage } from '../lib/calc';
 import { AmountInput } from '../components/AmountInput';
+import { BalanceUsage } from '../components/BalanceUsage';
 
 export default function DashboardPage() {
   const [yearMonth, setYearMonth] = useState(defaultBillingYearMonth);
-  const { loading, error, derived, availableMonths, setActual } = useBudget(yearMonth);
+  const { loading, error, derived, availableMonths, setActual, balanceSettlement, confirmBalanceUsage } = useBudget(yearMonth);
+  const [confirming, setConfirming] = useState(false);
 
   if (loading) return <div className="p-8 text-center text-gray-400">불러오는 중입니다.</div>;
   if (error) return (
@@ -19,10 +21,17 @@ export default function DashboardPage() {
     </div>
   );
 
-  const shortage = Math.max(derived.totalBudget - derived.incomeSum, 0);
+  const shortage = derived.shortage;
   const budgetRemaining = derived.incomeSum - derived.totalBudget;
   const reserveLivingRemaining = derived.savings.reserveLiving - shortage;
   const savingsAfterShortage = derived.savings.totalSavings - shortage;
+  const settlementMatchesCurrentBudget = balanceSettlement?.shortageAmount === shortage;
+
+  const confirmUsage = async () => {
+    setConfirming(true);
+    await confirmBalanceUsage(shortage);
+    setConfirming(false);
+  };
 
   return (
     <main className="p-4 space-y-4">
@@ -84,6 +93,14 @@ export default function DashboardPage() {
           colorClass="bg-mint"
         />
       </section>
+
+      <BalanceUsage
+        projection={derived.balanceProjection}
+        confirmed={settlementMatchesCurrentBudget}
+        hasPreviousSettlement={balanceSettlement !== null}
+        busy={confirming}
+        onConfirm={() => void confirmUsage()}
+      />
 
       <section className="overflow-hidden rounded-2xl bg-white shadow-card" aria-label="카드별 예산">
         <table aria-label="카드별 예산" className="card-budget-table w-full table-fixed border-collapse text-center text-sm">

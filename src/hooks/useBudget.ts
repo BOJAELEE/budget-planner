@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRepository } from '../data/RepositoryContext';
-import type { FixedCost, Income, ExtraSpending, CardMethod, MonthlyCardActual } from '../types';
-import { CARD_METHODS } from '../types';
+import type { FixedCost, Income, ExtraSpending, CardMethod, MonthlyCardActual, AccountBalance, BalanceSettlement, AccountName } from '../types';
+import { CARD_METHODS, ACCOUNT_NAMES } from '../types';
 import {
   transferTotal, cardBaseline, incomeTotal, categoryBreakdown,
   fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings,
-  savingsTotals,
+  savingsTotals, projectBalanceUsage,
 } from '../lib/calc';
 
 export function useBudget(yearMonth: string) {
@@ -15,6 +15,8 @@ export function useBudget(yearMonth: string) {
   const [extras, setExtras] = useState<ExtraSpending[]>([]);
   const [actuals, setActuals] = useState<MonthlyCardActual[]>([]);
   const [allExtras, setAllExtras] = useState<ExtraSpending[]>([]);
+  const [accountBalances, setAccountBalances] = useState<AccountBalance[]>([]);
+  const [balanceSettlement, setBalanceSettlement] = useState<BalanceSettlement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,16 +24,27 @@ export function useBudget(yearMonth: string) {
     setLoading(true);
     setError(null);
     try {
-      const [fc, inc, ex, ac, allEx] = await Promise.all([
+      const [fc, inc, ex, ac, allEx, balances, settlement] = await Promise.all([
         repo.listFixedCosts(), repo.listIncomes(yearMonth), repo.listExtraSpendings(yearMonth), repo.listActuals(yearMonth), repo.listAllExtraSpendings(),
+        repo.listAccountBalances(), repo.getBalanceSettlement(yearMonth),
       ]);
       setFixedCosts(fc); setIncomes(inc); setExtras(ex); setActuals(ac); setAllExtras(allEx);
+      setAccountBalances(balances); setBalanceSettlement(settlement);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
   }, [repo, yearMonth]);
+
+  const confirmBalanceUsage = useCallback(async (shortageAmount: number) => {
+    try {
+      await repo.confirmBalanceUsage(yearMonth, shortageAmount);
+      await reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [repo, reload, yearMonth]);
 
   useEffect(() => { void reload(); }, [reload]);
 
@@ -72,6 +85,12 @@ export function useBudget(yearMonth: string) {
     const expectedCardTotal = CARD_METHODS.reduce((sum, card) => sum + expectedByCard[card], 0);
     const actualCardTotal = CARD_METHODS.reduce((sum, card) => sum + actualByCard[card], 0);
     const totalBudget = transferTotal(fixedCosts) + actualCardTotal;
+    const shortage = Math.max(totalBudget - incomeTotal(incomes), 0);
+    const balances = Object.fromEntries(ACCOUNT_NAMES.map((accountName) => [
+      accountName,
+      accountBalances.find((balance) => balance.accountName === accountName)?.amount ?? 0,
+    ])) as Record<AccountName, number>;
+    const balanceProjection = projectBalanceUsage(balances, shortage, balanceSettlement?.allocations);
     return {
       transferSum: transferTotal(fixedCosts),
       cardBaselines,
@@ -88,14 +107,19 @@ export function useBudget(yearMonth: string) {
       totalBudget,
       incomeSum: incomeTotal(incomes),
       remaining: incomeTotal(incomes) - totalBudget,
+      shortage,
+      balanceProjection,
       savings: savingsTotals(fixedCosts),
       breakdown: categoryBreakdown(fixedCosts),
     };
-  }, [fixedCosts, incomes, extras, actuals]);
+  }, [fixedCosts, incomes, extras, actuals, accountBalances, balanceSettlement]);
 
   const availableMonths = useMemo(() => (
     [...new Set([yearMonth, ...allExtras.map((extra) => extra.yearMonth)])].sort((a, b) => b.localeCompare(a))
   ), [allExtras, yearMonth]);
 
-  return { fixedCosts, incomes, extras, actuals, loading, error, reload, setActual, derived, availableMonths };
+  return {
+    fixedCosts, incomes, extras, actuals, accountBalances, balanceSettlement,
+    loading, error, reload, setActual, confirmBalanceUsage, derived, availableMonths,
+  };
 }
