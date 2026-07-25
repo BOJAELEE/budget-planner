@@ -1,11 +1,30 @@
 import { describe, it, expect } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { RepositoryProvider } from '../data/RepositoryContext';
-import { createSeededMemoryRepository } from '../data/memoryRepository';
+import { createSeededMemoryRepository, MemoryRepository } from '../data/memoryRepository';
 import { useBudget } from './useBudget';
 import type { ReactNode } from 'react';
 
 describe('useBudget', () => {
+  it('uses the previous month income and balance for the selected billing month', async () => {
+    const repo = new MemoryRepository();
+    await repo.addIncome({
+      yearMonth: '2026-07', type: '기타수입', name: '이월 수입', amount: 123456, active: true,
+    });
+    await repo.setMonthlyAccountBalance('2026-07', '월급통장', 654321);
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <RepositoryProvider repo={repo}>{children}</RepositoryProvider>
+    );
+
+    const { result } = renderHook(() => useBudget('2026-08'), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.derived.incomeYearMonth).toBe('2026-07');
+    expect(result.current.derived.incomeSum).toBe(123456);
+    expect(result.current.derived.balanceYearMonth).toBe('2026-07');
+    expect(result.current.derived.balanceProjection.startingBalances['월급통장']).toBe(654321);
+  });
+
   it('시드 + 추가지출 로드 후 파생값 계산(V2)', async () => {
     const repo = createSeededMemoryRepository();
     await repo.addExtraSpending({ card: '현대카드', name: '코스트코', amount: 100000, spentOn: '2026-06-10' });

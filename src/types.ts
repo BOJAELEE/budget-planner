@@ -22,6 +22,7 @@ export type AccountName = (typeof ACCOUNT_NAMES)[number];
 
 export interface MonthlyAccountBalance {
   id: string;
+  /** Balance month. This opening amount is applied to the following billing month. */
   yearMonth: string;
   accountName: AccountName;
   openingAmount: number;

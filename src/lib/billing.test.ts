@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { billingCutoffDay, billingMonthFor, defaultBillingYearMonth, spentOnFromCreatedAt } from './billing';
+import { billingCutoffDay, billingMonthFor, defaultBillingYearMonth, nextYearMonth, previousYearMonth, spentOnFromCreatedAt } from './billing';
 
 describe('billingMonthFor', () => {
   it.each([
@@ -43,5 +43,14 @@ describe('defaultBillingYearMonth', () => {
     ['2026-12-02T12:00:00.000Z', '2027-01'],
   ])('uses the next billing month from the second day: %s', (date, expected) => {
     expect(defaultBillingYearMonth(new Date(date))).toBe(expected);
+  });
+});
+
+describe('year month shifts', () => {
+  it('moves a source month to the following billing month and back across years', () => {
+    expect(nextYearMonth('2026-07')).toBe('2026-08');
+    expect(previousYearMonth('2026-08')).toBe('2026-07');
+    expect(nextYearMonth('2026-12')).toBe('2027-01');
+    expect(previousYearMonth('2026-01')).toBe('2025-12');
   });
 });

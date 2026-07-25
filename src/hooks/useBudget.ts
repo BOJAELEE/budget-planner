@@ -7,7 +7,7 @@ import {
   fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings,
   savingsTotals, buildMonthlyBalanceSeries, projectBalanceUsage,
 } from '../lib/calc';
-import { dateInKorea } from '../lib/billing';
+import { dateInKorea, nextYearMonth, previousYearMonth } from '../lib/billing';
 
 const addMonth = (yearMonth: string) => {
   const [year, month] = yearMonth.split('-').map(Number);
@@ -23,6 +23,7 @@ const monthRange = (from: string, through: string) => {
 
 export function useBudget(yearMonth: string) {
   const repo = useRepository();
+  const sourceMonth = previousYearMonth(yearMonth);
   const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [extras, setExtras] = useState<ExtraSpending[]>([]);
@@ -38,11 +39,11 @@ export function useBudget(yearMonth: string) {
     setError(null);
     try {
       const [fc, inc, ex, ac, allEx, allActuals, allIncomes, storedBalances] = await Promise.all([
-        repo.listFixedCosts(), repo.listIncomes(yearMonth), repo.listExtraSpendings(yearMonth), repo.listActuals(yearMonth),
+        repo.listFixedCosts(), repo.listIncomes(sourceMonth), repo.listExtraSpendings(yearMonth), repo.listActuals(yearMonth),
         repo.listAllExtraSpendings(), repo.listAllActuals(), repo.listAllIncomes(), repo.listMonthlyAccountBalances(),
       ]);
-      const manualMonths = storedBalances.filter((item) => item.isManual).map((item) => item.yearMonth);
-      const knownMonths = [yearMonth, ...manualMonths, ...storedBalances.map((item) => item.yearMonth), ...allEx.map((item) => item.yearMonth), ...allActuals.map((item) => item.yearMonth), ...allIncomes.map((item) => item.yearMonth)];
+      const manualMonths = storedBalances.filter((item) => item.isManual).map((item) => nextYearMonth(item.yearMonth));
+      const knownMonths = [yearMonth, ...manualMonths, ...storedBalances.map((item) => nextYearMonth(item.yearMonth)), ...allEx.map((item) => item.yearMonth), ...allActuals.map((item) => item.yearMonth), ...allIncomes.map((item) => nextYearMonth(item.yearMonth))];
       const firstMonth = manualMonths.sort((a, b) => a.localeCompare(b))[0] ?? yearMonth;
       const throughMonth = knownMonths.sort((a, b) => b.localeCompare(a))[0] > yearMonth
         ? knownMonths.sort((a, b) => b.localeCompare(a))[0]
@@ -56,7 +57,7 @@ export function useBudget(yearMonth: string) {
           card, allActuals.find((item) => item.yearMonth === month && item.paymentMethod === card)?.actualAmount ?? expectedByCard[card],
         ])) as Record<CardMethod, number>;
         const budget = transferTotal(fc) + CARD_METHODS.reduce((sum, card) => sum + actualByCard[card], 0);
-        shortagesByMonth[month] = Math.max(budget - incomeTotal(await repo.listIncomes(month)), 0);
+        shortagesByMonth[month] = Math.max(budget - incomeTotal(await repo.listIncomes(previousYearMonth(month))), 0);
       }));
       const series = buildMonthlyBalanceSeries(storedBalances, shortagesByMonth, throughMonth);
       const currentCalendarMonth = dateInKorea().slice(0, 7);
@@ -70,7 +71,7 @@ export function useBudget(yearMonth: string) {
     } finally {
       setLoading(false);
     }
-  }, [repo, yearMonth]);
+  }, [repo, sourceMonth, yearMonth]);
 
   useEffect(() => { void reload(); }, [reload]);
 
@@ -89,12 +90,12 @@ export function useBudget(yearMonth: string) {
 
   const setMonthlyAccountBalance = useCallback(async (accountName: MonthlyAccountBalance['accountName'], amount: number) => {
     try {
-      await repo.setMonthlyAccountBalance(yearMonth, accountName, amount);
+      await repo.setMonthlyAccountBalance(sourceMonth, accountName, amount);
       await reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [repo, reload, yearMonth]);
+  }, [repo, reload, sourceMonth]);
 
   const derived = useMemo(() => {
     const cardBaselines = Object.fromEntries(
@@ -128,8 +129,15 @@ export function useBudget(yearMonth: string) {
   }, [fixedCosts, incomes, extras, actuals, balanceProjection]);
 
   const availableMonths = useMemo(() => (
-    [...new Set([yearMonth, ...allExtras.map((extra) => extra.yearMonth), ...monthlyBalances.map((item) => item.yearMonth)])].sort((a, b) => b.localeCompare(a))
+    [...new Set([
+      yearMonth,
+      ...allExtras.map((extra) => extra.yearMonth),
+      ...monthlyBalances.map((item) => nextYearMonth(item.yearMonth)),
+    ])].sort((a, b) => b.localeCompare(a))
   ), [allExtras, monthlyBalances, yearMonth]);
 
-  return { fixedCosts, incomes, extras, actuals, monthlyBalances, loading, error, reload, setActual, setMonthlyAccountBalance, derived, availableMonths };
+  return {
+    fixedCosts, incomes, extras, actuals, monthlyBalances, loading, error, reload,
+    setActual, setMonthlyAccountBalance, derived: { ...derived, incomeYearMonth: sourceMonth, balanceYearMonth: sourceMonth }, availableMonths,
+  };
 }

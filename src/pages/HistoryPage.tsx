@@ -3,7 +3,6 @@ import { useRepository } from '../data/RepositoryContext';
 import type { FixedCost } from '../types';
 import { fixedCostsTotal } from '../lib/calc';
 import { HistoryChart } from '../components/HistoryChart';
-import { ExtraSpendingChart } from '../components/ExtraSpendingChart';
 import { formatKRW } from '../lib/format';
 
 export default function HistoryPage() {
@@ -39,8 +38,10 @@ export default function HistoryPage() {
         <p className="text-gray-400 text-sm">아직 데이터가 없습니다. 추가지출을 기록하면 월별로 쌓입니다.</p>
       ) : (
         <>
-          <section className="rounded-2xl bg-white shadow-card p-4"><h2 className="mb-2 font-bold">총 필요예산</h2><HistoryChart data={rows} /></section>
-          <section className="rounded-2xl bg-white shadow-card p-4"><h2 className="mb-2 font-bold">추가지출</h2><ExtraSpendingChart data={rows} /></section>
+          <section className="rounded-2xl bg-white shadow-card p-4">
+            <h2 className="mb-2 font-bold">예산 · 추가지출</h2>
+            <HistoryChart data={rows} />
+          </section>
           {rows.map((r) => (
             <div key={r.yearMonth} className="flex justify-between rounded-xl bg-white shadow-card px-3 py-2 text-sm">
               <span className="font-medium">{r.yearMonth}</span>

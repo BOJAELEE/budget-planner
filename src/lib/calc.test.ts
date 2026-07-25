@@ -170,20 +170,20 @@ describe('monthly balance rollover', () => {
       { id: 'salary', yearMonth: '2026-07', accountName: '월급통장', openingAmount: 100000, isManual: true },
       { id: 'reserve', yearMonth: '2026-07', accountName: '비상금통장', openingAmount: 200000, isManual: true },
       { id: 'travel', yearMonth: '2026-07', accountName: '여행통장', openingAmount: 300000, isManual: true },
-    ], { '2026-07': 250000, '2026-08': 50000 }, '2026-08');
+    ], { '2026-08': 250000, '2026-09': 50000 }, '2026-09');
 
-    expect(result.projections['2026-07'].balancesAfter).toEqual({ '월급통장': 0, '비상금통장': 50000, '여행통장': 300000 });
-    expect(result.projections['2026-08'].startingBalances).toEqual({ '월급통장': 0, '비상금통장': 50000, '여행통장': 300000 });
-    expect(result.projections['2026-08'].balancesAfter).toEqual({ '월급통장': 0, '비상금통장': 0, '여행통장': 300000 });
+    expect(result.projections['2026-08'].balancesAfter).toEqual({ '월급통장': 0, '비상금통장': 50000, '여행통장': 300000 });
+    expect(result.projections['2026-09'].startingBalances).toEqual({ '월급통장': 0, '비상금통장': 50000, '여행통장': 300000 });
+    expect(result.projections['2026-09'].balancesAfter).toEqual({ '월급통장': 0, '비상금통장': 0, '여행통장': 300000 });
   });
 
   it('keeps a manually entered month as the next rollover baseline', () => {
     const result = buildMonthlyBalanceSeries([
       { id: 'july-salary', yearMonth: '2026-07', accountName: '월급통장', openingAmount: 100000, isManual: true },
       { id: 'aug-salary', yearMonth: '2026-08', accountName: '월급통장', openingAmount: 400000, isManual: true },
-    ], { '2026-07': 90000, '2026-08': 100000, '2026-09': 50000 }, '2026-09');
+    ], { '2026-08': 90000, '2026-09': 100000, '2026-10': 50000 }, '2026-10');
 
-    expect(result.projections['2026-08'].startingBalances['월급통장']).toBe(400000);
-    expect(result.projections['2026-09'].startingBalances['월급통장']).toBe(300000);
+    expect(result.projections['2026-09'].startingBalances['월급통장']).toBe(400000);
+    expect(result.projections['2026-10'].startingBalances['월급통장']).toBe(300000);
   });
 });

@@ -160,7 +160,8 @@ export function buildMonthlyBalanceSeries(
   const manualByMonth = new Map<string, Record<AccountName, number>>();
   const allMonths = new Set<string>([throughMonth, ...Object.keys(shortagesByMonth)]);
   for (const record of records) {
-    allMonths.add(record.yearMonth);
+    // A balance entered for July is the opening balance used by the August billing month.
+    allMonths.add(addMonth(record.yearMonth));
     if (!record.isManual) continue;
     const current = manualByMonth.get(record.yearMonth) ?? Object.fromEntries(
       ACCOUNT_NAMES.map((accountName) => [accountName, 0]),
@@ -175,12 +176,15 @@ export function buildMonthlyBalanceSeries(
   let opening = Object.fromEntries(ACCOUNT_NAMES.map((accountName) => [accountName, 0])) as Record<AccountName, number>;
 
   for (let month = firstMonth; month <= lastMonth; month = addMonth(month)) {
-    const manual = manualByMonth.get(month);
+    const [year, monthNumber] = month.split('-').map(Number);
+    const sourceDate = new Date(Date.UTC(year, monthNumber - 2, 1));
+    const sourceMonth = `${sourceDate.getUTCFullYear()}-${String(sourceDate.getUTCMonth() + 1).padStart(2, '0')}`;
+    const manual = manualByMonth.get(sourceMonth);
     if (manual) opening = { ...manual };
     else {
       automaticBalances.push(...ACCOUNT_NAMES.map((accountName, index) => ({
-        id: `auto-${month}-${index}`,
-        yearMonth: month,
+        id: `auto-${sourceMonth}-${index}`,
+        yearMonth: sourceMonth,
         accountName,
         openingAmount: opening[accountName],
         isManual: false,

@@ -1,17 +1,17 @@
 import type { Repository } from '../data/repository';
-import { defaultBillingYearMonth, spentOnFromCreatedAt } from './billing';
+import { dateInKorea, defaultBillingYearMonth, previousYearMonth, spentOnFromCreatedAt } from './billing';
 
 export async function exportData(repo: Repository): Promise<string> {
   const [fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances] = await Promise.all([
     repo.listFixedCosts(), repo.listIncomeTemplates(), repo.listAllIncomes(), repo.listAllActuals(), repo.listAllExtraSpendings(),
     repo.listMonthlyAccountBalances(),
   ]);
-  return JSON.stringify({ version: 5, fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances }, null, 2);
+  return JSON.stringify({ version: 6, fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances }, null, 2);
 }
 
 export async function importData(repo: Repository, json: string): Promise<void> {
   const parsed = JSON.parse(json) as {
-    fixedCosts?: unknown; incomeTemplates?: unknown; incomes?: unknown; actuals?: unknown; extraSpendings?: unknown;
+    version?: unknown; fixedCosts?: unknown; incomeTemplates?: unknown; incomes?: unknown; actuals?: unknown; extraSpendings?: unknown;
     monthlyAccountBalances?: unknown; accountBalances?: unknown; balanceSettlements?: unknown;
   };
   // 삭제 전에 반드시 유효성 검증 (형식이 잘못된 파일이 기존 데이터를 지우지 않도록)
@@ -28,7 +28,7 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     throw new Error('백업 파일 형식이 올바르지 않습니다.');
   }
   const data = parsed as {
-    fixedCosts: any[]; incomeTemplates?: any[]; incomes: any[]; actuals?: any[]; extraSpendings?: any[];
+    version?: unknown; fixedCosts: any[]; incomeTemplates?: any[]; incomes: any[]; actuals?: any[]; extraSpendings?: any[];
     monthlyAccountBalances?: any[]; accountBalances?: any[]; balanceSettlements?: any[];
   };
 
@@ -73,9 +73,13 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     });
   }
   if (data.monthlyAccountBalances !== undefined) {
-    await repo.replaceMonthlyAccountBalances(data.monthlyAccountBalances);
+    const usesBalanceMonth = data.version === 6;
+    await repo.replaceMonthlyAccountBalances(data.monthlyAccountBalances.map((balance) => ({
+      ...balance,
+      yearMonth: usesBalanceMonth ? balance.yearMonth : previousYearMonth(balance.yearMonth),
+    })));
   } else if (data.accountBalances !== undefined) {
-    const yearMonth = defaultBillingYearMonth();
+    const yearMonth = dateInKorea().slice(0, 7);
     await repo.replaceMonthlyAccountBalances(data.accountBalances.map((balance) => ({
       id: balance.id ?? `${yearMonth}-${balance.accountName}`,
       yearMonth, accountName: balance.accountName,

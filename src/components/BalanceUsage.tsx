@@ -10,9 +10,9 @@ export function BalanceUsage({ projection }: { projection: BalanceProjection }) 
   const percentage = startingTotal === 0 ? 0 : Math.round((remainingTotal / startingTotal) * 100);
 
   return (
-    <div className="space-y-2.5" aria-label="저축 잔액">
+    <div className="space-y-2.5" aria-label="통장 사용">
       <div className="flex items-baseline justify-between gap-2 text-base">
-        <span className="budget-label min-w-0 font-semibold">저축 잔액</span>
+        <span className="budget-label min-w-0 font-semibold">통장 사용</span>
         <span className={projection.uncoveredAmount > 0 ? 'font-semibold text-neg' : 'budget-balance font-semibold'}>잔액 {formatKRW(remainingTotal)} · {percentage}%</span>
       </div>
       <div className="budget-track flex h-3 overflow-hidden rounded-full">

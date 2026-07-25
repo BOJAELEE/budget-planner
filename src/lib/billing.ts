@@ -46,6 +46,20 @@ export function defaultBillingYearMonth(date: Date = new Date()): string {
   return `${billingDate.getUTCFullYear()}-${String(billingDate.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
+export function shiftYearMonth(yearMonth: string, offset: number): string {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1 + offset, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+export function previousYearMonth(yearMonth: string): string {
+  return shiftYearMonth(yearMonth, -1);
+}
+
+export function nextYearMonth(yearMonth: string): string {
+  return shiftYearMonth(yearMonth, 1);
+}
+
 export function spentOnFromCreatedAt(createdAt: string | undefined): string {
   const date = createdAt ? new Date(createdAt) : new Date();
   return Number.isNaN(date.getTime()) ? dateInKorea() : dateInKorea(date);

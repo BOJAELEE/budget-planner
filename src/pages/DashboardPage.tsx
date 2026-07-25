@@ -40,7 +40,8 @@ export default function DashboardPage() {
       <section className="grid grid-cols-2 gap-3" aria-label="월간 예산 요약">
         <SummaryLink label="고정금액" amount={derived.fixedTotal} to="/fixed" ariaLabel="고정금액 관리" />
         <SummaryLink label="추가지출" amount={derived.extraTotal} to="/extra" ariaLabel="추가지출 관리" />
-        <SummaryLink label="현재예산" amount={derived.incomeSum} to="/income" ariaLabel="수입 관리">
+        <SummaryLink label="적용 수입" amount={derived.incomeSum} to="/income" ariaLabel="수입 관리">
+          <span>{formatYearMonth(derived.incomeYearMonth)} 기준</span>
         </SummaryLink>
         <SummaryCard label="총필요 예산" amount={derived.totalBudget}>
           {shortage > 0 && <span className="text-sm font-semibold text-neg">부족금액 {formatKRW(shortage)}</span>}
@@ -52,7 +53,7 @@ export default function DashboardPage() {
         aria-label="예산과 저축 현황"
       >
         <BudgetProgress
-          label="월간 예산"
+          label="예산"
           numerator={derived.totalBudget}
           denominator={derived.incomeSum}
           detail={`${formatKRW(derived.totalBudget)} / ${formatKRW(derived.incomeSum)}`}
@@ -60,7 +61,7 @@ export default function DashboardPage() {
           colorClass="bg-sage"
         />
         <BudgetProgress
-          label="예비 생활비 사용"
+          label="예비금 사용"
           numerator={shortage}
           denominator={derived.savings.reserveLiving}
           detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.reserveLiving)}`}
@@ -68,7 +69,7 @@ export default function DashboardPage() {
           colorClass="bg-aqua"
         />
         <BudgetProgress
-          label="전체 저축 사용"
+          label="저축 사용"
           numerator={shortage}
           denominator={derived.savings.totalSavings}
           detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.totalSavings)}`}

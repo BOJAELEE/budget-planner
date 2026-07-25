@@ -4,7 +4,7 @@ import { INCOME_TYPES, type Income, type IncomeType } from '../types';
 import { AmountInput } from '../components/AmountInput';
 import { formatKRW, parseAmount } from '../lib/format';
 import { incomeTotal } from '../lib/calc';
-import { defaultBillingYearMonth, formatYearMonth } from '../lib/billing';
+import { dateInKorea, formatYearMonth } from '../lib/billing';
 import { BackupPanel } from '../components/BackupPanel';
 
 const typeLabels: Record<IncomeType, string> = {
@@ -13,7 +13,7 @@ const typeLabels: Record<IncomeType, string> = {
 
 export default function IncomePage() {
   const repo = useRepository();
-  const [yearMonth, setYearMonth] = useState(defaultBillingYearMonth);
+  const [yearMonth, setYearMonth] = useState(() => dateInKorea().slice(0, 7));
   const [items, setItems] = useState<Income[]>([]);
   const [allItems, setAllItems] = useState<Income[]>([]);
   const [newName, setNewName] = useState('');

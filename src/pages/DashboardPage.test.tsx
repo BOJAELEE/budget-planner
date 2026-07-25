@@ -32,9 +32,9 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('row', { name: /현대/ })).toHaveTextContent('₩204,000');
     expect(screen.getByRole('row', { name: /신한/ })).toHaveTextContent('₩881,816');
     expect(screen.getByRole('row', { name: /합계/ })).toHaveTextContent('₩1,085,816');
-    expect(screen.getByRole('region', { name: '예산과 저축 현황' })).toHaveTextContent('예비 생활비 사용');
+    expect(screen.getByRole('region', { name: '예산과 저축 현황' })).toHaveTextContent('예비금 사용');
     expect(screen.getByText('잔액 -₩244,868')).toBeInTheDocument();
-    expect(screen.getByLabelText('저축 잔액')).toBeInTheDocument();
+    expect(screen.getByLabelText('통장 사용')).toBeInTheDocument();
   });
 
   it('입력한 실제 카드값으로 총 필요 예산을 계산한다', async () => {

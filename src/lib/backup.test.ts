@@ -89,4 +89,21 @@ describe('backup', () => {
       expect.objectContaining({ yearMonth: '2026-07', accountName: '비상금통장', openingAmount: 200000, isManual: true }),
     ]));
   });
+
+  it('moves version 5 balance records back one month during restore', async () => {
+    const repo = new MemoryRepository();
+    await importData(repo, JSON.stringify({
+      version: 5,
+      fixedCosts: [],
+      incomes: [],
+      monthlyAccountBalances: [{
+        id: 'old-balance', yearMonth: '2026-08', accountName: '월급통장',
+        openingAmount: 100000, isManual: true,
+      }],
+    }));
+
+    expect(await repo.listMonthlyAccountBalances()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ yearMonth: '2026-07', accountName: '월급통장', openingAmount: 100000 }),
+    ]));
+  });
 });
