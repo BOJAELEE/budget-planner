@@ -50,6 +50,17 @@ describe('MemoryRepository', () => {
     expect(july.find((item) => item.name === '월급')?.amount).toBe(5200000);
     expect(august.find((item) => item.name === '월급')?.amount).toBe(5400000);
   });
+  it('아동수당 기본값은 2026년 8월부터 210,000원이다', async () => {
+    const repo = createSeededMemoryRepository();
+
+    const july = await repo.listIncomes('2026-07');
+    const august = await repo.listIncomes('2026-08');
+    const september = await repo.listIncomes('2026-09');
+
+    expect(july.find((item) => item.name === '아동수당')?.amount).toBe(105000);
+    expect(august.find((item) => item.name === '아동수당')?.amount).toBe(210000);
+    expect(september.find((item) => item.name === '아동수당')?.amount).toBe(210000);
+  });
   it('추가지출 CRUD + 월 필터', async () => {
     const repo = createSeededMemoryRepository();
     const a = await repo.addExtraSpending({ card: '현대카드', name: '코스트코', amount: 120000, spentOn: '2026-06-10' });

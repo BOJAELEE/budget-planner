@@ -2,6 +2,7 @@ import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpendin
 import type { Repository, ExtraSpendingInput, ExtraSpendingPatch, IncomeInput } from './repository';
 import { getSupabase } from '../lib/supabase';
 import { billingMonthFor, previousYearMonth } from '../lib/billing';
+import { defaultIncomeAmount } from '../lib/incomeDefaults';
 
 // DB(snake_case) ↔ 도메인(camelCase) 매핑
 const toFixed = (r: any): FixedCost => ({
@@ -82,7 +83,7 @@ export class SupabaseRepository implements Repository {
         yearMonth,
         type: '고정수입' as const,
         name: template.name,
-        amount: template.defaultAmount,
+        amount: defaultIncomeAmount(template, yearMonth),
         active: template.active,
         templateId: template.id,
       }

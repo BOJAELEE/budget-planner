@@ -2,6 +2,7 @@ import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpendin
 import type { Repository, ExtraSpendingInput, ExtraSpendingPatch, IncomeInput } from './repository';
 import { SEED_FIXED_COSTS, SEED_INCOME_TEMPLATES } from './seedData';
 import { billingMonthFor, previousYearMonth } from '../lib/billing';
+import { defaultIncomeAmount } from '../lib/incomeDefaults';
 
 const uid = () =>
   (globalThis.crypto?.randomUUID?.() ?? `id_${Math.random().toString(36).slice(2)}`);
@@ -48,7 +49,7 @@ export class MemoryRepository implements Repository {
         yearMonth,
         type: '고정수입' as const,
         name: template.name,
-        amount: template.defaultAmount,
+        amount: defaultIncomeAmount(template, yearMonth),
         active: template.active,
         templateId: template.id,
       });
