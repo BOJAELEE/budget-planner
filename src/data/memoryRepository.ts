@@ -1,6 +1,6 @@
-import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod } from '../types';
-import type { Repository, ExtraSpendingInput, ExtraSpendingPatch } from './repository';
-import { SEED_FIXED_COSTS, SEED_INCOMES } from './seedData';
+import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod } from '../types';
+import type { Repository, ExtraSpendingInput, ExtraSpendingPatch, IncomeInput } from './repository';
+import { SEED_FIXED_COSTS, SEED_INCOME_TEMPLATES } from './seedData';
 import { billingMonthFor } from '../lib/billing';
 
 const uid = () =>
@@ -9,6 +9,7 @@ const uid = () =>
 export class MemoryRepository implements Repository {
   private fixedCosts: FixedCost[] = [];
   private incomes: Income[] = [];
+  private incomeTemplates: IncomeTemplate[] = [];
   private actuals: MonthlyCardActual[] = [];
   private extras: ExtraSpending[] = [];
 
@@ -28,10 +29,28 @@ export class MemoryRepository implements Repository {
     this.fixedCosts = this.fixedCosts.filter((f) => f.id !== id);
   }
 
-  async listIncomes() {
+  async listIncomes(yearMonth: string) {
+    const monthlyItems = this.incomes.filter((income) => income.yearMonth === yearMonth);
+    const fixedIncome = this.incomeTemplates
+      .filter((template) => template.active)
+      .map((template) => monthlyItems.find((income) => income.templateId === template.id) ?? {
+        id: `default-${template.id}-${yearMonth}`,
+        yearMonth,
+        type: '고정수입' as const,
+        name: template.name,
+        amount: template.defaultAmount,
+        active: template.active,
+        templateId: template.id,
+      });
+    const nonFixedIncome = monthlyItems.filter((income) => (
+      income.type !== '고정수입' || !this.incomeTemplates.some((template) => template.id === income.templateId && template.active)
+    ));
+    return [...fixedIncome, ...nonFixedIncome];
+  }
+  async listAllIncomes() {
     return [...this.incomes];
   }
-  async addIncome(data: Omit<Income, 'id'>) {
+  async addIncome(data: IncomeInput) {
     const item = { ...data, id: uid() };
     this.incomes.push(item);
     return item;
@@ -42,6 +61,37 @@ export class MemoryRepository implements Repository {
   }
   async deleteIncome(id: string) {
     this.incomes = this.incomes.filter((x) => x.id !== id);
+  }
+  async listIncomeTemplates() {
+    return [...this.incomeTemplates];
+  }
+  async addIncomeTemplate(data: Omit<IncomeTemplate, 'id'>) {
+    const item = { ...data, id: uid() };
+    this.incomeTemplates.push(item);
+    return item;
+  }
+  async updateIncomeTemplate(id: string, patch: Partial<Omit<IncomeTemplate, 'id'>>) {
+    const index = this.incomeTemplates.findIndex((item) => item.id === id);
+    if (index >= 0) this.incomeTemplates[index] = { ...this.incomeTemplates[index], ...patch };
+  }
+  async deleteIncomeTemplate(id: string) {
+    this.incomeTemplates = this.incomeTemplates.filter((item) => item.id !== id);
+  }
+  async setFixedIncome(yearMonth: string, templateId: string, amount: number) {
+    const template = this.incomeTemplates.find((item) => item.id === templateId);
+    if (!template) throw new Error('고정수입 항목을 찾을 수 없습니다.');
+    const index = this.incomes.findIndex((item) => item.yearMonth === yearMonth && item.templateId === templateId);
+    const item: Income = {
+      id: index >= 0 ? this.incomes[index].id : uid(),
+      yearMonth,
+      type: '고정수입',
+      name: template.name,
+      amount,
+      active: template.active,
+      templateId,
+    };
+    if (index >= 0) this.incomes[index] = item;
+    else this.incomes.push(item);
   }
 
   async listActuals(yearMonth: string) {
@@ -97,6 +147,6 @@ export class MemoryRepository implements Repository {
 export function createSeededMemoryRepository(): MemoryRepository {
   const repo = new MemoryRepository();
   SEED_FIXED_COSTS.forEach((f) => void repo.addFixedCost(f));
-  SEED_INCOMES.forEach((i) => void repo.addIncome(i));
+  SEED_INCOME_TEMPLATES.forEach((income) => void repo.addIncomeTemplate(income));
   return repo;
 }

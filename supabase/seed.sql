@@ -39,6 +39,6 @@ insert into fixed_costs (payment_method, category, name, amount, variability, ac
 ('현금이체(자동)','저금','예비 생활비(월급통장에서)',300000,'고정',true,38),
 ('현금이체(자동)','저금','예비 생활비(양육수당통장에서)',105000,'고정',true,39);
 
-insert into incomes (name, amount, active) values
+insert into income_templates (name, default_amount, active) values
 ('월급',5400000,true),
 ('아동수당',105000,true);

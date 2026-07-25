@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRepository } from '../data/RepositoryContext';
-import type { FixedCost, Income } from '../types';
+import type { FixedCost } from '../types';
 import { fixedCostsTotal, incomeTotal } from '../lib/calc';
 import { HistoryChart } from '../components/HistoryChart';
 import { formatKRW } from '../lib/format';
@@ -11,21 +11,23 @@ export default function HistoryPage() {
 
   useEffect(() => {
     (async () => {
-      const [fc, inc, extras] = await Promise.all([
-        repo.listFixedCosts(), repo.listIncomes(), repo.listAllExtraSpendings(),
+      const [fc, extras, incomes] = await Promise.all([
+        repo.listFixedCosts(), repo.listAllExtraSpendings(), repo.listAllIncomes(),
       ]);
       const fixedTotal = fixedCostsTotal(fc as FixedCost[]);
-      const income = incomeTotal(inc as Income[]);
       const byMonth = new Map<string, number>();
       extras.forEach((e) => {
         byMonth.set(e.yearMonth, (byMonth.get(e.yearMonth) ?? 0) + e.amount);
       });
-      const result = [...byMonth.entries()]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([yearMonth, extraSum]) => {
+      const months = [...new Set([...byMonth.keys(), ...incomes.map((income) => income.yearMonth)])];
+      const result = await Promise.all(months
+        .sort((a, b) => a.localeCompare(b))
+        .map(async (yearMonth) => {
+          const income = incomeTotal(await repo.listIncomes(yearMonth));
+          const extraSum = byMonth.get(yearMonth) ?? 0;
           const totalBudget = fixedTotal + extraSum;
           return { yearMonth, totalBudget, remaining: income - totalBudget };
-        });
+        }));
       setRows(result);
     })();
   }, [repo]);

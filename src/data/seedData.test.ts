@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SEED_FIXED_COSTS, SEED_INCOMES } from './seedData';
+import { SEED_FIXED_COSTS, SEED_INCOME_TEMPLATES } from './seedData';
 import { PAYMENT_METHODS, CATEGORIES } from '../types';
 
 describe('시드 데이터', () => {
@@ -20,7 +20,7 @@ describe('시드 데이터', () => {
     expect(sum).toBe(4664052);
   });
   it('수입 2개, 합계 5,505,000', () => {
-    expect(SEED_INCOMES).toHaveLength(2);
-    expect(SEED_INCOMES.reduce((a, i) => a + i.amount, 0)).toBe(5505000);
+    expect(SEED_INCOME_TEMPLATES).toHaveLength(2);
+    expect(SEED_INCOME_TEMPLATES.reduce((a, i) => a + i.defaultAmount, 0)).toBe(5505000);
   });
 });

@@ -10,12 +10,24 @@ create table if not exists fixed_costs (
   created_at timestamptz not null default now()
 );
 
-create table if not exists incomes (
+create table if not exists income_templates (
   id uuid primary key default gen_random_uuid(),
+  name text not null,
+  default_amount integer not null check (default_amount >= 0),
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists monthly_incomes (
+  id uuid primary key default gen_random_uuid(),
+  year_month text not null check (year_month ~ '^\\d{4}-\\d{2}$'),
+  income_type text not null check (income_type in ('고정수입', '변동수입', '기타수입')),
+  template_id uuid references income_templates(id) on delete set null,
   name text not null,
   amount integer not null check (amount >= 0),
   active boolean not null default true,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  unique (year_month, template_id)
 );
 
 create table if not exists monthly_card_actuals (
@@ -28,11 +40,13 @@ create table if not exists monthly_card_actuals (
 
 -- 개인용: 익명 키로 접근하되 RLS로 전체 허용(단일 사용자 전제).
 alter table fixed_costs enable row level security;
-alter table incomes enable row level security;
+alter table income_templates enable row level security;
+alter table monthly_incomes enable row level security;
 alter table monthly_card_actuals enable row level security;
 
 create policy "anon all fixed_costs" on fixed_costs for all using (true) with check (true);
-create policy "anon all incomes" on incomes for all using (true) with check (true);
+create policy "anon all income templates" on income_templates for all using (true) with check (true);
+create policy "anon all monthly incomes" on monthly_incomes for all using (true) with check (true);
 create policy "anon all actuals" on monthly_card_actuals for all using (true) with check (true);
 
 -- 추가지출(고정비 외 결제를 항목 단위로 기록). created_at 자동.

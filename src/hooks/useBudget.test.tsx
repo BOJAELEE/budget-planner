@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { RepositoryProvider } from '../data/RepositoryContext';
 import { createSeededMemoryRepository } from '../data/memoryRepository';
 import { useBudget } from './useBudget';
@@ -29,7 +29,15 @@ describe('useBudget', () => {
     expect(result.current.derived.extraByCard['삼성카드']).toBe(0);
     expect(result.current.derived.cardFixedTotal).toBe(935816);
     expect(result.current.derived.cardExtraTotal).toBe(150000);
-    expect(result.current.derived.cardTotal).toBe(1085816);
+    expect(result.current.derived.expectedCardTotal).toBe(1085816);
+    expect(result.current.derived.actualCardTotal).toBe(1085816);
+    expect(result.current.derived.enteredActualByCard['현대카드']).toBeUndefined();
+    await act(async () => { await result.current.setActual('현대카드', 200000); });
+    expect(result.current.derived.expectedByCard['현대카드']).toBe(204000);
+    expect(result.current.derived.actualByCard['현대카드']).toBe(200000);
+    expect(result.current.derived.actualCardTotal).toBe(1081816);
+    expect(result.current.derived.totalBudget).toBe(5745868);
+    expect(result.current.derived.remaining).toBe(-240868);
     expect(result.current.availableMonths).toContain('2026-07');
   });
 });

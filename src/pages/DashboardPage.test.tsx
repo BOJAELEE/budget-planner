@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -21,6 +21,8 @@ describe('DashboardPage', () => {
 
     await waitFor(() => expect(screen.getByRole('table', { name: '카드별 예산' })).toBeInTheDocument());
 
+    expect(screen.getByRole('columnheader', { name: '실제 카드값' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: '예상 카드값' })).toBeInTheDocument();
     expect(screen.getAllByText('₩5,599,868')).toHaveLength(1);
     expect(screen.getAllByText('₩150,000')).toHaveLength(2);
     expect(screen.getAllByText('₩5,749,868')).toHaveLength(1);
@@ -34,6 +36,34 @@ describe('DashboardPage', () => {
     expect(screen.getByText('잔액 -₩244,868')).toBeInTheDocument();
     expect(screen.getAllByText('잔액 ₩410,132')).toHaveLength(2);
     expect(screen.getByText('여행 저금 ₩250,000 · 예비 생활비 ₩405,000')).toBeInTheDocument();
+  });
+
+  it('입력한 실제 카드값으로 총 필요 예산을 계산한다', async () => {
+    const user = userEvent.setup();
+    renderDashboard(createSeededMemoryRepository());
+
+    const cardRow = await screen.findByRole('row', { name: /현대카드/ });
+    const actualAmountInput = within(cardRow).getByRole('textbox', { name: '현대카드 실제 카드값' });
+    await user.clear(actualAmountInput);
+    await user.type(actualAmountInput, '200000');
+    await user.tab();
+
+    await waitFor(() => expect(screen.getByText('₩5,695,868')).toBeInTheDocument());
+    const updatedCardRow = screen.getByRole('row', { name: /현대카드/ });
+    expect(within(updatedCardRow).getByRole('textbox', { name: '현대카드 실제 카드값' })).toHaveValue('200,000');
+    expect(updatedCardRow).toHaveTextContent('₩104,000');
+  });
+
+  it('실제 카드값을 수정하지 않으면 예상 카드값을 계속 사용한다', async () => {
+    const user = userEvent.setup();
+    const repo = createSeededMemoryRepository();
+    renderDashboard(repo);
+
+    const cardRow = await screen.findByRole('row', { name: /현대카드/ });
+    await user.click(within(cardRow).getByRole('textbox', { name: '현대카드 실제 카드값' }));
+    await user.tab();
+
+    expect(await repo.listActuals(defaultBillingYearMonth())).toEqual([]);
   });
 
   it('관리 타일은 대응하는 화면으로 연결한다', async () => {

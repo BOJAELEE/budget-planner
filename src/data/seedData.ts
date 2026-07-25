@@ -1,4 +1,4 @@
-import type { FixedCost, Income } from '../types';
+import type { FixedCost, IncomeTemplate } from '../types';
 
 export const SEED_FIXED_COSTS: Omit<FixedCost, 'id'>[] = [
   { paymentMethod: '현대카드', category: '교육비', name: '크런치랩스', amount: 54000, variability: '변동', active: true, sortOrder: 1 },
@@ -42,7 +42,7 @@ export const SEED_FIXED_COSTS: Omit<FixedCost, 'id'>[] = [
   { paymentMethod: '현금이체(자동)', category: '저금', name: '예비 생활비(양육수당통장에서)', amount: 105000, variability: '고정', active: true, sortOrder: 39 },
 ];
 
-export const SEED_INCOMES: Omit<Income, 'id'>[] = [
-  { name: '월급', amount: 5400000, active: true },
-  { name: '아동수당', amount: 105000, active: true },
+export const SEED_INCOME_TEMPLATES: Omit<IncomeTemplate, 'id'>[] = [
+  { name: '월급', defaultAmount: 5400000, active: true },
+  { name: '아동수당', defaultAmount: 105000, active: true },
 ];

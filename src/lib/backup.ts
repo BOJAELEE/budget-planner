@@ -1,16 +1,16 @@
 import type { Repository } from '../data/repository';
-import { spentOnFromCreatedAt } from './billing';
+import { defaultBillingYearMonth, spentOnFromCreatedAt } from './billing';
 
 export async function exportData(repo: Repository): Promise<string> {
-  const [fixedCosts, incomes, actuals, extraSpendings] = await Promise.all([
-    repo.listFixedCosts(), repo.listIncomes(), repo.listAllActuals(), repo.listAllExtraSpendings(),
+  const [fixedCosts, incomeTemplates, incomes, actuals, extraSpendings] = await Promise.all([
+    repo.listFixedCosts(), repo.listIncomeTemplates(), repo.listAllIncomes(), repo.listAllActuals(), repo.listAllExtraSpendings(),
   ]);
-  return JSON.stringify({ version: 2, fixedCosts, incomes, actuals, extraSpendings }, null, 2);
+  return JSON.stringify({ version: 3, fixedCosts, incomeTemplates, incomes, actuals, extraSpendings }, null, 2);
 }
 
 export async function importData(repo: Repository, json: string): Promise<void> {
   const parsed = JSON.parse(json) as {
-    fixedCosts?: unknown; incomes?: unknown; actuals?: unknown; extraSpendings?: unknown;
+    fixedCosts?: unknown; incomeTemplates?: unknown; incomes?: unknown; actuals?: unknown; extraSpendings?: unknown;
   };
   // 삭제 전에 반드시 유효성 검증 (형식이 잘못된 파일이 기존 데이터를 지우지 않도록)
   if (
@@ -22,19 +22,36 @@ export async function importData(repo: Repository, json: string): Promise<void> 
   ) {
     throw new Error('백업 파일 형식이 올바르지 않습니다.');
   }
-  const data = parsed as { fixedCosts: any[]; incomes: any[]; actuals?: any[]; extraSpendings?: any[] };
+  const data = parsed as { fixedCosts: any[]; incomeTemplates?: any[]; incomes: any[]; actuals?: any[]; extraSpendings?: any[] };
 
   // 기존 데이터 제거
   for (const f of await repo.listFixedCosts()) await repo.deleteFixedCost(f.id);
-  for (const i of await repo.listIncomes()) await repo.deleteIncome(i.id);
+  for (const i of await repo.listAllIncomes()) await repo.deleteIncome(i.id);
+  for (const template of await repo.listIncomeTemplates()) await repo.deleteIncomeTemplate(template.id);
   await repo.deleteAllActuals();
   await repo.deleteAllExtraSpendings();
   // 복원 (id 제외하고 재삽입)
   for (const f of data.fixedCosts ?? []) {
     const { id, ...rest } = f; await repo.addFixedCost(rest);
   }
+  const templates = new Map<string, string>();
+  for (const template of data.incomeTemplates ?? []) {
+    const { id, ...rest } = template;
+    const created = await repo.addIncomeTemplate(rest);
+    templates.set(id, created.id);
+  }
   for (const i of data.incomes ?? []) {
-    const { id, ...rest } = i; await repo.addIncome(rest);
+    if (data.incomeTemplates === undefined && (i.name === '월급' || i.name === '아동수당')) {
+      await repo.addIncomeTemplate({ name: i.name, defaultAmount: i.amount, active: i.active });
+      continue;
+    }
+    const { id, templateId, ...rest } = i;
+    await repo.addIncome({
+      ...rest,
+      yearMonth: typeof rest.yearMonth === 'string' ? rest.yearMonth : defaultBillingYearMonth(),
+      type: rest.type ?? '기타수입',
+      templateId: templateId ? templates.get(templateId) : undefined,
+    });
   }
   for (const a of data.actuals ?? []) {
     await repo.setActual(a.yearMonth, a.paymentMethod, a.actualAmount);

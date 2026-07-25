@@ -38,7 +38,7 @@ describe('calc', () => {
     expect(totalBudget(costs, actuals)).toBe(350000 + 935816);
   });
   it('잔여금액 = 수입 - 총 필요 예산', () => {
-    const incomes: Income[] = [{ id: 'a', name: '월급', amount: 1000000, active: true }];
+    const incomes: Income[] = [{ id: 'a', yearMonth: '2026-07', type: '고정수입', name: '월급', amount: 1000000, active: true }];
     const actuals: MonthlyCardActual[] = [
       { id: '1', yearMonth: '2026-07', paymentMethod: '현대카드', actualAmount: 100000 },
     ];
@@ -50,8 +50,8 @@ describe('calc', () => {
   });
   it('수입합계는 활성만', () => {
     expect(incomeTotal([
-      { id: '1', name: '월급', amount: 100, active: true },
-      { id: '2', name: 'x', amount: 999, active: false },
+      { id: '1', yearMonth: '2026-07', type: '고정수입', name: '월급', amount: 100, active: true },
+      { id: '2', yearMonth: '2026-07', type: '기타수입', name: 'x', amount: 999, active: false },
     ])).toBe(100);
   });
   it('카테고리별 합계는 금액 내림차순', () => {
@@ -119,7 +119,7 @@ describe('extra spending calc', () => {
     expect(totalBudgetV2(costs, [ex({ amount: 100000 })])).toBe(304000);
   });
   it('remainingV2 = 수입 − totalBudgetV2', () => {
-    const incomes: Income[] = [{ id: 'a', name: '월급', amount: 1000000, active: true }];
+    const incomes: Income[] = [{ id: 'a', yearMonth: '2026-07', type: '고정수입', name: '월급', amount: 1000000, active: true }];
     expect(remainingV2(costs, incomes, [ex({ amount: 100000 })])).toBe(696000);
   });
 });

@@ -11,7 +11,7 @@ describe('backup', () => {
     const dst = new MemoryRepository();
     await importData(dst, json);
     expect(await dst.listFixedCosts()).toHaveLength(39);
-    expect(await dst.listIncomes()).toHaveLength(2);
+    expect(await dst.listIncomes('2026-07')).toHaveLength(2);
     expect(await dst.listAllActuals()).toHaveLength(1);
   });
 
@@ -22,7 +22,7 @@ describe('backup', () => {
     await expect(importData(repo, '{"version":1}')).rejects.toThrow();
 
     expect(await repo.listFixedCosts()).toHaveLength(39);
-    expect(await repo.listIncomes()).toHaveLength(2);
+    expect(await repo.listIncomes('2026-07')).toHaveLength(2);
     expect(await repo.listAllActuals()).toHaveLength(1);
   });
 

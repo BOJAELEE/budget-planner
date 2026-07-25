@@ -14,6 +14,9 @@ export type Category = (typeof CATEGORIES)[number];
 
 export type Variability = '고정' | '변동';
 
+export const INCOME_TYPES = ['고정수입', '변동수입', '기타수입'] as const;
+export type IncomeType = (typeof INCOME_TYPES)[number];
+
 export interface FixedCost {
   id: string;
   paymentMethod: PaymentMethod;
@@ -27,8 +30,18 @@ export interface FixedCost {
 
 export interface Income {
   id: string;
+  yearMonth: string;
+  type: IncomeType;
   name: string;
   amount: number;
+  active: boolean;
+  templateId?: string;
+}
+
+export interface IncomeTemplate {
+  id: string;
+  name: string;
+  defaultAmount: number;
   active: boolean;
 }
 

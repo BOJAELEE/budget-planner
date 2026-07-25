@@ -5,10 +5,11 @@ import { CARD_METHODS } from '../types';
 import { formatKRW } from '../lib/format';
 import { defaultBillingYearMonth, formatYearMonth } from '../lib/billing';
 import { displayPercentage } from '../lib/calc';
+import { AmountInput } from '../components/AmountInput';
 
 export default function DashboardPage() {
   const [yearMonth, setYearMonth] = useState(defaultBillingYearMonth);
-  const { loading, error, derived, availableMonths } = useBudget(yearMonth);
+  const { loading, error, derived, availableMonths, setActual } = useBudget(yearMonth);
 
   if (loading) return <div className="p-8 text-center text-gray-400">불러오는 중입니다.</div>;
   if (error) return (
@@ -89,7 +90,8 @@ export default function DashboardPage() {
           <thead className="bg-gray-50 text-gray-600">
             <tr>
               <th scope="col" className="border-b border-r border-gray-200 px-1 py-3 font-semibold">카드</th>
-              <th scope="col" className="border-b border-r border-gray-200 px-1 py-3 font-semibold">합계</th>
+              <th scope="col" className="border-b border-r border-gray-200 px-1 py-3 font-semibold">실제 카드값</th>
+              <th scope="col" className="border-b border-r border-gray-200 px-1 py-3 font-semibold">예상 카드값</th>
               <th scope="col" className="extra-before-cell border-b border-r border-gray-200 px-1 py-3 font-semibold">고정금액</th>
               <th scope="col" className="extra-header border-b border-gray-200 px-1 py-3 font-semibold">추가지출</th>
             </tr>
@@ -98,10 +100,20 @@ export default function DashboardPage() {
             {CARD_METHODS.map((card) => {
               const fixed = derived.cardBaselines[card];
               const extra = derived.extraByCard[card];
+              const actual = derived.actualByCard[card];
+              const expected = derived.expectedByCard[card];
               return (
                 <tr key={card}>
                   <th scope="row" className="border-b border-r border-gray-200 px-1 py-3 font-medium">{card}</th>
-                  <td className="border-b border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(fixed + extra)}</td>
+                  <td className="border-b border-r border-gray-200 px-1 py-2">
+                    <AmountInput
+                      value={actual}
+                      ariaLabel={`${card} 실제 카드값`}
+                      commitUnchanged={false}
+                      onCommit={(amount) => void setActual(card, amount)}
+                    />
+                  </td>
+                  <td className="border-b border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(expected)}</td>
                   <td className="extra-before-cell border-b border-r border-gray-200 px-1 py-3">{formatKRW(fixed)}</td>
                   <td className="extra-cell border-b border-gray-200 px-1 py-3">{formatKRW(extra)}</td>
                 </tr>
@@ -111,7 +123,8 @@ export default function DashboardPage() {
           <tfoot className="bg-gray-50">
             <tr>
               <th scope="row" className="border-r border-gray-200 px-1 py-3 font-semibold">총합계</th>
-              <td className="border-r border-gray-200 px-1 py-3 font-bold">{formatKRW(derived.cardTotal)}</td>
+              <td className="border-r border-gray-200 px-1 py-3 font-bold">{formatKRW(derived.actualCardTotal)}</td>
+              <td className="border-r border-gray-200 px-1 py-3 font-bold">{formatKRW(derived.expectedCardTotal)}</td>
               <td className="extra-before-cell border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(derived.cardFixedTotal)}</td>
               <td className="extra-cell px-1 py-3 font-semibold">{formatKRW(derived.cardExtraTotal)}</td>
             </tr>

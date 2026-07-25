@@ -27,6 +27,19 @@ describe('MemoryRepository', () => {
     expect(list).toHaveLength(1);
     expect(list[0].actualAmount).toBe(120000);
   });
+  it('고정수입은 월별 수정 이력을 유지하고 다음 달 기본값은 보존한다', async () => {
+    const repo = createSeededMemoryRepository();
+    const salary = (await repo.listIncomeTemplates()).find((item) => item.name === '월급');
+    expect(salary).toBeDefined();
+    if (!salary) throw new Error('월급 고정수입이 없습니다.');
+
+    await repo.setFixedIncome('2026-07', salary.id, 5200000);
+
+    const july = await repo.listIncomes('2026-07');
+    const august = await repo.listIncomes('2026-08');
+    expect(july.find((item) => item.name === '월급')?.amount).toBe(5200000);
+    expect(august.find((item) => item.name === '월급')?.amount).toBe(5400000);
+  });
   it('추가지출 CRUD + 월 필터', async () => {
     const repo = createSeededMemoryRepository();
     const a = await repo.addExtraSpending({ card: '현대카드', name: '코스트코', amount: 120000, spentOn: '2026-06-10' });
