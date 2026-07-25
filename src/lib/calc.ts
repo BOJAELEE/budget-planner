@@ -1,4 +1,4 @@
-import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod, Category, AccountName, BalanceAllocation } from '../types';
+import type { FixedCost, Income, MonthlyCardActual, ExtraSpending, CardMethod, Category, AccountName, BalanceAllocation, MonthlyAccountBalance } from '../types';
 import { TRANSFER_METHODS, CARD_METHODS, ACCOUNT_NAMES } from '../types';
 
 const activeAmount = (items: { amount: number; active: boolean }[]) =>
@@ -144,4 +144,52 @@ export function projectBalanceUsage(
   }
 
   return { startingBalances, balancesAfter, allocations, uncoveredAmount: remainingAmount };
+}
+
+function addMonth(yearMonth: string): string {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month, 1));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+export function buildMonthlyBalanceSeries(
+  records: MonthlyAccountBalance[],
+  shortagesByMonth: Record<string, number>,
+  throughMonth: string,
+) {
+  const manualByMonth = new Map<string, Record<AccountName, number>>();
+  const allMonths = new Set<string>([throughMonth, ...Object.keys(shortagesByMonth)]);
+  for (const record of records) {
+    allMonths.add(record.yearMonth);
+    if (!record.isManual) continue;
+    const current = manualByMonth.get(record.yearMonth) ?? Object.fromEntries(
+      ACCOUNT_NAMES.map((accountName) => [accountName, 0]),
+    ) as Record<AccountName, number>;
+    current[record.accountName] = Math.max(0, record.openingAmount);
+    manualByMonth.set(record.yearMonth, current);
+  }
+  const firstMonth = [...allMonths].sort((a, b) => a.localeCompare(b))[0];
+  const lastMonth = [...allMonths].sort((a, b) => b.localeCompare(a))[0];
+  const projections: Record<string, BalanceProjection> = {};
+  const automaticBalances: MonthlyAccountBalance[] = [];
+  let opening = Object.fromEntries(ACCOUNT_NAMES.map((accountName) => [accountName, 0])) as Record<AccountName, number>;
+
+  for (let month = firstMonth; month <= lastMonth; month = addMonth(month)) {
+    const manual = manualByMonth.get(month);
+    if (manual) opening = { ...manual };
+    else {
+      automaticBalances.push(...ACCOUNT_NAMES.map((accountName, index) => ({
+        id: `auto-${month}-${index}`,
+        yearMonth: month,
+        accountName,
+        openingAmount: opening[accountName],
+        isManual: false,
+      })));
+    }
+    const projection = projectBalanceUsage(opening, shortagesByMonth[month] ?? 0);
+    projections[month] = projection;
+    opening = projection.balancesAfter;
+  }
+
+  return { projections, automaticBalances };
 }

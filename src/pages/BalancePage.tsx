@@ -1,55 +1,47 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AmountInput } from '../components/AmountInput';
-import { useRepository } from '../data/RepositoryContext';
-import type { AccountBalance, BalanceSettlement } from '../types';
+import { useBudget } from '../hooks/useBudget';
+import { ACCOUNT_NAMES } from '../types';
+import { defaultBillingYearMonth, formatYearMonth } from '../lib/billing';
 import { formatKRW } from '../lib/format';
 
 export default function BalancePage() {
-  const repo = useRepository();
-  const [balances, setBalances] = useState<AccountBalance[]>([]);
-  const [settlements, setSettlements] = useState<BalanceSettlement[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [yearMonth, setYearMonth] = useState(defaultBillingYearMonth);
+  const { loading, error, derived, availableMonths, setMonthlyAccountBalance } = useBudget(yearMonth);
 
-  const reload = useCallback(async () => {
-    try {
-      const [nextBalances, nextSettlements] = await Promise.all([repo.listAccountBalances(), repo.listAllBalanceSettlements()]);
-      setBalances(nextBalances); setSettlements(nextSettlements); setError(null);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    }
-  }, [repo]);
-
-  useEffect(() => { void reload(); }, [reload]);
-
-  const update = async (balance: AccountBalance, amount: number) => {
-    try {
-      await repo.updateAccountBalance(balance.accountName, amount);
-      await reload();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    }
-  };
+  if (loading) return <main className="p-4 text-center text-gray-400">불러오는 중입니다.</main>;
 
   return (
     <main className="p-4 space-y-4">
-      <div><h1 className="text-xl font-bold">잔고</h1><p className="mt-1 text-sm text-gray-500">통장 잔액을 직접 입력하세요. 확정된 부족금액은 이 잔액에서 차감되어 다음 달로 이월됩니다.</p></div>
+      <div>
+        <h1 className="text-xl font-bold">잔고</h1>
+        <p className="mt-1 text-sm text-gray-500">월 시작 잔액을 직접 입력하세요. 직접 입력한 달은 보호되고, 다음 달부터 예상 사용액이 자동 이월됩니다.</p>
+      </div>
       {error && <p className="rounded-xl bg-white p-3 text-sm text-neg">{error}</p>}
-      <section className="rounded-2xl bg-white p-4 shadow-card space-y-3" aria-label="통장 잔고 입력">
-        {balances.map((balance) => (
-          <div key={balance.accountName} className="flex items-center justify-between gap-4">
-            <label className="font-medium" htmlFor={`balance-${balance.accountName}`}>{balance.accountName}</label>
-            <AmountInput value={balance.amount} ariaLabel={`${balance.accountName} 잔액`} onCommit={(amount) => void update(balance, amount)} className="w-40 text-right" />
+      <label className="block text-base font-medium text-gray-600">
+        기준 월
+        <select className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base" value={yearMonth} onChange={(event) => setYearMonth(event.target.value)}>
+          {availableMonths.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
+        </select>
+      </label>
+      <section className="rounded-2xl bg-white p-4 shadow-card space-y-3" aria-label="월 시작 잔액 입력">
+        <h2 className="font-bold">{formatYearMonth(yearMonth)} 시작 잔액</h2>
+        {ACCOUNT_NAMES.map((account) => (
+          <div key={account} className="flex items-center justify-between gap-4">
+            <label className="font-medium">{account}</label>
+            <AmountInput
+              value={derived.balanceProjection.startingBalances[account]}
+              ariaLabel={`${account} 시작 잔액`}
+              onCommit={(amount) => void setMonthlyAccountBalance(account, amount)}
+              className="w-40 text-right"
+            />
           </div>
         ))}
       </section>
-      <section className="space-y-2" aria-label="잔고 사용 확정 이력">
-        <h2 className="font-bold">확정 이력</h2>
-        {settlements.length === 0 ? <p className="rounded-2xl bg-white p-4 text-sm text-gray-500 shadow-card">아직 확정된 잔고 사용 이력이 없습니다.</p> : settlements.map((settlement) => (
-          <div key={settlement.id} className="rounded-2xl bg-white p-4 text-sm shadow-card">
-            <div className="flex justify-between gap-3"><strong>{settlement.yearMonth}</strong><span>부족금액 {formatKRW(settlement.shortageAmount)}</span></div>
-            <p className="mt-2 text-gray-500">{settlement.allocations.length === 0 ? '통장 잔고 차감 없음' : settlement.allocations.map((allocation) => `${allocation.accountName} ${formatKRW(allocation.amount)}`).join(' · ')}</p>
-          </div>
-        ))}
+      <section className="rounded-2xl bg-white p-4 shadow-card space-y-2" aria-label="예상 사용 후 잔액">
+        <h2 className="font-bold">예상 사용 후 잔액</h2>
+        {ACCOUNT_NAMES.map((account) => <div key={account} className="flex justify-between text-sm"><span>{account}</span><span>{formatKRW(derived.balanceProjection.balancesAfter[account])}</span></div>)}
+        {derived.balanceProjection.uncoveredAmount > 0 && <p className="text-sm font-semibold text-neg">미충당 금액 {formatKRW(derived.balanceProjection.uncoveredAmount)}</p>}
       </section>
     </main>
   );

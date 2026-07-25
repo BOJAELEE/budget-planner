@@ -2,17 +2,17 @@ import type { Repository } from '../data/repository';
 import { defaultBillingYearMonth, spentOnFromCreatedAt } from './billing';
 
 export async function exportData(repo: Repository): Promise<string> {
-  const [fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, accountBalances, balanceSettlements] = await Promise.all([
+  const [fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances] = await Promise.all([
     repo.listFixedCosts(), repo.listIncomeTemplates(), repo.listAllIncomes(), repo.listAllActuals(), repo.listAllExtraSpendings(),
-    repo.listAccountBalances(), repo.listAllBalanceSettlements(),
+    repo.listMonthlyAccountBalances(),
   ]);
-  return JSON.stringify({ version: 4, fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, accountBalances, balanceSettlements }, null, 2);
+  return JSON.stringify({ version: 5, fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances }, null, 2);
 }
 
 export async function importData(repo: Repository, json: string): Promise<void> {
   const parsed = JSON.parse(json) as {
     fixedCosts?: unknown; incomeTemplates?: unknown; incomes?: unknown; actuals?: unknown; extraSpendings?: unknown;
-    accountBalances?: unknown; balanceSettlements?: unknown;
+    monthlyAccountBalances?: unknown; accountBalances?: unknown; balanceSettlements?: unknown;
   };
   // 삭제 전에 반드시 유효성 검증 (형식이 잘못된 파일이 기존 데이터를 지우지 않도록)
   if (
@@ -21,6 +21,7 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     !Array.isArray(parsed.incomes) ||
     (parsed.actuals !== undefined && !Array.isArray(parsed.actuals)) ||
     (parsed.extraSpendings !== undefined && !Array.isArray(parsed.extraSpendings)) ||
+    (parsed.monthlyAccountBalances !== undefined && !Array.isArray(parsed.monthlyAccountBalances)) ||
     (parsed.accountBalances !== undefined && !Array.isArray(parsed.accountBalances)) ||
     (parsed.balanceSettlements !== undefined && !Array.isArray(parsed.balanceSettlements))
   ) {
@@ -28,7 +29,7 @@ export async function importData(repo: Repository, json: string): Promise<void> 
   }
   const data = parsed as {
     fixedCosts: any[]; incomeTemplates?: any[]; incomes: any[]; actuals?: any[]; extraSpendings?: any[];
-    accountBalances?: any[]; balanceSettlements?: any[];
+    monthlyAccountBalances?: any[]; accountBalances?: any[]; balanceSettlements?: any[];
   };
 
   // 기존 데이터 제거
@@ -71,7 +72,14 @@ export async function importData(repo: Repository, json: string): Promise<void> 
       spentOn: typeof e.spentOn === 'string' ? e.spentOn : spentOnFromCreatedAt(e.createdAt),
     });
   }
-  if (data.accountBalances !== undefined && data.balanceSettlements !== undefined) {
-    await repo.replaceBalanceData(data.accountBalances, data.balanceSettlements);
+  if (data.monthlyAccountBalances !== undefined) {
+    await repo.replaceMonthlyAccountBalances(data.monthlyAccountBalances);
+  } else if (data.accountBalances !== undefined) {
+    const yearMonth = defaultBillingYearMonth();
+    await repo.replaceMonthlyAccountBalances(data.accountBalances.map((balance) => ({
+      id: balance.id ?? `${yearMonth}-${balance.accountName}`,
+      yearMonth, accountName: balance.accountName,
+      openingAmount: balance.amount, isManual: true,
+    })));
   }
 }

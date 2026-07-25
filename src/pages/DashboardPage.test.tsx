@@ -34,8 +34,7 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('row', { name: /합계/ })).toHaveTextContent('₩1,085,816');
     expect(screen.getByRole('region', { name: '예산과 저축 현황' })).toHaveTextContent('예비 생활비 사용');
     expect(screen.getByText('잔액 -₩244,868')).toBeInTheDocument();
-    expect(screen.getAllByText('잔액 ₩410,132')).toHaveLength(2);
-    expect(screen.getByText('여행 저금 ₩250,000 · 예비 생활비 ₩405,000')).toBeInTheDocument();
+    expect(screen.getByLabelText('저축 잔액')).toBeInTheDocument();
   });
 
   it('입력한 실제 카드값으로 총 필요 예산을 계산한다', async () => {

@@ -75,17 +75,18 @@ describe('backup', () => {
     expect(extra.yearMonth).toBe('2026-09');
   });
 
-  it('exports and restores balances with confirmed usage history', async () => {
+  it('exports and restores monthly opening balances', async () => {
     const src = createSeededMemoryRepository();
-    await src.updateAccountBalance('월급통장', 100000);
-    await src.updateAccountBalance('비상금통장', 200000);
-    await src.confirmBalanceUsage('2026-07', 150000);
+    await src.setMonthlyAccountBalance('2026-07', '월급통장', 100000);
+    await src.setMonthlyAccountBalance('2026-07', '비상금통장', 200000);
     const json = await exportData(src);
 
     const dst = new MemoryRepository();
     await importData(dst, json);
 
-    expect((await dst.listAccountBalances()).map((item) => item.amount)).toEqual([0, 150000, 0]);
-    expect(await dst.getBalanceSettlement('2026-07')).not.toBeNull();
+    expect(await dst.listMonthlyAccountBalances()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ yearMonth: '2026-07', accountName: '월급통장', openingAmount: 100000, isManual: true }),
+      expect.objectContaining({ yearMonth: '2026-07', accountName: '비상금통장', openingAmount: 200000, isManual: true }),
+    ]));
   });
 });

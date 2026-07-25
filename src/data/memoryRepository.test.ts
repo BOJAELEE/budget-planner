@@ -57,20 +57,12 @@ describe('MemoryRepository', () => {
     expect(await repo.listAllExtraSpendings()).toHaveLength(0);
   });
 
-  it('reverses previous usage before it recalculates a confirmed month', async () => {
+  it('stores a direct opening balance for each month', async () => {
     const repo = createSeededMemoryRepository();
-    await repo.updateAccountBalance('월급통장', 100000);
-    await repo.updateAccountBalance('비상금통장', 200000);
-    await repo.updateAccountBalance('여행통장', 300000);
-
-    await repo.confirmBalanceUsage('2026-07', 250000);
-    expect((await repo.listAccountBalances()).map((item) => item.amount)).toEqual([0, 50000, 300000]);
-
-    await repo.confirmBalanceUsage('2026-07', 150000);
-    expect((await repo.listAccountBalances()).map((item) => item.amount)).toEqual([0, 150000, 300000]);
-    expect((await repo.listAllBalanceSettlements())[0].allocations).toEqual([
-      { accountName: '월급통장', amount: 100000 },
-      { accountName: '비상금통장', amount: 50000 },
-    ]);
+    await repo.setMonthlyAccountBalance('2026-07', '월급통장', 100000);
+    await repo.setMonthlyAccountBalance('2026-08', '월급통장', 150000);
+    const balances = await repo.listMonthlyAccountBalances();
+    expect(balances).toHaveLength(2);
+    expect(balances[0]).toMatchObject({ yearMonth: '2026-07', accountName: '월급통장', openingAmount: 100000, isManual: true });
   });
 });

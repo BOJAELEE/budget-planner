@@ -46,3 +46,7 @@ insert into income_templates (name, default_amount, active) values
 insert into account_balances (account_name, amount, sort_order) values
 ('월급통장', 0, 1), ('비상금통장', 0, 2), ('여행통장', 0, 3)
 on conflict (account_name) do nothing;
+
+insert into monthly_account_balances (year_month, account_name, opening_amount, is_manual) values
+('2026-07', '월급통장', 0, true), ('2026-07', '비상금통장', 0, true), ('2026-07', '여행통장', 0, true)
+on conflict (year_month, account_name) do nothing;

@@ -1,4 +1,4 @@
-import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, AccountBalance, BalanceSettlement } from '../types';
+import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, MonthlyAccountBalance } from '../types';
 
 export type ExtraSpendingInput = { card: CardMethod; name: string; amount: number; spentOn: string };
 export type ExtraSpendingPatch = Partial<{ card: CardMethod; name: string; amount: number; spentOn: string }>;
@@ -33,10 +33,8 @@ export interface Repository {
   listAllExtraSpendings(): Promise<ExtraSpending[]>;
   deleteAllExtraSpendings(): Promise<void>;
 
-  listAccountBalances(): Promise<AccountBalance[]>;
-  updateAccountBalance(accountName: AccountName, amount: number): Promise<void>;
-  getBalanceSettlement(yearMonth: string): Promise<BalanceSettlement | null>;
-  listAllBalanceSettlements(): Promise<BalanceSettlement[]>;
-  confirmBalanceUsage(yearMonth: string, shortageAmount: number): Promise<void>;
-  replaceBalanceData(balances: AccountBalance[], settlements: BalanceSettlement[]): Promise<void>;
+  listMonthlyAccountBalances(): Promise<MonthlyAccountBalance[]>;
+  setMonthlyAccountBalance(yearMonth: string, accountName: AccountName, openingAmount: number): Promise<void>;
+  replaceAutomaticMonthlyAccountBalances(items: MonthlyAccountBalance[]): Promise<void>;
+  replaceMonthlyAccountBalances(items: MonthlyAccountBalance[]): Promise<void>;
 }

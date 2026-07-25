@@ -20,24 +20,17 @@ export type IncomeType = (typeof INCOME_TYPES)[number];
 export const ACCOUNT_NAMES = ['월급통장', '비상금통장', '여행통장'] as const;
 export type AccountName = (typeof ACCOUNT_NAMES)[number];
 
-export interface AccountBalance {
+export interface MonthlyAccountBalance {
   id: string;
+  yearMonth: string;
   accountName: AccountName;
-  amount: number;
-  sortOrder: number;
+  openingAmount: number;
+  isManual: boolean;
 }
 
 export interface BalanceAllocation {
   accountName: AccountName;
   amount: number;
-}
-
-export interface BalanceSettlement {
-  id: string;
-  yearMonth: string;
-  shortageAmount: number;
-  confirmedAt: string;
-  allocations: BalanceAllocation[];
 }
 
 export interface FixedCost {
