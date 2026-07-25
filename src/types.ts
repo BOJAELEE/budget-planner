@@ -36,6 +36,8 @@ export interface BalanceAllocation {
 
 export interface FixedCost {
   id: string;
+  /** Input month. This fixed cost is applied to the following billing month. */
+  yearMonth: string;
   paymentMethod: PaymentMethod;
   category: Category;
   name: string;

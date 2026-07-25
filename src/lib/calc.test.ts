@@ -7,7 +7,7 @@ import {
 import type { FixedCost, Income, MonthlyCardActual, ExtraSpending } from '../types';
 
 const fc = (over: Partial<FixedCost>): FixedCost => ({
-  id: Math.random().toString(), paymentMethod: '신한카드', category: '구독',
+  id: Math.random().toString(), yearMonth: '2026-07', paymentMethod: '신한카드', category: '구독',
   name: 'x', amount: 1000, variability: '고정', active: true, sortOrder: 0, ...over,
 });
 

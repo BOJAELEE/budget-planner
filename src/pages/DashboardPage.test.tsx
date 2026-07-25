@@ -85,7 +85,7 @@ describe('DashboardPage', () => {
 
     await user.selectOptions(monthSelect, '2025-02');
 
-    await waitFor(() => expect(screen.getByRole('row', { name: /현대/ })).toHaveTextContent('₩105,000'));
+    await waitFor(() => expect(screen.getByRole('row', { name: /현대/ })).toHaveTextContent('₩1,000'));
   });
 });
 

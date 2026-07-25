@@ -5,7 +5,9 @@ export type ExtraSpendingPatch = Partial<{ card: CardMethod; name: string; amoun
 export type IncomeInput = Omit<Income, 'id'>;
 
 export interface Repository {
-  listFixedCosts(): Promise<FixedCost[]>;
+  listFixedCosts(yearMonth: string): Promise<FixedCost[]>;
+  listAllFixedCosts(): Promise<FixedCost[]>;
+  ensureFixedCostsForMonth(yearMonth: string): Promise<void>;
   addFixedCost(data: Omit<FixedCost, 'id'>): Promise<FixedCost>;
   updateFixedCost(id: string, patch: Partial<Omit<FixedCost, 'id'>>): Promise<void>;
   deleteFixedCost(id: string): Promise<void>;

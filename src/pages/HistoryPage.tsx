@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useRepository } from '../data/RepositoryContext';
-import type { FixedCost } from '../types';
 import { fixedCostsTotal } from '../lib/calc';
 import { HistoryChart } from '../components/HistoryChart';
 import { formatKRW } from '../lib/format';
+import { nextYearMonth, previousYearMonth } from '../lib/billing';
 
 export default function HistoryPage() {
   const repo = useRepository();
@@ -11,20 +11,23 @@ export default function HistoryPage() {
 
   useEffect(() => {
     (async () => {
-      const [fc, extras, incomes] = await Promise.all([
-        repo.listFixedCosts(), repo.listAllExtraSpendings(), repo.listAllIncomes(),
+      const [fixedCosts, extras, incomes] = await Promise.all([
+        repo.listAllFixedCosts(), repo.listAllExtraSpendings(), repo.listAllIncomes(),
       ]);
-      const fixedTotal = fixedCostsTotal(fc as FixedCost[]);
       const byMonth = new Map<string, number>();
       extras.forEach((e) => {
         byMonth.set(e.yearMonth, (byMonth.get(e.yearMonth) ?? 0) + e.amount);
       });
-      const months = [...new Set([...byMonth.keys(), ...incomes.map((income) => income.yearMonth)])];
+      const months = [...new Set([
+        ...byMonth.keys(),
+        ...incomes.map((income) => nextYearMonth(income.yearMonth)),
+        ...fixedCosts.map((fixedCost) => nextYearMonth(fixedCost.yearMonth)),
+      ])];
       const result = await Promise.all(months
         .sort((a, b) => a.localeCompare(b))
         .map(async (yearMonth) => {
           const extraSum = byMonth.get(yearMonth) ?? 0;
-          const totalBudget = fixedTotal + extraSum;
+          const totalBudget = fixedCostsTotal(fixedCosts.filter((item) => item.yearMonth === previousYearMonth(yearMonth))) + extraSum;
           return { yearMonth, totalBudget, extraSpending: extraSum };
         }));
       setRows(result);

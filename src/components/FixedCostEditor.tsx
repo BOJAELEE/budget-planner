@@ -3,7 +3,7 @@ import type { FixedCost } from '../types';
 import { PAYMENT_METHODS, CATEGORIES } from '../types';
 import { AmountInput } from './AmountInput';
 
-export type FixedCostDraft = Omit<FixedCost, 'id'>;
+export type FixedCostDraft = Omit<FixedCost, 'id' | 'yearMonth'>;
 
 export function FixedCostEditor({
   initial, onSave, onCancel,

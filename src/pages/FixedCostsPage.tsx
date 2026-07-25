@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRepository } from '../data/RepositoryContext';
 import type { FixedCost, CardMethod } from '../types';
 import { CATEGORIES, PAYMENT_METHODS, TRANSFER_METHODS } from '../types';
 import { FixedCostEditor, type FixedCostDraft } from '../components/FixedCostEditor';
 import { formatKRW } from '../lib/format';
 import { sortedFixedCosts, transferTotal } from '../lib/calc';
+import { dateInKorea, formatYearMonth } from '../lib/billing';
 
 const blankDraft: FixedCostDraft = {
   paymentMethod: '신한카드', category: '구독', name: '', amount: 0,
@@ -17,18 +18,22 @@ type FixedCostSortMode = 'category' | 'amount' | 'cardAmount' | 'categoryAmount'
 
 export default function FixedCostsPage() {
   const repo = useRepository();
+  const [yearMonth, setYearMonth] = useState(() => dateInKorea().slice(0, 7));
   const [items, setItems] = useState<FixedCost[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [sortMode, setSortMode] = useState<FixedCostSortMode>('category');
   const [cardFilter, setCardFilter] = useState<FixedCostFilter>('all');
 
-  const load = async () => setItems(await repo.listFixedCosts());
-  useEffect(() => { void load(); }, []);
+  const load = useCallback(async () => {
+    await repo.ensureFixedCostsForMonth(yearMonth);
+    setItems(await repo.listFixedCosts(yearMonth));
+  }, [repo, yearMonth]);
+  useEffect(() => { void load(); }, [load]);
 
   const save = async (id: string | null, d: FixedCostDraft) => {
     if (id) await repo.updateFixedCost(id, d);
-    else await repo.addFixedCost(d);
+    else await repo.addFixedCost({ ...d, yearMonth });
     setEditingId(null); setAdding(false); await load();
   };
   const remove = async (id: string) => {
@@ -63,6 +68,16 @@ export default function FixedCostsPage() {
         <button className="px-3 py-1 rounded-lg bg-brand text-white text-sm"
           onClick={() => setAdding(true)}>+ 추가</button>
       </div>
+      <label className="block text-sm font-medium text-gray-600">
+        고정비 월
+        <input
+          type="month"
+          className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base text-gray-900"
+          value={yearMonth}
+          onChange={(event) => setYearMonth(event.target.value)}
+        />
+        <span className="mt-1 block text-xs text-gray-400">{formatYearMonth(yearMonth)} 고정비는 다음 달 청구월에 적용됩니다.</span>
+      </label>
       {adding && (
         <FixedCostEditor initial={blankDraft}
           onSave={(d) => save(null, d)} onCancel={() => setAdding(false)} />

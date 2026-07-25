@@ -1,7 +1,7 @@
 import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, MonthlyAccountBalance } from '../types';
 import type { Repository, ExtraSpendingInput, ExtraSpendingPatch, IncomeInput } from './repository';
 import { SEED_FIXED_COSTS, SEED_INCOME_TEMPLATES } from './seedData';
-import { billingMonthFor } from '../lib/billing';
+import { billingMonthFor, previousYearMonth } from '../lib/billing';
 
 const uid = () =>
   (globalThis.crypto?.randomUUID?.() ?? `id_${Math.random().toString(36).slice(2)}`);
@@ -14,8 +14,17 @@ export class MemoryRepository implements Repository {
   private extras: ExtraSpending[] = [];
   private monthlyAccountBalances: MonthlyAccountBalance[] = [];
 
-  async listFixedCosts() {
-    return [...this.fixedCosts].sort((a, b) => a.sortOrder - b.sortOrder);
+  async listFixedCosts(yearMonth: string) {
+    return this.fixedCosts.filter((item) => item.yearMonth === yearMonth)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+  async listAllFixedCosts() {
+    return [...this.fixedCosts].sort((a, b) => a.yearMonth.localeCompare(b.yearMonth) || a.sortOrder - b.sortOrder);
+  }
+  async ensureFixedCostsForMonth(yearMonth: string) {
+    if (this.fixedCosts.some((item) => item.yearMonth === yearMonth)) return;
+    const previousItems = await this.listFixedCosts(previousYearMonth(yearMonth));
+    this.fixedCosts.push(...previousItems.map((item) => ({ ...item, id: uid(), yearMonth })));
   }
   async addFixedCost(data: Omit<FixedCost, 'id'>) {
     const item = { ...data, id: uid() };
@@ -169,7 +178,7 @@ export class MemoryRepository implements Repository {
 
 export function createSeededMemoryRepository(): MemoryRepository {
   const repo = new MemoryRepository();
-  SEED_FIXED_COSTS.forEach((f) => void repo.addFixedCost(f));
+  SEED_FIXED_COSTS.forEach((f) => void repo.addFixedCost({ ...f, yearMonth: '2026-07' }));
   SEED_INCOME_TEMPLATES.forEach((income) => void repo.addIncomeTemplate(income));
   return repo;
 }

@@ -1,15 +1,15 @@
 import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, MonthlyAccountBalance } from '../types';
 import type { Repository, ExtraSpendingInput, ExtraSpendingPatch, IncomeInput } from './repository';
 import { getSupabase } from '../lib/supabase';
-import { billingMonthFor } from '../lib/billing';
+import { billingMonthFor, previousYearMonth } from '../lib/billing';
 
 // DB(snake_case) ↔ 도메인(camelCase) 매핑
 const toFixed = (r: any): FixedCost => ({
-  id: r.id, paymentMethod: r.payment_method, category: r.category, name: r.name,
+  id: r.id, yearMonth: r.year_month, paymentMethod: r.payment_method, category: r.category, name: r.name,
   amount: r.amount, variability: r.variability, active: r.active, sortOrder: r.sort_order,
 });
 const fromFixed = (d: Partial<Omit<FixedCost, 'id'>>) => ({
-  payment_method: d.paymentMethod, category: d.category, name: d.name,
+  year_month: d.yearMonth, payment_method: d.paymentMethod, category: d.category, name: d.name,
   amount: d.amount, variability: d.variability, active: d.active, sort_order: d.sortOrder,
 });
 const toExtra = (r: any): ExtraSpending => ({
@@ -31,10 +31,27 @@ const toMonthlyAccountBalance = (r: any): MonthlyAccountBalance => ({
 export class SupabaseRepository implements Repository {
   private db = getSupabase();
 
-  async listFixedCosts() {
-    const { data, error } = await this.db.from('fixed_costs').select('*').order('sort_order');
+  async listFixedCosts(yearMonth: string) {
+    const { data, error } = await this.db.from('fixed_costs').select('*').eq('year_month', yearMonth).order('sort_order');
     if (error) throw error;
     return (data ?? []).map(toFixed);
+  }
+  async listAllFixedCosts() {
+    const { data, error } = await this.db.from('fixed_costs').select('*').order('year_month').order('sort_order');
+    if (error) throw error;
+    return (data ?? []).map(toFixed);
+  }
+  async ensureFixedCostsForMonth(yearMonth: string) {
+    const { count, error: countError } = await this.db.from('fixed_costs')
+      .select('*', { count: 'exact', head: true }).eq('year_month', yearMonth);
+    if (countError) throw countError;
+    if ((count ?? 0) > 0) return;
+    const previousItems = await this.listFixedCosts(previousYearMonth(yearMonth));
+    if (previousItems.length === 0) return;
+    const { error } = await this.db.from('fixed_costs').insert(previousItems.map((item) => fromFixed({
+      ...item, yearMonth,
+    })));
+    if (error) throw error;
   }
   async addFixedCost(d: Omit<FixedCost, 'id'>) {
     const { data, error } = await this.db.from('fixed_costs').insert(fromFixed(d)).select().single();

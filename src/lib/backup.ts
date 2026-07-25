@@ -3,10 +3,10 @@ import { dateInKorea, defaultBillingYearMonth, previousYearMonth, spentOnFromCre
 
 export async function exportData(repo: Repository): Promise<string> {
   const [fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances] = await Promise.all([
-    repo.listFixedCosts(), repo.listIncomeTemplates(), repo.listAllIncomes(), repo.listAllActuals(), repo.listAllExtraSpendings(),
+    repo.listAllFixedCosts(), repo.listIncomeTemplates(), repo.listAllIncomes(), repo.listAllActuals(), repo.listAllExtraSpendings(),
     repo.listMonthlyAccountBalances(),
   ]);
-  return JSON.stringify({ version: 6, fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances }, null, 2);
+  return JSON.stringify({ version: 7, fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances }, null, 2);
 }
 
 export async function importData(repo: Repository, json: string): Promise<void> {
@@ -33,14 +33,20 @@ export async function importData(repo: Repository, json: string): Promise<void> 
   };
 
   // 기존 데이터 제거
-  for (const f of await repo.listFixedCosts()) await repo.deleteFixedCost(f.id);
+  for (const f of await repo.listAllFixedCosts()) await repo.deleteFixedCost(f.id);
   for (const i of await repo.listAllIncomes()) await repo.deleteIncome(i.id);
   for (const template of await repo.listIncomeTemplates()) await repo.deleteIncomeTemplate(template.id);
   await repo.deleteAllActuals();
   await repo.deleteAllExtraSpendings();
   // 복원 (id 제외하고 재삽입)
   for (const f of data.fixedCosts ?? []) {
-    const { id, ...rest } = f; await repo.addFixedCost(rest);
+    const { id, ...rest } = f;
+    await repo.addFixedCost({
+      ...rest,
+      yearMonth: data.version === 7 && typeof rest.yearMonth === 'string'
+        ? rest.yearMonth
+        : dateInKorea().slice(0, 7),
+    });
   }
   const templates = new Map<string, string>();
   for (const template of data.incomeTemplates ?? []) {
@@ -73,7 +79,7 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     });
   }
   if (data.monthlyAccountBalances !== undefined) {
-    const usesBalanceMonth = data.version === 6;
+    const usesBalanceMonth = data.version === 6 || data.version === 7;
     await repo.replaceMonthlyAccountBalances(data.monthlyAccountBalances.map((balance) => ({
       ...balance,
       yearMonth: usesBalanceMonth ? balance.yearMonth : previousYearMonth(balance.yearMonth),

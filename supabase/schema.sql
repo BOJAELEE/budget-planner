@@ -1,5 +1,7 @@
 create table if not exists fixed_costs (
   id uuid primary key default gen_random_uuid(),
+  -- Input month; this fixed cost applies to the following billing month.
+  year_month text not null default '2026-07' check (year_month ~ '^\d{4}-\d{2}$'),
   payment_method text not null,
   category text not null,
   name text not null,

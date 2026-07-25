@@ -1,6 +1,6 @@
 import type { FixedCost, IncomeTemplate } from '../types';
 
-export const SEED_FIXED_COSTS: Omit<FixedCost, 'id'>[] = [
+export const SEED_FIXED_COSTS: Omit<FixedCost, 'id' | 'yearMonth'>[] = [
   { paymentMethod: '현대카드', category: '교육비', name: '크런치랩스', amount: 54000, variability: '변동', active: true, sortOrder: 1 },
   { paymentMethod: '현대카드', category: '기타', name: '고속도로 통행료', amount: 50000, variability: '변동', active: true, sortOrder: 2 },
   { paymentMethod: '신한카드', category: '통신요금', name: '스카이라이프_보재&집&정한', amount: 65747, variability: '고정', active: true, sortOrder: 3 },
