@@ -41,7 +41,7 @@ export class SupabaseRepository implements Repository {
     if (error) throw error;
     return (data ?? []).map(toFixed);
   }
-  async ensureFixedCostsForMonth(yearMonth: string) {
+  async copyPreviousMonthFixedCosts(yearMonth: string) {
     const { count, error: countError } = await this.db.from('fixed_costs')
       .select('*', { count: 'exact', head: true }).eq('year_month', yearMonth);
     if (countError) throw countError;

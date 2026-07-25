@@ -25,6 +25,18 @@ describe('useBudget', () => {
     expect(result.current.derived.balanceProjection.startingBalances['월급통장']).toBe(654321);
   });
 
+  it('does not automatically create a new fixed-cost month while loading a billing month', async () => {
+    const repo = createSeededMemoryRepository();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <RepositoryProvider repo={repo}>{children}</RepositoryProvider>
+    );
+
+    const { result } = renderHook(() => useBudget('2026-09'), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(await repo.listFixedCosts('2026-08')).toHaveLength(0);
+  });
+
   it('시드 + 추가지출 로드 후 파생값 계산(V2)', async () => {
     const repo = createSeededMemoryRepository();
     await repo.addExtraSpending({ card: '현대카드', name: '코스트코', amount: 100000, spentOn: '2026-07-10' });

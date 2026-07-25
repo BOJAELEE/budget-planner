@@ -39,7 +39,6 @@ export function useBudget(yearMonth: string) {
     setLoading(true);
     setError(null);
     try {
-      await repo.ensureFixedCostsForMonth(sourceMonth);
       const [fc, allFixedCosts, inc, ex, ac, allEx, allActuals, allIncomes, storedBalances] = await Promise.all([
         repo.listFixedCosts(sourceMonth), repo.listAllFixedCosts(), repo.listIncomes(sourceMonth), repo.listExtraSpendings(yearMonth), repo.listActuals(yearMonth),
         repo.listAllExtraSpendings(), repo.listAllActuals(), repo.listAllIncomes(), repo.listMonthlyAccountBalances(),

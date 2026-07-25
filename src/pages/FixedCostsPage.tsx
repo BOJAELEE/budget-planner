@@ -26,10 +26,14 @@ export default function FixedCostsPage() {
   const [cardFilter, setCardFilter] = useState<FixedCostFilter>('all');
 
   const load = useCallback(async () => {
-    await repo.ensureFixedCostsForMonth(yearMonth);
     setItems(await repo.listFixedCosts(yearMonth));
   }, [repo, yearMonth]);
   useEffect(() => { void load(); }, [load]);
+
+  const copyPreviousMonth = async () => {
+    await repo.copyPreviousMonthFixedCosts(yearMonth);
+    await load();
+  };
 
   const save = async (id: string | null, d: FixedCostDraft) => {
     if (id) await repo.updateFixedCost(id, d);
@@ -65,8 +69,12 @@ export default function FixedCostsPage() {
     <div className="p-4 space-y-4">
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-bold">고정비</h1>
-        <button className="px-3 py-1 rounded-lg bg-brand text-white text-sm"
-          onClick={() => setAdding(true)}>+ 추가</button>
+        <div className="flex gap-2">
+          <button className="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm"
+            onClick={() => void copyPreviousMonth()}>전월 복사</button>
+          <button className="px-3 py-1 rounded-lg bg-brand text-white text-sm"
+            onClick={() => setAdding(true)}>+ 추가</button>
+        </div>
       </div>
       <label className="block text-sm font-medium text-gray-600">
         고정비 월
@@ -144,6 +152,9 @@ export default function FixedCostsPage() {
           </div>
         );
       })}
+      {items.length === 0 && !adding && (
+        <p className="rounded-xl bg-white px-3 py-3 text-sm text-gray-400">등록된 고정비가 없습니다. 전월 복사로 시작할 수 있습니다.</p>
+      )}
       <div className="rounded-2xl bg-brand-soft p-4 text-sm">
         현금이체 합계 <b>{formatKRW(transferTotal(items))}</b>
       </div>

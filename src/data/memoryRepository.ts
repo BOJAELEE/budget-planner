@@ -21,7 +21,7 @@ export class MemoryRepository implements Repository {
   async listAllFixedCosts() {
     return [...this.fixedCosts].sort((a, b) => a.yearMonth.localeCompare(b.yearMonth) || a.sortOrder - b.sortOrder);
   }
-  async ensureFixedCostsForMonth(yearMonth: string) {
+  async copyPreviousMonthFixedCosts(yearMonth: string) {
     if (this.fixedCosts.some((item) => item.yearMonth === yearMonth)) return;
     const previousItems = await this.listFixedCosts(previousYearMonth(yearMonth));
     this.fixedCosts.push(...previousItems.map((item) => ({ ...item, id: uid(), yearMonth })));

@@ -6,7 +6,7 @@ describe('backup', () => {
   it('내보낸 JSON을 새 저장소로 복원하면 동일 개수', async () => {
     const src = createSeededMemoryRepository();
     await src.setActual('2026-07', '현대카드', 104000);
-    await src.ensureFixedCostsForMonth('2026-08');
+    await src.copyPreviousMonthFixedCosts('2026-08');
     const json = await exportData(src);
 
     const dst = new MemoryRepository();

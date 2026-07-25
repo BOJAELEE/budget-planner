@@ -21,7 +21,7 @@ describe('MemoryRepository', () => {
   });
   it('copies the previous month fixed costs when a new month is opened', async () => {
     const repo = createSeededMemoryRepository();
-    await repo.ensureFixedCostsForMonth('2026-08');
+    await repo.copyPreviousMonthFixedCosts('2026-08');
     const july = await repo.listFixedCosts('2026-07');
     const august = await repo.listFixedCosts('2026-08');
 
