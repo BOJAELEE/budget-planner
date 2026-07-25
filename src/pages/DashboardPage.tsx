@@ -51,7 +51,7 @@ export default function DashboardPage() {
           { label: '부족금액', amount: shortage, amountClassName: 'text-neg' },
         ]} />
         <SummaryCard items={[
-          { label: '저축 금액', amount: savingsAfterShortage },
+          { label: '저축 금액', amount: savingsAfterShortage, amountClassName: savingsAfterShortage < 0 ? 'text-neg' : undefined },
           { label: '금월 잔고', amount: currentAccountBalance },
         ]} />
         <SummaryCard items={[
@@ -162,11 +162,11 @@ function SummaryCard({ items }: {
   items: { label: string; amount: number; amountClassName?: string }[];
 }) {
   return (
-    <div className="flex flex-col justify-center gap-2 rounded-2xl bg-white p-4 shadow-card">
+    <div className="flex flex-col justify-center gap-3 rounded-2xl bg-white p-4 shadow-card">
       {items.map((item) => (
-        <div key={item.label} className="flex items-baseline justify-between gap-2">
-          <span className="text-base text-gray-500">{item.label}</span>
-          <strong className={`text-lg tracking-tight ${item.amountClassName ?? 'text-gray-900'}`}>{formatKRW(item.amount)}</strong>
+        <div key={item.label}>
+          <span className="block text-sm text-gray-500 whitespace-nowrap">{item.label}</span>
+          <strong className={`mt-0.5 block text-lg tracking-tight whitespace-nowrap ${item.amountClassName ?? 'text-gray-900'}`}>{formatKRW(item.amount)}</strong>
         </div>
       ))}
     </div>
