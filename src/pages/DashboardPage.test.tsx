@@ -29,9 +29,9 @@ describe('DashboardPage', () => {
     expect(screen.getByText('₩5,505,000')).toBeInTheDocument();
     expect(screen.getByText('부족금액 ₩244,868')).toBeInTheDocument();
     expect(screen.getByLabelText('청구월')).toHaveValue(yearMonth);
-    expect(screen.getByRole('row', { name: /현대카드/ })).toHaveTextContent('₩204,000');
-    expect(screen.getByRole('row', { name: /신한카드/ })).toHaveTextContent('₩881,816');
-    expect(screen.getByRole('row', { name: /총합계/ })).toHaveTextContent('₩1,085,816');
+    expect(screen.getByRole('row', { name: /현대/ })).toHaveTextContent('₩204,000');
+    expect(screen.getByRole('row', { name: /신한/ })).toHaveTextContent('₩881,816');
+    expect(screen.getByRole('row', { name: /합계/ })).toHaveTextContent('₩1,085,816');
     expect(screen.getByRole('region', { name: '예산과 저축 현황' })).toHaveTextContent('예비 생활비 사용');
     expect(screen.getByText('잔액 -₩244,868')).toBeInTheDocument();
     expect(screen.getAllByText('잔액 ₩410,132')).toHaveLength(2);
@@ -42,14 +42,14 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     renderDashboard(createSeededMemoryRepository());
 
-    const cardRow = await screen.findByRole('row', { name: /현대카드/ });
+    const cardRow = await screen.findByRole('row', { name: /현대/ });
     const actualAmountInput = within(cardRow).getByRole('textbox', { name: '현대카드 실제 카드값' });
     await user.clear(actualAmountInput);
     await user.type(actualAmountInput, '200000');
     await user.tab();
 
     await waitFor(() => expect(screen.getByText('₩5,695,868')).toBeInTheDocument());
-    const updatedCardRow = screen.getByRole('row', { name: /현대카드/ });
+    const updatedCardRow = screen.getByRole('row', { name: /현대/ });
     expect(within(updatedCardRow).getByRole('textbox', { name: '현대카드 실제 카드값' })).toHaveValue('200,000');
     expect(updatedCardRow).toHaveTextContent('₩104,000');
   });
@@ -59,7 +59,7 @@ describe('DashboardPage', () => {
     const repo = createSeededMemoryRepository();
     renderDashboard(repo);
 
-    const cardRow = await screen.findByRole('row', { name: /현대카드/ });
+    const cardRow = await screen.findByRole('row', { name: /현대/ });
     await user.click(within(cardRow).getByRole('textbox', { name: '현대카드 실제 카드값' }));
     await user.tab();
 
@@ -86,7 +86,7 @@ describe('DashboardPage', () => {
 
     await user.selectOptions(monthSelect, '2025-02');
 
-    await waitFor(() => expect(screen.getByRole('row', { name: /현대카드/ })).toHaveTextContent('₩105,000'));
+    await waitFor(() => expect(screen.getByRole('row', { name: /현대/ })).toHaveTextContent('₩105,000'));
   });
 });
 

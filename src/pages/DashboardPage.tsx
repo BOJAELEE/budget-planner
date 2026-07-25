@@ -87,6 +87,13 @@ export default function DashboardPage() {
 
       <section className="overflow-hidden rounded-2xl bg-white shadow-card" aria-label="카드별 예산">
         <table aria-label="카드별 예산" className="card-budget-table w-full table-fixed border-collapse text-center text-sm">
+          <colgroup>
+            <col className="w-[15%]" />
+            <col className="w-[24%]" />
+            <col className="w-[21%]" />
+            <col className="w-[20%]" />
+            <col className="w-[20%]" />
+          </colgroup>
           <thead className="bg-gray-50 text-gray-600">
             <tr>
               <th scope="col" className="border-b border-r border-gray-200 px-1 py-3 font-semibold">카드</th>
@@ -104,12 +111,13 @@ export default function DashboardPage() {
               const expected = derived.expectedByCard[card];
               return (
                 <tr key={card}>
-                  <th scope="row" className="border-b border-r border-gray-200 px-1 py-3 font-medium">{card}</th>
-                  <td className="border-b border-r border-gray-200 px-1 py-2">
+                  <th scope="row" className="border-b border-r border-gray-200 px-1 py-3 font-medium">{card.replace('카드', '')}</th>
+                  <td className="actual-card-cell border-b border-r border-gray-200 px-1 py-2">
                     <AmountInput
                       value={actual}
                       ariaLabel={`${card} 실제 카드값`}
                       commitUnchanged={false}
+                      className="actual-card-input"
                       onCommit={(amount) => void setActual(card, amount)}
                     />
                   </td>
@@ -122,7 +130,7 @@ export default function DashboardPage() {
           </tbody>
           <tfoot className="bg-gray-50">
             <tr>
-              <th scope="row" className="border-r border-gray-200 px-1 py-3 font-semibold">총합계</th>
+              <th scope="row" className="border-r border-gray-200 px-1 py-3 font-semibold">합계</th>
               <td className="border-r border-gray-200 px-1 py-3 font-bold">{formatKRW(derived.actualCardTotal)}</td>
               <td className="border-r border-gray-200 px-1 py-3 font-bold">{formatKRW(derived.expectedCardTotal)}</td>
               <td className="extra-before-cell border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(derived.cardFixedTotal)}</td>
