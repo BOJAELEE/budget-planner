@@ -42,14 +42,22 @@ export default function DashboardPage() {
         </select>
       </label>
       <section className="grid grid-cols-2 gap-3" aria-label="대시보드 요약">
-        <SummaryCard label="총필요 예산" amount={derived.totalBudget}>
-          <>추가지출 {formatKRW(derived.extraTotal)}</>
-        </SummaryCard>
-        <SummaryCard label="미충당 금액" amount={derived.balanceProjection.uncoveredAmount} />
-        <SummaryCard label="금월 잔고" amount={currentAccountBalance}>
-          <>저축 금액 {formatKRW(savingsAfterShortage)}</>
-        </SummaryCard>
-        <SummaryCard label="익월 잔고" amount={nextMonthBalance} />
+        <SummaryCard items={[
+          { label: '총필요 예산', amount: derived.totalBudget },
+          { label: '추가 지출', amount: derived.extraTotal },
+        ]} />
+        <SummaryCard items={[
+          { label: '수입', amount: derived.incomeSum },
+          { label: '부족금액', amount: shortage, amountClassName: 'text-neg' },
+        ]} />
+        <SummaryCard items={[
+          { label: '저축 금액', amount: savingsAfterShortage },
+          { label: '금월 잔고', amount: currentAccountBalance },
+        ]} />
+        <SummaryCard items={[
+          { label: '미충당 금액', amount: derived.balanceProjection.uncoveredAmount, amountClassName: 'text-neg' },
+          { label: '익월 잔고', amount: nextMonthBalance },
+        ]} />
       </section>
 
       <section
@@ -150,12 +158,17 @@ export default function DashboardPage() {
   );
 }
 
-function SummaryCard({ label, amount, children }: { label: string; amount: number; children?: React.ReactNode }) {
+function SummaryCard({ items }: {
+  items: { label: string; amount: number; amountClassName?: string }[];
+}) {
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-card">
-      <div className="text-base text-gray-500">{label}</div>
-      <strong className="mt-1 block text-xl tracking-tight text-gray-900">{formatKRW(amount)}</strong>
-      {children && <span className="mt-1 block text-sm">{children}</span>}
+    <div className="flex flex-col justify-center gap-2 rounded-2xl bg-white p-4 shadow-card">
+      {items.map((item) => (
+        <div key={item.label} className="flex items-baseline justify-between gap-2">
+          <span className="text-base text-gray-500">{item.label}</span>
+          <strong className={`text-lg tracking-tight ${item.amountClassName ?? 'text-gray-900'}`}>{formatKRW(item.amount)}</strong>
+        </div>
+      ))}
     </div>
   );
 }

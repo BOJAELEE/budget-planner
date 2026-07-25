@@ -24,11 +24,18 @@ describe('DashboardPage', () => {
 
     const summary = screen.getByRole('region', { name: '대시보드 요약' });
     expect(within(summary).getByText('총필요 예산')).toBeInTheDocument();
-    expect(within(summary).getByText('추가지출 ₩150,000')).toBeInTheDocument();
+    expect(within(summary).getByText('추가 지출')).toBeInTheDocument();
+    expect(within(summary).getByText('수입')).toBeInTheDocument();
+    expect(within(summary).getByText('부족금액')).toBeInTheDocument();
+    expect(within(summary).getByText('저축 금액')).toBeInTheDocument();
     expect(within(summary).getByText('미충당 금액')).toBeInTheDocument();
     expect(within(summary).getByText('금월 잔고')).toBeInTheDocument();
-    expect(within(summary).getByText('저축 금액 ₩410,132')).toBeInTheDocument();
     expect(within(summary).getByText('익월 잔고')).toBeInTheDocument();
+    expect(within(summary).getByText('₩5,749,868')).toBeInTheDocument();
+    expect(within(summary).getByText('₩150,000')).toBeInTheDocument();
+    expect(within(summary).getByText('₩5,505,000')).toBeInTheDocument();
+    expect(within(summary).getByText('₩244,868')).toHaveClass('text-neg');
+    expect(within(summary).getAllByText('₩410,132')).toHaveLength(2);
     expect(within(summary).getAllByText('₩0')).toHaveLength(2);
   });
 
