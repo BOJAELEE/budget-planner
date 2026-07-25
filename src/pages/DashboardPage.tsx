@@ -75,6 +75,15 @@ export default function DashboardPage() {
           balance={savingsAfterShortage}
           colorClass="bg-mist"
         />
+        <BudgetProgress
+          label="저축 잔액"
+          numerator={savingsAfterShortage}
+          denominator={derived.savings.totalSavings}
+          detail={`${formatKRW(savingsAfterShortage)} / ${formatKRW(derived.savings.totalSavings)}`}
+          subdetail={`여행 저금 ${formatKRW(derived.savings.travelSaving)} · 예비 생활비 ${formatKRW(derived.savings.reserveLiving)}`}
+          balance={savingsAfterShortage}
+          colorClass="bg-mint"
+        />
         <BalanceUsage projection={derived.balanceProjection} />
       </section>
 

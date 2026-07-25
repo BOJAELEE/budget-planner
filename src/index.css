@@ -56,6 +56,10 @@
   background: #fbfcf9;
   border-color: #e2e7df;
 }
+.app-shell .budget-overview > * + * {
+  border-top: 1px solid #e6ebe4;
+  padding-top: 1.25rem;
+}
 .app-shell .budget-label { color: #2f3b35; }
 .app-shell .budget-balance { color: #66796d; }
 .app-shell .budget-percentage { color: #52625a; }
