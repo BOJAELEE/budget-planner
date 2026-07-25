@@ -26,6 +26,10 @@ function budgetAxisMax(dataMax: number) {
   return Math.max(1_000_000, Math.ceil(dataMax / 500_000) * 500_000);
 }
 
+function extraAxisMax(dataMax: number) {
+  return Math.max(1_000_000, Math.ceil((dataMax * 2) / 500_000) * 500_000);
+}
+
 export function HistoryChart({
   data,
 }: { data: HistoryRow[] }) {
@@ -46,6 +50,7 @@ export function HistoryChart({
             yAxisId="extra"
             orientation="right"
             width={52}
+            domain={[0, extraAxisMax]}
             tick={{ fill: '#b28439', fontSize: 10 }}
             tickFormatter={formatAxisKRW}
           />
