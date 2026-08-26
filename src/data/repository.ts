@@ -3,11 +3,32 @@ import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpendin
 export type ExtraSpendingInput = { card: CardMethod; name: string; amount: number; spentOn: string };
 export type ExtraSpendingPatch = Partial<{ card: CardMethod; name: string; amount: number; spentOn: string }>;
 export type IncomeInput = Omit<Income, 'id'>;
+export type FixedCostCopyResult = { sourceCount: number; copiedCount: number; existingCount: number };
+
+/**
+ * A fixed-cost name and category remain stable when its card or monthly amount changes.
+ * Treating them as the identity keeps the user's current-month edits intact during a copy.
+ */
+export function missingPreviousFixedCosts(previousItems: FixedCost[], targetItems: FixedCost[]): FixedCost[] {
+  const targetCounts = new Map<string, number>();
+  for (const item of targetItems) {
+    const key = `${item.category}\u0000${item.name.trim()}`;
+    targetCounts.set(key, (targetCounts.get(key) ?? 0) + 1);
+  }
+
+  return previousItems.filter((item) => {
+    const key = `${item.category}\u0000${item.name.trim()}`;
+    const count = targetCounts.get(key) ?? 0;
+    if (count === 0) return true;
+    targetCounts.set(key, count - 1);
+    return false;
+  });
+}
 
 export interface Repository {
   listFixedCosts(yearMonth: string): Promise<FixedCost[]>;
   listAllFixedCosts(): Promise<FixedCost[]>;
-  copyPreviousMonthFixedCosts(yearMonth: string): Promise<void>;
+  copyPreviousMonthFixedCosts(yearMonth: string): Promise<FixedCostCopyResult>;
   addFixedCost(data: Omit<FixedCost, 'id'>): Promise<FixedCost>;
   updateFixedCost(id: string, patch: Partial<Omit<FixedCost, 'id'>>): Promise<void>;
   deleteFixedCost(id: string): Promise<void>;

@@ -1,5 +1,5 @@
 import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, MonthlyAccountBalance } from '../types';
-import type { Repository, ExtraSpendingInput, ExtraSpendingPatch, IncomeInput } from './repository';
+import { missingPreviousFixedCosts, type Repository, type ExtraSpendingInput, type ExtraSpendingPatch, type IncomeInput } from './repository';
 import { getSupabase } from '../lib/supabase';
 import { billingMonthFor, previousYearMonth } from '../lib/billing';
 import { defaultIncomeAmount } from '../lib/incomeDefaults';
@@ -43,16 +43,20 @@ export class SupabaseRepository implements Repository {
     return (data ?? []).map(toFixed);
   }
   async copyPreviousMonthFixedCosts(yearMonth: string) {
-    const { count, error: countError } = await this.db.from('fixed_costs')
-      .select('*', { count: 'exact', head: true }).eq('year_month', yearMonth);
-    if (countError) throw countError;
-    if ((count ?? 0) > 0) return;
-    const previousItems = await this.listFixedCosts(previousYearMonth(yearMonth));
-    if (previousItems.length === 0) return;
-    const { error } = await this.db.from('fixed_costs').insert(previousItems.map((item) => fromFixed({
+    const [targetItems, previousItems] = await Promise.all([
+      this.listFixedCosts(yearMonth),
+      this.listFixedCosts(previousYearMonth(yearMonth)),
+    ]);
+    const missingItems = missingPreviousFixedCosts(previousItems, targetItems);
+    if (missingItems.length === 0) {
+      return { sourceCount: previousItems.length, copiedCount: 0, existingCount: targetItems.length };
+    }
+    const { data, error } = await this.db.from('fixed_costs').insert(missingItems.map((item) => fromFixed({
       ...item, yearMonth,
-    })));
+    }))).select('id');
     if (error) throw error;
+    if ((data ?? []).length !== missingItems.length) throw new Error('고정비 복사 결과를 확인하지 못했습니다.');
+    return { sourceCount: previousItems.length, copiedCount: missingItems.length, existingCount: targetItems.length };
   }
   async addFixedCost(d: Omit<FixedCost, 'id'>) {
     const { data, error } = await this.db.from('fixed_costs').insert(fromFixed(d)).select().single();

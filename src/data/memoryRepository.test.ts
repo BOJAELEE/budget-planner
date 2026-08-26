@@ -21,13 +21,28 @@ describe('MemoryRepository', () => {
   });
   it('copies the previous month fixed costs when a new month is opened', async () => {
     const repo = createSeededMemoryRepository();
-    await repo.copyPreviousMonthFixedCosts('2026-08');
+    const result = await repo.copyPreviousMonthFixedCosts('2026-08');
     const july = await repo.listFixedCosts('2026-07');
     const august = await repo.listFixedCosts('2026-08');
 
+    expect(result).toMatchObject({ sourceCount: july.length, copiedCount: july.length, existingCount: 0 });
     expect(august).toHaveLength(july.length);
     expect(august[0]).toMatchObject({ yearMonth: '2026-08', name: july[0].name, amount: july[0].amount });
     expect(august[0].id).not.toBe(july[0].id);
+  });
+  it('fills only missing previous-month costs without overwriting current-month edits', async () => {
+    const repo = createSeededMemoryRepository();
+    const july = await repo.listFixedCosts('2026-07');
+    const changedItem = july[0];
+    await repo.addFixedCost({ ...changedItem, yearMonth: '2026-08', amount: changedItem.amount + 1 });
+
+    const result = await repo.copyPreviousMonthFixedCosts('2026-08');
+    const august = await repo.listFixedCosts('2026-08');
+
+    expect(result).toMatchObject({ sourceCount: july.length, copiedCount: july.length - 1, existingCount: 1 });
+    expect(august).toHaveLength(july.length);
+    expect(august.find((item) => item.category === changedItem.category && item.name === changedItem.name)?.amount)
+      .toBe(changedItem.amount + 1);
   });
   it('카드별 실제값 upsert (같은 월·카드는 덮어쓰기)', async () => {
     const repo = createSeededMemoryRepository();

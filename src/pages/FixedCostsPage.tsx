@@ -24,15 +24,38 @@ export default function FixedCostsPage() {
   const [adding, setAdding] = useState(false);
   const [sortMode, setSortMode] = useState<FixedCostSortMode>('category');
   const [cardFilter, setCardFilter] = useState<FixedCostFilter>('all');
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState<string | null>(null);
+  const [copying, setCopying] = useState(false);
 
   const load = useCallback(async () => {
     setItems(await repo.listFixedCosts(yearMonth));
   }, [repo, yearMonth]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    setCopyMessage(null);
+    setCopyError(null);
+    void load();
+  }, [load]);
 
   const copyPreviousMonth = async () => {
-    await repo.copyPreviousMonthFixedCosts(yearMonth);
-    await load();
+    setCopying(true);
+    setCopyMessage(null);
+    setCopyError(null);
+    try {
+      const result = await repo.copyPreviousMonthFixedCosts(yearMonth);
+      if (result.copiedCount > 0) {
+        setCopyMessage(`전월 고정비 중 누락된 ${result.copiedCount}개를 복사했습니다.`);
+      } else if (result.sourceCount === 0) {
+        setCopyMessage('전월에 복사할 고정비가 없습니다.');
+      } else {
+        setCopyMessage('전월 고정비가 이미 모두 반영되어 있습니다.');
+      }
+      await load();
+    } catch (error) {
+      setCopyError(error instanceof Error ? error.message : '전월 고정비를 복사하지 못했습니다.');
+    } finally {
+      setCopying(false);
+    }
   };
 
   const save = async (id: string | null, d: FixedCostDraft) => {
@@ -71,7 +94,9 @@ export default function FixedCostsPage() {
         <h1 className="text-xl font-bold">고정비</h1>
         <div className="flex gap-2">
           <button className="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm"
-            onClick={() => void copyPreviousMonth()}>전월 복사</button>
+            type="button"
+            disabled={copying}
+            onClick={() => void copyPreviousMonth()}>{copying ? '복사 중...' : '전월 복사'}</button>
           <button className="px-3 py-1 rounded-lg bg-brand text-white text-sm"
             onClick={() => setAdding(true)}>+ 추가</button>
         </div>
@@ -86,6 +111,8 @@ export default function FixedCostsPage() {
         />
         <span className="mt-1 block text-xs text-gray-400">{formatYearMonth(yearMonth)} 고정비는 다음 달 청구월에 적용됩니다.</span>
       </label>
+      {copyMessage && <p role="status" className="rounded-xl bg-brand-soft px-3 py-2 text-sm text-brand">{copyMessage}</p>}
+      {copyError && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-neg">{copyError}</p>}
       {adding && (
         <FixedCostEditor initial={blankDraft}
           onSave={(d) => save(null, d)} onCancel={() => setAdding(false)} />

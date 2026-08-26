@@ -4,7 +4,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { RepositoryProvider } from '../data/RepositoryContext';
 import { createSeededMemoryRepository } from '../data/memoryRepository';
-import { defaultBillingYearMonth } from '../lib/billing';
+import { defaultBillingYearMonth, nextYearMonth, previousYearMonth } from '../lib/billing';
+import { fixedCostsTotal, incomeTotal, savingsTotals } from '../lib/calc';
+import { formatKRW } from '../lib/format';
 import { CARD_METHODS } from '../types';
 import DashboardPage from './DashboardPage';
 
@@ -15,6 +17,7 @@ describe('DashboardPage', () => {
     spendingMonth.setUTCMonth(spendingMonth.getUTCMonth() - 1);
     const spentOn = `${spendingMonth.toISOString().slice(0, 7)}-01`;
     const repo = createSeededMemoryRepository();
+    await prepareFixedCostsForDefaultBilling(repo);
     await repo.addExtraSpending({ card: CARD_METHODS[0], name: '병원비', amount: 100000, spentOn });
     await repo.addExtraSpending({ card: CARD_METHODS[1], name: '외식', amount: 50000, spentOn });
 
@@ -31,17 +34,25 @@ describe('DashboardPage', () => {
     expect(within(summary).getByText('미충당 금액')).toBeInTheDocument();
     expect(within(summary).getByText('금월 잔고')).toBeInTheDocument();
     expect(within(summary).getByText('익월 잔고')).toBeInTheDocument();
-    expect(within(summary).getByText('₩5,749,868')).toBeInTheDocument();
-    expect(within(summary).getByText('₩150,000')).toBeInTheDocument();
-    expect(within(summary).getByText('₩5,505,000')).toBeInTheDocument();
-    expect(within(summary).getByText('₩244,868')).toHaveClass('text-neg');
-    expect(within(summary).getAllByText('₩410,132')).toHaveLength(2);
+    const sourceMonth = previousYearMonth(yearMonth);
+    const sourceFixedCosts = await repo.listFixedCosts(sourceMonth);
+    const income = incomeTotal(await repo.listIncomes(sourceMonth));
+    const total = fixedCostsTotal(sourceFixedCosts) + 150000;
+    const shortage = Math.max(total - income, 0);
+    const savingsAfterShortage = savingsTotals(sourceFixedCosts).totalSavings - shortage;
+    expect(within(summary).getByText(formatKRW(total))).toBeInTheDocument();
+    expect(within(summary).getByText(formatKRW(150000))).toBeInTheDocument();
+    expect(within(summary).getByText(formatKRW(income))).toBeInTheDocument();
+    expect(within(summary).getByText(formatKRW(shortage))).toHaveClass('text-neg');
+    expect(within(summary).getAllByText(formatKRW(savingsAfterShortage))).toHaveLength(2);
     expect(within(summary).getAllByText('₩0')).toHaveLength(2);
   });
 
   it('uses an entered actual card amount in the total budget', async () => {
     const user = userEvent.setup();
-    renderDashboard(createSeededMemoryRepository());
+    const repo = createSeededMemoryRepository();
+    await prepareFixedCostsForDefaultBilling(repo);
+    renderDashboard(repo);
 
     const card = CARD_METHODS[0];
     const cardRow = await screen.findByRole('row', { name: new RegExp(card.replace('카드', '')) });
@@ -50,7 +61,12 @@ describe('DashboardPage', () => {
     await user.type(actualAmountInput, '200000');
     await user.tab();
 
-    await waitFor(() => expect(screen.getByText('₩5,695,868')).toBeInTheDocument());
+    const sourceFixedCosts = await repo.listFixedCosts(previousYearMonth(defaultBillingYearMonth()));
+    const originalCardAmount = sourceFixedCosts
+      .filter((item) => item.paymentMethod === card && item.active)
+      .reduce((total, item) => total + item.amount, 0);
+    const expectedTotal = fixedCostsTotal(sourceFixedCosts) - originalCardAmount + 200000;
+    await waitFor(() => expect(screen.getByText(formatKRW(expectedTotal))).toBeInTheDocument());
     expect(within(screen.getByRole('region', { name: '대시보드 요약' })).getByText('총필요 예산')).toBeInTheDocument();
     expect(within(cardRow).getByRole('textbox', { name: `${card} 실제 카드값` })).toHaveValue('200,000');
   });
@@ -89,4 +105,11 @@ function renderDashboard(repo: ReturnType<typeof createSeededMemoryRepository>) 
       </RepositoryProvider>
     </MemoryRouter>,
   );
+}
+
+async function prepareFixedCostsForDefaultBilling(repo: ReturnType<typeof createSeededMemoryRepository>) {
+  const targetSourceMonth = previousYearMonth(defaultBillingYearMonth());
+  for (let month = '2026-07'; month < targetSourceMonth; month = nextYearMonth(month)) {
+    await repo.copyPreviousMonthFixedCosts(nextYearMonth(month));
+  }
 }

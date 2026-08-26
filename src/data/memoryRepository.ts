@@ -1,5 +1,5 @@
 import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, MonthlyAccountBalance } from '../types';
-import type { Repository, ExtraSpendingInput, ExtraSpendingPatch, IncomeInput } from './repository';
+import { missingPreviousFixedCosts, type Repository, type ExtraSpendingInput, type ExtraSpendingPatch, type IncomeInput } from './repository';
 import { SEED_FIXED_COSTS, SEED_INCOME_TEMPLATES } from './seedData';
 import { billingMonthFor, previousYearMonth } from '../lib/billing';
 import { defaultIncomeAmount } from '../lib/incomeDefaults';
@@ -23,9 +23,11 @@ export class MemoryRepository implements Repository {
     return [...this.fixedCosts].sort((a, b) => a.yearMonth.localeCompare(b.yearMonth) || a.sortOrder - b.sortOrder);
   }
   async copyPreviousMonthFixedCosts(yearMonth: string) {
-    if (this.fixedCosts.some((item) => item.yearMonth === yearMonth)) return;
+    const targetItems = await this.listFixedCosts(yearMonth);
     const previousItems = await this.listFixedCosts(previousYearMonth(yearMonth));
-    this.fixedCosts.push(...previousItems.map((item) => ({ ...item, id: uid(), yearMonth })));
+    const missingItems = missingPreviousFixedCosts(previousItems, targetItems);
+    this.fixedCosts.push(...missingItems.map((item) => ({ ...item, id: uid(), yearMonth })));
+    return { sourceCount: previousItems.length, copiedCount: missingItems.length, existingCount: targetItems.length };
   }
   async addFixedCost(data: Omit<FixedCost, 'id'>) {
     const item = { ...data, id: uid() };
