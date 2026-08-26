@@ -1,7 +1,7 @@
 import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, MonthlyAccountBalance } from '../types';
-import { missingPreviousFixedCosts, type Repository, type ExtraSpendingInput, type ExtraSpendingPatch, type IncomeInput } from './repository';
+import { type Repository, type ExtraSpendingInput, type ExtraSpendingPatch, type IncomeInput } from './repository';
 import { getSupabase } from '../lib/supabase';
-import { billingMonthFor, previousYearMonth } from '../lib/billing';
+import { billingMonthFor } from '../lib/billing';
 import { defaultIncomeAmount } from '../lib/incomeDefaults';
 
 // DB(snake_case) ↔ 도메인(camelCase) 매핑
@@ -43,20 +43,12 @@ export class SupabaseRepository implements Repository {
     return (data ?? []).map(toFixed);
   }
   async copyPreviousMonthFixedCosts(yearMonth: string) {
-    const [targetItems, previousItems] = await Promise.all([
-      this.listFixedCosts(yearMonth),
-      this.listFixedCosts(previousYearMonth(yearMonth)),
-    ]);
-    const missingItems = missingPreviousFixedCosts(previousItems, targetItems);
-    if (missingItems.length === 0) {
-      return { sourceCount: previousItems.length, copiedCount: 0, existingCount: targetItems.length };
-    }
-    const { data, error } = await this.db.from('fixed_costs').insert(missingItems.map((item) => fromFixed({
-      ...item, yearMonth,
-    }))).select('id');
+    const { data, error } = await this.db.rpc('replace_fixed_costs_from_previous_month', {
+      p_target_year_month: yearMonth,
+    });
     if (error) throw error;
-    if ((data ?? []).length !== missingItems.length) throw new Error('고정비 복사 결과를 확인하지 못했습니다.');
-    return { sourceCount: previousItems.length, copiedCount: missingItems.length, existingCount: targetItems.length };
+    if (typeof data !== 'number') throw new Error('고정비 복사 결과를 확인하지 못했습니다.');
+    return { copiedCount: data };
   }
   async addFixedCost(d: Omit<FixedCost, 'id'>) {
     const { data, error } = await this.db.from('fixed_costs').insert(fromFixed(d)).select().single();

@@ -5,7 +5,7 @@ import { CATEGORIES, PAYMENT_METHODS, TRANSFER_METHODS } from '../types';
 import { FixedCostEditor, type FixedCostDraft } from '../components/FixedCostEditor';
 import { formatKRW } from '../lib/format';
 import { sortedFixedCosts, transferTotal } from '../lib/calc';
-import { dateInKorea, formatYearMonth } from '../lib/billing';
+import { dateInKorea, formatYearMonth, previousYearMonth } from '../lib/billing';
 
 const blankDraft: FixedCostDraft = {
   paymentMethod: '신한카드', category: '구독', name: '', amount: 0,
@@ -38,19 +38,23 @@ export default function FixedCostsPage() {
   }, [load]);
 
   const copyPreviousMonth = async () => {
+    const previousMonth = previousYearMonth(yearMonth);
+    const confirmed = confirm(
+      `${formatYearMonth(yearMonth)} 고정비를 모두 지우고 ${formatYearMonth(previousMonth)} 고정비로 전체 교체합니다. 계속할까요?`,
+    );
+    if (!confirmed) return;
+
     setCopying(true);
     setCopyMessage(null);
     setCopyError(null);
     try {
       const result = await repo.copyPreviousMonthFixedCosts(yearMonth);
-      if (result.copiedCount > 0) {
-        setCopyMessage(`전월 고정비 중 누락된 ${result.copiedCount}개를 복사했습니다.`);
-      } else if (result.sourceCount === 0) {
-        setCopyMessage('전월에 복사할 고정비가 없습니다.');
-      } else {
-        setCopyMessage('전월 고정비가 이미 모두 반영되어 있습니다.');
-      }
+      const message = result.copiedCount > 0
+        ? `전월 고정비 ${result.copiedCount}개를 복사했습니다.`
+        : '전월 고정비가 없어 현재 월 고정비를 비웠습니다.';
+      setCopyMessage(message);
       await load();
+      alert(message);
     } catch (error) {
       setCopyError(error instanceof Error ? error.message : '전월 고정비를 복사하지 못했습니다.');
     } finally {

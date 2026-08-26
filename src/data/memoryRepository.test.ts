@@ -25,24 +25,29 @@ describe('MemoryRepository', () => {
     const july = await repo.listFixedCosts('2026-07');
     const august = await repo.listFixedCosts('2026-08');
 
-    expect(result).toMatchObject({ sourceCount: july.length, copiedCount: july.length, existingCount: 0 });
+    expect(result).toMatchObject({ copiedCount: july.length });
     expect(august).toHaveLength(july.length);
     expect(august[0]).toMatchObject({ yearMonth: '2026-08', name: july[0].name, amount: july[0].amount });
     expect(august[0].id).not.toBe(july[0].id);
   });
-  it('fills only missing previous-month costs without overwriting current-month edits', async () => {
+  it('replaces the current month with the full previous-month fixed-cost list', async () => {
     const repo = createSeededMemoryRepository();
     const july = await repo.listFixedCosts('2026-07');
     const changedItem = july[0];
     await repo.addFixedCost({ ...changedItem, yearMonth: '2026-08', amount: changedItem.amount + 1 });
+    await repo.addFixedCost({
+      paymentMethod: '현금이체', category: '기타', name: '대상 월에만 있는 항목',
+      amount: 1234, variability: '고정', active: true, sortOrder: 999, yearMonth: '2026-08',
+    });
 
     const result = await repo.copyPreviousMonthFixedCosts('2026-08');
     const august = await repo.listFixedCosts('2026-08');
 
-    expect(result).toMatchObject({ sourceCount: july.length, copiedCount: july.length - 1, existingCount: 1 });
+    expect(result).toMatchObject({ copiedCount: july.length });
     expect(august).toHaveLength(july.length);
     expect(august.find((item) => item.category === changedItem.category && item.name === changedItem.name)?.amount)
-      .toBe(changedItem.amount + 1);
+      .toBe(changedItem.amount);
+    expect(august.find((item) => item.name === '대상 월에만 있는 항목')).toBeUndefined();
   });
   it('카드별 실제값 upsert (같은 월·카드는 덮어쓰기)', async () => {
     const repo = createSeededMemoryRepository();
