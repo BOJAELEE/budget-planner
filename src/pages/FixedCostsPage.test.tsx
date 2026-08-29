@@ -1,10 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RepositoryProvider } from '../data/RepositoryContext';
 import { createSeededMemoryRepository } from '../data/memoryRepository';
 import { dateInKorea, nextYearMonth, previousYearMonth } from '../lib/billing';
+import { fixedCostsTotal } from '../lib/calc';
+import { formatKRW } from '../lib/format';
 import FixedCostsPage from './FixedCostsPage';
 
 describe('FixedCostsPage', () => {
@@ -41,6 +43,9 @@ describe('FixedCostsPage', () => {
     await waitFor(() => expect(alertSpy).toHaveBeenCalledWith(completeMessage));
     expect(confirmSpy).toHaveBeenCalledOnce();
     expect(screen.getByRole('status')).toHaveTextContent(completeMessage);
+    const total = screen.getByText('고정비 전체 합계').parentElement;
+    expect(total).not.toBeNull();
+    expect(within(total!).getByText(formatKRW(fixedCostsTotal(sourceItems)))).toBeInTheDocument();
     expect((await repo.listFixedCosts(targetMonth))).toHaveLength(sourceItems.length);
     expect((await repo.listFixedCosts(targetMonth)).find((item) => item.name === '대상 월에만 있는 항목')).toBeUndefined();
   });

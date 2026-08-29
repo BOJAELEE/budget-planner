@@ -4,7 +4,7 @@ import type { FixedCost, CardMethod } from '../types';
 import { CATEGORIES, PAYMENT_METHODS, TRANSFER_METHODS } from '../types';
 import { FixedCostEditor, type FixedCostDraft } from '../components/FixedCostEditor';
 import { formatKRW } from '../lib/format';
-import { sortedFixedCosts, transferTotal } from '../lib/calc';
+import { fixedCostsTotal, sortedFixedCosts, transferTotal } from '../lib/calc';
 import { dateInKorea, formatYearMonth, previousYearMonth } from '../lib/billing';
 
 const blankDraft: FixedCostDraft = {
@@ -186,6 +186,9 @@ export default function FixedCostsPage() {
       {items.length === 0 && !adding && (
         <p className="rounded-xl bg-white px-3 py-3 text-sm text-gray-400">등록된 고정비가 없습니다. 전월 복사로 시작할 수 있습니다.</p>
       )}
+      <div className="rounded-2xl bg-white p-4 text-sm shadow-card">
+        고정비 전체 합계 <b>{formatKRW(fixedCostsTotal(items))}</b>
+      </div>
       <div className="rounded-2xl bg-brand-soft p-4 text-sm">
         현금이체 합계 <b>{formatKRW(transferTotal(items))}</b>
       </div>
