@@ -73,20 +73,12 @@ export default function DashboardPage() {
           colorClass="bg-sage"
         />
         <BudgetProgress
-          label="예비금 사용"
+          label="비상금 저금 사용"
           numerator={shortage}
           denominator={derived.savings.reserveLiving}
           detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.reserveLiving)}`}
           balance={reserveLivingRemaining}
           colorClass="bg-aqua"
-        />
-        <BudgetProgress
-          label="저축 사용"
-          numerator={shortage}
-          denominator={derived.savings.totalSavings}
-          detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.totalSavings)}`}
-          balance={savingsAfterShortage}
-          colorClass="bg-mist"
         />
         <BudgetProgress
           label="저축 잔액"

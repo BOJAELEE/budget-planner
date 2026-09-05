@@ -46,6 +46,10 @@ describe('DashboardPage', () => {
     expect(within(summary).getByText(formatKRW(shortage))).toHaveClass('text-neg');
     expect(within(summary).getAllByText(formatKRW(savingsAfterShortage))).toHaveLength(2);
     expect(within(summary).getAllByText('₩0')).toHaveLength(2);
+    const overview = screen.getByRole('region', { name: '예산과 저축 현황' });
+    expect(within(overview).getByText('비상금 저금 사용')).toBeInTheDocument();
+    expect(within(overview).queryByText('예비금 사용')).not.toBeInTheDocument();
+    expect(within(overview).queryByText('저축 사용')).not.toBeInTheDocument();
   });
 
   it('uses an entered actual card amount in the total budget', async () => {
