@@ -21,7 +21,6 @@ export default function DashboardPage() {
 
   const shortage = derived.shortage;
   const budgetRemaining = derived.incomeSum - derived.totalBudget;
-  const reserveLivingRemaining = derived.savings.reserveLiving - shortage;
   const savingsAfterShortage = derived.savings.totalSavings - shortage;
   const currentAccountBalance = Math.max(
     0,
@@ -75,19 +74,10 @@ export default function DashboardPage() {
         <BudgetProgress
           label="비상금 저금 사용"
           numerator={shortage}
-          denominator={derived.savings.reserveLiving}
-          detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.reserveLiving)}`}
-          balance={reserveLivingRemaining}
-          colorClass="bg-aqua"
-        />
-        <BudgetProgress
-          label="저축 잔액"
-          numerator={savingsAfterShortage}
           denominator={derived.savings.totalSavings}
-          detail={`${formatKRW(savingsAfterShortage)} / ${formatKRW(derived.savings.totalSavings)}`}
-          subdetail={`여행 저금 ${formatKRW(derived.savings.travelSaving)} · 예비 생활비 ${formatKRW(derived.savings.reserveLiving)}`}
+          detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.totalSavings)}`}
           balance={savingsAfterShortage}
-          colorClass="bg-mint"
+          colorClass="bg-aqua"
         />
         <BalanceUsage projection={derived.balanceProjection} />
       </section>
@@ -166,13 +156,12 @@ function SummaryCard({ items }: {
 }
 
 function BudgetProgress({
-  label, numerator, denominator, detail, subdetail, balance, colorClass,
+  label, numerator, denominator, detail, balance, colorClass,
 }: {
   label: string;
   numerator: number;
   denominator: number;
   detail: string;
-  subdetail?: string;
   balance: number;
   colorClass: string;
 }) {
@@ -183,18 +172,18 @@ function BudgetProgress({
 
   return (
     <div className="space-y-2.5">
-      <div className="flex items-baseline justify-between gap-2 text-base">
-        <span className="budget-label min-w-0 font-semibold">{label}</span>
-        <span className="flex shrink-0 items-baseline gap-3 text-right">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 text-base">
+        <span className="budget-label min-w-0 whitespace-nowrap font-semibold">{label}</span>
+        <span className="ml-auto flex shrink-0 items-baseline gap-3 text-right">
           <span className={balance < 0 ? 'font-semibold text-neg' : 'budget-balance font-semibold'}>잔액 {formatKRW(balance)}</span>
           <span className={isAlert ? 'font-semibold text-neg' : 'budget-percentage'}>{Math.round(percentage)}%</span>
         </span>
       </div>
-      <div className="budget-track h-3 overflow-hidden rounded-full">
+      <div className="budget-track h-3 overflow-hidden rounded-full"
+        role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percentage)}>
         <div className={`h-full rounded-full ${isAlert ? 'bg-neg' : colorClass}`} style={{ width: `${width}%` }} />
       </div>
       <div className={isAlert ? 'text-sm text-neg' : 'budget-detail text-sm'}>{detail}</div>
-      {subdetail && <div className="budget-detail text-sm">{subdetail}</div>}
     </div>
   );
 }
