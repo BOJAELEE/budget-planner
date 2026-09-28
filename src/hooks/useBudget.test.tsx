@@ -37,6 +37,24 @@ describe('useBudget', () => {
     expect(await repo.listFixedCosts('2026-08')).toHaveLength(0);
   });
 
+  it('carries forward only the amount beyond the monthly emergency reserve', async () => {
+    const repo = new MemoryRepository();
+    await repo.addFixedCost({
+      yearMonth: '2026-07', paymentMethod: '현금이체', category: '생활비',
+      name: '생활비', amount: 700000, variability: '고정', active: true, sortOrder: 0,
+    });
+    await repo.setMonthlyAccountBalance('2026-07', '월급통장', 300000);
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <RepositoryProvider repo={repo}>{children}</RepositoryProvider>
+    );
+
+    const { result } = renderHook(() => useBudget('2026-09'), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.derived.balanceProjection.startingBalances['월급통장']).toBe(100000);
+    expect((await repo.listMonthlyAccountBalances()).find((item) => item.yearMonth === '2026-07' && item.accountName === '월급통장' && item.isManual)?.openingAmount).toBe(300000);
+  });
+
   it('시드 + 추가지출 로드 후 파생값 계산(V2)', async () => {
     const repo = createSeededMemoryRepository();
     await repo.addExtraSpending({ card: '현대카드', name: '코스트코', amount: 100000, spentOn: '2026-07-10' });

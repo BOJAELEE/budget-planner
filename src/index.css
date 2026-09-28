@@ -56,6 +56,19 @@
   background: #fbfcf9;
   border-color: #e2e7df;
 }
+.app-shell .scenario-panel--expected {
+  background: #f1f5ef;
+  border-color: #c8d9c8;
+}
+.app-shell .scenario-panel--actual {
+  background: #edf4f5;
+  border-color: #bdd8d9;
+}
+.app-shell .scenario-panel .bg-white { background-color: #ffffff; }
+.app-shell .scenario-summary-amount {
+  font-size: clamp(0.95rem, 4vw, 1.125rem);
+  font-variant-numeric: tabular-nums;
+}
 .app-shell .budget-overview > * + * {
   border-top: 1px solid #e6ebe4;
   padding-top: 1.25rem;

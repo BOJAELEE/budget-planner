@@ -5,7 +5,7 @@ import { CARD_METHODS } from '../types';
 import {
   transferTotal, cardBaseline, incomeTotal, categoryBreakdown,
   fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings,
-  savingsTotals, balanceUsageAmount, buildMonthlyBalanceSeries, projectBalanceUsage,
+  savingsTotals, emergencyCoverage, buildMonthlyBalanceSeries, projectBalanceUsage, calculateDashboardScenario,
 } from '../lib/calc';
 import { dateInKorea, nextYearMonth, previousYearMonth } from '../lib/billing';
 
@@ -60,7 +60,7 @@ export function useBudget(yearMonth: string) {
         ])) as Record<CardMethod, number>;
         const budget = transferTotal(monthFixedCosts) + CARD_METHODS.reduce((sum, card) => sum + actualByCard[card], 0);
         const shortage = Math.max(budget - incomeTotal(await repo.listIncomes(previousYearMonth(month))), 0);
-        balanceUsageByMonth[month] = balanceUsageAmount(shortage, savingsTotals(monthFixedCosts).totalSavings);
+        balanceUsageByMonth[month] = emergencyCoverage(shortage, savingsTotals(monthFixedCosts).totalSavings).accountUsage;
       }));
       const series = buildMonthlyBalanceSeries(storedBalances, balanceUsageByMonth, throughMonth);
       const currentCalendarMonth = dateInKorea().slice(0, 7);
@@ -119,18 +119,21 @@ export function useBudget(yearMonth: string) {
     const cardExtraTotal = CARD_METHODS.reduce((sum, card) => sum + extraByCard[card], 0);
     const expectedCardTotal = CARD_METHODS.reduce((sum, card) => sum + expectedByCard[card], 0);
     const actualCardTotal = CARD_METHODS.reduce((sum, card) => sum + actualByCard[card], 0);
-    const totalBudget = transferTotal(fixedCosts) + actualCardTotal;
+    const transferSum = transferTotal(fixedCosts);
     const incomeSum = incomeTotal(incomes);
-    const shortage = Math.max(totalBudget - incomeSum, 0);
     const savings = savingsTotals(fixedCosts);
-    const balanceUsage = balanceUsageAmount(shortage, savings.totalSavings);
-    const currentBalanceProjection = projectBalanceUsage(balanceProjection.startingBalances, balanceUsage);
+    const expectedScenario = calculateDashboardScenario(
+      transferSum, expectedCardTotal, incomeSum, savings.totalSavings, balanceProjection.startingBalances,
+    );
+    const actualScenario = calculateDashboardScenario(
+      transferSum, actualCardTotal, incomeSum, savings.totalSavings, balanceProjection.startingBalances,
+    );
     return {
-      transferSum: transferTotal(fixedCosts), cardBaselines, extraByCard, expectedByCard, enteredActualByCard, actualByCard,
+      transferSum, cardBaselines, extraByCard, expectedByCard, enteredActualByCard, actualByCard,
       cardFixedTotal, cardExtraTotal, expectedCardTotal, actualCardTotal,
-      fixedTotal: fixedCostsTotal(fixedCosts), extraTotal: extraSpendingTotal(extras), totalBudget, incomeSum,
-      remaining: incomeSum - totalBudget, shortage, balanceUsage,
-      savings, balanceProjection: currentBalanceProjection, breakdown: categoryBreakdown(fixedCosts),
+      fixedTotal: fixedCostsTotal(fixedCosts), extraTotal: extraSpendingTotal(extras), incomeSum,
+      ...actualScenario, expectedScenario, actualScenario,
+      savings, breakdown: categoryBreakdown(fixedCosts),
     };
   }, [fixedCosts, incomes, extras, actuals, balanceProjection]);
 

@@ -3,7 +3,7 @@ import { useBudget } from '../hooks/useBudget';
 import { CARD_METHODS } from '../types';
 import { formatKRW } from '../lib/format';
 import { defaultBillingYearMonth, formatYearMonth } from '../lib/billing';
-import { displayPercentage } from '../lib/calc';
+import { displayPercentage, type DashboardScenario } from '../lib/calc';
 import { AmountInput } from '../components/AmountInput';
 import { BalanceUsage } from '../components/BalanceUsage';
 
@@ -19,14 +19,7 @@ export default function DashboardPage() {
     </div>
   );
 
-  const shortage = derived.shortage;
-  const budgetRemaining = derived.incomeSum - derived.totalBudget;
-  const savingsAfterShortage = derived.savings.totalSavings - shortage;
-  const currentAccountBalance = Math.max(
-    0,
-    Object.values(derived.balanceProjection.balancesAfter).reduce((sum, amount) => sum + amount, 0),
-  );
-  const nextMonthBalance = Math.max(0, currentAccountBalance + savingsAfterShortage);
+  const enteredCardCount = CARD_METHODS.filter((card) => derived.enteredActualByCard[card] !== undefined).length;
 
   return (
     <main className="p-4 space-y-4">
@@ -40,47 +33,24 @@ export default function DashboardPage() {
           {availableMonths.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
         </select>
       </label>
-      <section className="grid grid-cols-2 gap-3" aria-label="대시보드 요약">
-        <SummaryCard items={[
-          { label: '총필요 예산', amount: derived.totalBudget },
-          { label: '추가 지출', amount: derived.extraTotal },
-        ]} />
-        <SummaryCard items={[
-          { label: '수입', amount: derived.incomeSum },
-          { label: '부족금액', amount: shortage, amountClassName: 'text-neg' },
-        ]} />
-        <SummaryCard items={[
-          { label: '저축 금액', amount: savingsAfterShortage, amountClassName: savingsAfterShortage < 0 ? 'text-neg' : undefined },
-          { label: '금월 잔고', amount: currentAccountBalance },
-        ]} />
-        <SummaryCard items={[
-          { label: '미충당 금액', amount: derived.balanceProjection.uncoveredAmount, amountClassName: 'text-neg' },
-          { label: '익월 잔고', amount: nextMonthBalance },
-        ]} />
-      </section>
-
-      <section
-        className="budget-overview rounded-2xl border p-5 shadow-card space-y-5"
-        aria-label="예산과 저축 현황"
-      >
-        <BudgetProgress
-          label="예산"
-          numerator={derived.totalBudget}
-          denominator={derived.incomeSum}
-          detail={`${formatKRW(derived.totalBudget)} / ${formatKRW(derived.incomeSum)}`}
-          balance={budgetRemaining}
-          colorClass="bg-sage"
-        />
-        <BudgetProgress
-          label="비상금 저금 사용"
-          numerator={shortage}
-          denominator={derived.savings.totalSavings}
-          detail={`${formatKRW(shortage)} / ${formatKRW(derived.savings.totalSavings)}`}
-          balance={savingsAfterShortage}
-          colorClass="bg-aqua"
-        />
-        <BalanceUsage projection={derived.balanceProjection} />
-      </section>
+      <ScenarioPanel
+        title="예상 카드값 기준"
+        description="카드별 예상 금액으로 계산"
+        variant="expected"
+        scenario={derived.expectedScenario}
+        extraTotal={derived.extraTotal}
+        incomeSum={derived.incomeSum}
+        totalSavings={derived.savings.totalSavings}
+      />
+      <ScenarioPanel
+        title="실제 카드값 기준"
+        description={`실제값 ${enteredCardCount}/${CARD_METHODS.length}건 입력 · 미입력 카드는 예상값 적용`}
+        variant="actual"
+        scenario={derived.actualScenario}
+        extraTotal={derived.extraTotal}
+        incomeSum={derived.incomeSum}
+        totalSavings={derived.savings.totalSavings}
+      />
 
       <section className="overflow-hidden rounded-2xl bg-white shadow-card" aria-label="카드별 예산">
         <table aria-label="카드별 예산" className="card-budget-table w-full table-fixed border-collapse text-center text-sm">
@@ -140,15 +110,73 @@ export default function DashboardPage() {
   );
 }
 
+function ScenarioPanel({
+  title, description, variant, scenario, extraTotal, incomeSum, totalSavings,
+}: {
+  title: string;
+  description: string;
+  variant: 'expected' | 'actual';
+  scenario: DashboardScenario;
+  extraTotal: number;
+  incomeSum: number;
+  totalSavings: number;
+}) {
+  return (
+    <section className={`scenario-panel scenario-panel--${variant} space-y-3 rounded-2xl border p-3`} aria-label={`${title} 대시보드`}>
+      <div className="px-1">
+        <h2 className="text-lg font-bold">{title}</h2>
+        <p className="text-sm text-gray-500">{description}</p>
+      </div>
+      <section className="grid grid-cols-2 gap-2.5" aria-label={`${title} 요약`}>
+        <SummaryCard items={[
+          { label: '총필요 예산', amount: scenario.totalBudget },
+          { label: '추가 지출', amount: extraTotal },
+        ]} />
+        <SummaryCard items={[
+          { label: '수입', amount: incomeSum },
+          { label: '부족금액', amount: scenario.shortage, amountClassName: scenario.shortage > 0 ? 'text-neg' : undefined },
+        ]} />
+        <SummaryCard items={[
+          { label: '저축 금액', amount: scenario.savingsAfterShortage, amountClassName: scenario.savingsAfterShortage < 0 ? 'text-neg' : undefined },
+          { label: '금월 잔고', amount: scenario.currentAccountBalance },
+        ]} />
+        <SummaryCard items={[
+          { label: '미충당 금액', amount: scenario.balanceProjection.uncoveredAmount, amountClassName: scenario.balanceProjection.uncoveredAmount > 0 ? 'text-neg' : undefined },
+          { label: '익월 잔고', amount: scenario.nextMonthBalance },
+        ]} />
+      </section>
+      <section className="budget-overview rounded-2xl border p-4 shadow-card space-y-5" aria-label={`${title} 현황`}>
+        <BudgetProgress
+          label="예산"
+          numerator={scenario.totalBudget}
+          denominator={incomeSum}
+          detail={`${formatKRW(scenario.totalBudget)} / ${formatKRW(incomeSum)}`}
+          balance={scenario.remaining}
+          colorClass="bg-sage"
+        />
+        <BudgetProgress
+          label="여유 자금"
+          numerator={scenario.shortage}
+          denominator={totalSavings}
+          detail={`${formatKRW(scenario.shortage)} / ${formatKRW(totalSavings)}`}
+          balance={scenario.savingsAfterShortage}
+          colorClass="bg-aqua"
+        />
+        <BalanceUsage scenario={scenario} />
+      </section>
+    </section>
+  );
+}
+
 function SummaryCard({ items }: {
   items: { label: string; amount: number; amountClassName?: string }[];
 }) {
   return (
-    <div className="flex flex-col justify-center gap-3 rounded-2xl bg-white p-4 shadow-card">
+    <div className="flex min-w-0 flex-col justify-center gap-3 rounded-2xl bg-white p-3 shadow-card">
       {items.map((item) => (
         <div key={item.label}>
           <span className="block text-sm text-gray-500 whitespace-nowrap">{item.label}</span>
-          <strong className={`mt-0.5 block text-lg tracking-tight whitespace-nowrap ${item.amountClassName ?? 'text-gray-900'}`}>{formatKRW(item.amount)}</strong>
+          <strong className={`scenario-summary-amount mt-0.5 block tracking-tight whitespace-nowrap ${item.amountClassName ?? 'text-gray-900'}`}>{formatKRW(item.amount)}</strong>
         </div>
       ))}
     </div>

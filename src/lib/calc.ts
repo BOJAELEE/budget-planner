@@ -65,6 +65,18 @@ export function balanceUsageAmount(shortageAmount: number, totalSavings: number)
   return Math.max(Math.max(0, shortageAmount) - Math.max(0, totalSavings), 0);
 }
 
+export const MONTHLY_EMERGENCY_AMOUNT = 500_000;
+
+export function emergencyCoverage(shortageAmount: number, totalSavings: number) {
+  const needAfterSavings = balanceUsageAmount(shortageAmount, totalSavings);
+  const used = Math.min(needAfterSavings, MONTHLY_EMERGENCY_AMOUNT);
+  return {
+    used,
+    remaining: MONTHLY_EMERGENCY_AMOUNT - used,
+    accountUsage: needAfterSavings - used,
+  };
+}
+
 export function extraSpendingTotal(items: ExtraSpending[]): number {
   return items.reduce((a, x) => a + x.amount, 0);
 }
@@ -123,6 +135,44 @@ export type BalanceProjection = {
   allocations: BalanceAllocation[];
   uncoveredAmount: number;
 };
+
+export type DashboardScenario = {
+  totalBudget: number;
+  remaining: number;
+  shortage: number;
+  savingsAfterShortage: number;
+  balanceUsage: number;
+  emergencyUsed: number;
+  emergencyRemaining: number;
+  balanceProjection: BalanceProjection;
+  currentAccountBalance: number;
+  nextMonthBalance: number;
+};
+
+export function calculateDashboardScenario(
+  transferSum: number,
+  cardTotal: number,
+  incomeSum: number,
+  totalSavings: number,
+  startingBalances: Record<AccountName, number>,
+): DashboardScenario {
+  const totalBudget = transferSum + cardTotal;
+  const remaining = incomeSum - totalBudget;
+  const shortage = Math.max(-remaining, 0);
+  const savingsAfterShortage = totalSavings - shortage;
+  const emergency = emergencyCoverage(shortage, totalSavings);
+  const balanceUsage = emergency.accountUsage;
+  const balanceProjection = projectBalanceUsage(startingBalances, balanceUsage);
+  const currentAccountBalance = ACCOUNT_NAMES.reduce(
+    (sum, account) => sum + balanceProjection.balancesAfter[account], 0,
+  );
+  return {
+    totalBudget, remaining, shortage, savingsAfterShortage, balanceUsage,
+    emergencyUsed: emergency.used, emergencyRemaining: emergency.remaining,
+    balanceProjection, currentAccountBalance,
+    nextMonthBalance: Math.max(0, currentAccountBalance + savingsAfterShortage),
+  };
+}
 
 export function projectBalanceUsage(
   balances: Record<AccountName, number>,

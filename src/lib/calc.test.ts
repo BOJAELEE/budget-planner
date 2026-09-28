@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   transferTotal, cardBaseline, incomeTotal, actualsTotal,
   totalBudget, remaining, extraCardSpending, categoryBreakdown,
-  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, sortedExtraSpendings, sortedFixedCosts, displayPercentage, totalBudgetV2, remainingV2, savingsTotals, balanceUsageAmount, projectBalanceUsage, buildMonthlyBalanceSeries,
+  fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings, sortedExtraSpendings, sortedFixedCosts, displayPercentage, totalBudgetV2, remainingV2, savingsTotals, balanceUsageAmount, projectBalanceUsage, buildMonthlyBalanceSeries, calculateDashboardScenario,
 } from './calc';
 import type { FixedCost, Income, MonthlyCardActual, ExtraSpending } from '../types';
 
@@ -171,6 +171,38 @@ describe('balance usage projection', () => {
     expect(accountUsage).toBe(1099546);
     expect(result.uncoveredAmount).toBe(420573);
     expect(balanceUsageAmount(500000, 655000)).toBe(0);
+  });
+});
+
+describe('dashboard scenario comparison', () => {
+  it('uses one opening balance for both card totals without mutating it', () => {
+    const balances = { '월급통장': 100000, '비상금통장': 200000, '여행통장': 0 };
+    const expected = calculateDashboardScenario(500000, 200000, 550000, 100000, balances);
+    const actual = calculateDashboardScenario(500000, 300000, 550000, 100000, balances);
+
+    expect(expected.totalBudget).toBe(700000);
+    expect(actual.totalBudget).toBe(800000);
+    expect(expected.shortage).toBe(150000);
+    expect(actual.shortage).toBe(250000);
+    expect(expected.emergencyUsed).toBe(50000);
+    expect(actual.emergencyUsed).toBe(150000);
+    expect(expected.balanceProjection.balancesAfter).toEqual(balances);
+    expect(actual.balanceProjection.balancesAfter).toEqual(balances);
+    expect(balances).toEqual({ '월급통장': 100000, '비상금통장': 200000, '여행통장': 0 });
+  });
+
+  it('uses the monthly emergency reserve before drawing from accounts', () => {
+    const balances = { '월급통장': 100000, '비상금통장': 200000, '여행통장': 0 };
+    const expected = calculateDashboardScenario(500000, 900000, 550000, 100000, balances);
+    const actual = calculateDashboardScenario(500000, 1100000, 550000, 100000, balances);
+
+    expect(expected.emergencyUsed).toBe(500000);
+    expect(expected.balanceUsage).toBe(250000);
+    expect(expected.balanceProjection.balancesAfter).toEqual({ '월급통장': 0, '비상금통장': 50000, '여행통장': 0 });
+    expect(actual.emergencyUsed).toBe(500000);
+    expect(actual.balanceUsage).toBe(450000);
+    expect(actual.balanceProjection.uncoveredAmount).toBe(150000);
+    expect(balances).toEqual({ '월급통장': 100000, '비상금통장': 200000, '여행통장': 0 });
   });
 });
 
