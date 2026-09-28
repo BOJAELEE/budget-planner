@@ -136,6 +136,7 @@ export class MemoryRepository implements Repository {
       yearMonth: billingMonthFor(data.card, data.spentOn),
       id: uid(),
       createdAt: new Date().toISOString(),
+      isSettled: false,
     };
     this.extras.push(item);
     return item;
@@ -144,7 +145,9 @@ export class MemoryRepository implements Repository {
     const i = this.extras.findIndex((e) => e.id === id);
     if (i >= 0) {
       const next = { ...this.extras[i], ...patch };
-      this.extras[i] = { ...next, yearMonth: billingMonthFor(next.card, next.spentOn) };
+      this.extras[i] = (patch.card !== undefined || patch.spentOn !== undefined)
+        ? { ...next, yearMonth: billingMonthFor(next.card, next.spentOn) }
+        : next;
     }
   }
   async deleteExtraSpending(id: string) {

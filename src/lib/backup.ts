@@ -6,7 +6,7 @@ export async function exportData(repo: Repository): Promise<string> {
     repo.listAllFixedCosts(), repo.listIncomeTemplates(), repo.listAllIncomes(), repo.listAllActuals(), repo.listAllExtraSpendings(),
     repo.listMonthlyAccountBalances(),
   ]);
-  return JSON.stringify({ version: 7, fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances }, null, 2);
+  return JSON.stringify({ version: 8, fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances }, null, 2);
 }
 
 export async function importData(repo: Repository, json: string): Promise<void> {
@@ -14,6 +14,11 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     version?: unknown; fixedCosts?: unknown; incomeTemplates?: unknown; incomes?: unknown; actuals?: unknown; extraSpendings?: unknown;
     monthlyAccountBalances?: unknown; accountBalances?: unknown; balanceSettlements?: unknown;
   };
+  const invalidSettlementFlag = Array.isArray(parsed?.extraSpendings) && parsed.extraSpendings.some((item: unknown) => {
+    if (item === null || typeof item !== 'object') return true;
+    const flag = (item as { isSettled?: unknown }).isSettled;
+    return flag !== undefined && typeof flag !== 'boolean';
+  });
   // 삭제 전에 반드시 유효성 검증 (형식이 잘못된 파일이 기존 데이터를 지우지 않도록)
   if (
     parsed === null || typeof parsed !== 'object' ||
@@ -21,6 +26,7 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     !Array.isArray(parsed.incomes) ||
     (parsed.actuals !== undefined && !Array.isArray(parsed.actuals)) ||
     (parsed.extraSpendings !== undefined && !Array.isArray(parsed.extraSpendings)) ||
+    invalidSettlementFlag ||
     (parsed.monthlyAccountBalances !== undefined && !Array.isArray(parsed.monthlyAccountBalances)) ||
     (parsed.accountBalances !== undefined && !Array.isArray(parsed.accountBalances)) ||
     (parsed.balanceSettlements !== undefined && !Array.isArray(parsed.balanceSettlements))
@@ -43,7 +49,7 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     const { id, ...rest } = f;
     await repo.addFixedCost({
       ...rest,
-      yearMonth: data.version === 7 && typeof rest.yearMonth === 'string'
+      yearMonth: (data.version === 7 || data.version === 8) && typeof rest.yearMonth === 'string'
         ? rest.yearMonth
         : dateInKorea().slice(0, 7),
     });
@@ -71,15 +77,16 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     await repo.setActual(a.yearMonth, a.paymentMethod, a.actualAmount);
   }
   for (const e of data.extraSpendings ?? []) {
-    await repo.addExtraSpending({
+    const restored = await repo.addExtraSpending({
       card: e.card,
       name: e.name,
       amount: e.amount,
       spentOn: typeof e.spentOn === 'string' ? e.spentOn : spentOnFromCreatedAt(e.createdAt),
     });
+    if (e.isSettled === true) await repo.updateExtraSpending(restored.id, { isSettled: true });
   }
   if (data.monthlyAccountBalances !== undefined) {
-    const usesBalanceMonth = data.version === 6 || data.version === 7;
+    const usesBalanceMonth = data.version === 6 || data.version === 7 || data.version === 8;
     await repo.replaceMonthlyAccountBalances(data.monthlyAccountBalances.map((balance) => ({
       ...balance,
       yearMonth: usesBalanceMonth ? balance.yearMonth : previousYearMonth(balance.yearMonth),

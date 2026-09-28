@@ -1,7 +1,7 @@
 import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, MonthlyAccountBalance } from '../types';
 
 export type ExtraSpendingInput = { card: CardMethod; name: string; amount: number; spentOn: string };
-export type ExtraSpendingPatch = Partial<{ card: CardMethod; name: string; amount: number; spentOn: string }>;
+export type ExtraSpendingPatch = Partial<{ card: CardMethod; name: string; amount: number; spentOn: string; isSettled: boolean }>;
 export type IncomeInput = Omit<Income, 'id'>;
 export type FixedCostCopyResult = { copiedCount: number };
 

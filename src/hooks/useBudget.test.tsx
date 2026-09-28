@@ -37,12 +37,13 @@ describe('useBudget', () => {
     expect(await repo.listFixedCosts('2026-08')).toHaveLength(0);
   });
 
-  it('carries forward only the amount beyond the monthly emergency reserve', async () => {
+  it('carries bank balances forward unchanged despite an uncovered budget amount', async () => {
     const repo = new MemoryRepository();
     await repo.addFixedCost({
       yearMonth: '2026-07', paymentMethod: '현금이체', category: '생활비',
       name: '생활비', amount: 700000, variability: '고정', active: true, sortOrder: 0,
     });
+    await repo.copyPreviousMonthFixedCosts('2026-08');
     await repo.setMonthlyAccountBalance('2026-07', '월급통장', 300000);
     const wrapper = ({ children }: { children: ReactNode }) => (
       <RepositoryProvider repo={repo}>{children}</RepositoryProvider>
@@ -51,8 +52,30 @@ describe('useBudget', () => {
     const { result } = renderHook(() => useBudget('2026-09'), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.derived.balanceProjection.startingBalances['월급통장']).toBe(250000);
+    expect(result.current.derived.balanceProjection.startingBalances['월급통장']).toBe(300000);
+    expect(result.current.derived.uncoveredAmount).toBe(50_000);
     expect((await repo.listMonthlyAccountBalances()).find((item) => item.yearMonth === '2026-07' && item.accountName === '월급통장' && item.isManual)?.openingAmount).toBe(300000);
+    expect((await repo.listMonthlyAccountBalances()).some((item) => !item.isManual)).toBe(false);
+  });
+
+  it('preserves previously saved automatic balances without making new deductions', async () => {
+    const repo = new MemoryRepository();
+    await repo.replaceMonthlyAccountBalances([{
+      id: 'old-auto', yearMonth: '2026-09', accountName: '월급통장',
+      openingAmount: 123_000, isManual: false,
+    }]);
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <RepositoryProvider repo={repo}>{children}</RepositoryProvider>
+    );
+
+    const { result } = renderHook(() => useBudget('2026-11'), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.derived.balanceProjection.startingBalances['월급통장']).toBe(123_000);
+    expect(await repo.listMonthlyAccountBalances()).toEqual([{
+      id: 'old-auto', yearMonth: '2026-09', accountName: '월급통장',
+      openingAmount: 123_000, isManual: false,
+    }]);
   });
 
   it('시드 + 추가지출 로드 후 파생값 계산(V2)', async () => {
@@ -88,5 +111,28 @@ describe('useBudget', () => {
     expect(result.current.derived.totalBudget).toBe(5745868);
     expect(result.current.derived.remaining).toBe(-240868);
     expect(result.current.availableMonths).toContain('2026-08');
+  });
+
+  it('결재완 항목을 예상에서만 제외하고 직접 입력한 실제 카드값은 유지한다', async () => {
+    const repo = new MemoryRepository();
+    await repo.addFixedCost({
+      yearMonth: '2026-07', paymentMethod: '현대카드', category: '구독',
+      name: '고정비', amount: 100_000, variability: '고정', active: true, sortOrder: 0,
+    });
+    const extra = await repo.addExtraSpending({ card: '현대카드', name: '추가지출', amount: 30_000, spentOn: '2026-07-01' });
+    await repo.setActual('2026-08', '현대카드', 150_000);
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <RepositoryProvider repo={repo}>{children}</RepositoryProvider>
+    );
+    const { result } = renderHook(() => useBudget('2026-08'), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.derived.expectedByCard['현대카드']).toBe(130_000);
+    expect(result.current.derived.actualByCard['현대카드']).toBe(150_000);
+
+    await repo.updateExtraSpending(extra.id, { isSettled: true });
+    await act(async () => { await result.current.reload(); });
+    expect(result.current.derived.expectedByCard['현대카드']).toBe(100_000);
+    expect(result.current.derived.actualByCard['현대카드']).toBe(150_000);
+    expect(result.current.derived.extraTotal).toBe(0);
   });
 });

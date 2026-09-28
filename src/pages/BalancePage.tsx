@@ -3,8 +3,6 @@ import { AmountInput } from '../components/AmountInput';
 import { useBudget } from '../hooks/useBudget';
 import { ACCOUNT_NAMES } from '../types';
 import { dateInKorea, formatYearMonth, nextYearMonth, previousYearMonth } from '../lib/billing';
-import { formatKRW } from '../lib/format';
-import { MONTHLY_EMERGENCY_AMOUNT } from '../lib/calc';
 
 export default function BalancePage() {
   const [balanceYearMonth, setBalanceYearMonth] = useState(() => dateInKorea().slice(0, 7));
@@ -21,7 +19,7 @@ export default function BalancePage() {
     <main className="p-4 space-y-4">
       <div>
         <h1 className="text-xl font-bold">잔고</h1>
-        <p className="mt-1 text-sm text-gray-500">입력한 월의 잔고는 다음 달 청구월에 적용됩니다. 직접 입력한 달은 보호되고, 다음 달부터 예상 사용액이 자동 이월됩니다. 월 비상금 {formatKRW(MONTHLY_EMERGENCY_AMOUNT)}은 통장 잔고와 별도로 먼저 적용됩니다.</p>
+        <p className="mt-1 text-sm text-gray-500">입력한 월의 잔고는 다음 달 청구월에 적용됩니다. 직접 입력한 달은 보호되며, 이후 월에는 잔고를 차감하지 않고 그대로 이월합니다.</p>
       </div>
       {error && <p className="rounded-xl bg-white p-3 text-sm text-neg">{error}</p>}
       <label className="block text-base font-medium text-gray-600">
@@ -43,12 +41,6 @@ export default function BalancePage() {
             />
           </div>
         ))}
-      </section>
-      <section className="rounded-2xl bg-white p-4 shadow-card space-y-2" aria-label="예상 사용 후 잔액">
-        <h2 className="font-bold">{formatYearMonth(billingYearMonth)} 청구 후 예상 잔액</h2>
-        <p className="text-sm text-gray-500">월 비상금 사용 {formatKRW(derived.actualScenario.emergencyUsed)} / {formatKRW(MONTHLY_EMERGENCY_AMOUNT)}</p>
-        {ACCOUNT_NAMES.map((account) => <div key={account} className="flex justify-between text-sm"><span>{account}</span><span>{formatKRW(derived.balanceProjection.balancesAfter[account])}</span></div>)}
-        {derived.balanceProjection.uncoveredAmount > 0 && <p className="text-sm font-semibold text-neg">미충당 금액 {formatKRW(derived.balanceProjection.uncoveredAmount)}</p>}
       </section>
     </main>
   );

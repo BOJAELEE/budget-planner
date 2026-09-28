@@ -79,6 +79,7 @@ export interface ExtraSpending {
   amount: number;
   spentOn: string; // 실제 사용일, "2026-07-01"
   createdAt: string; // ISO timestamp, 자동 기록
+  isSettled: boolean; // 결재완 기록은 보존하되 추가지출 합계에서 제외
 }
 
 export function isCardMethod(m: PaymentMethod): m is CardMethod {

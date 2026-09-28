@@ -21,6 +21,8 @@ export default function ExtraSpendingPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sortByAmount, setSortByAmount] = useState(false);
   const [cardFilter, setCardFilter] = useState<CardMethod | 'all'>('all');
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
 
   const load = async () => setAllItems(await repo.listAllExtraSpendings());
   useEffect(() => { void load(); }, [repo]);
@@ -50,6 +52,18 @@ export default function ExtraSpendingPage() {
   };
   const remove = async (id: string) => {
     if (confirm('삭제할까요?')) { await repo.deleteExtraSpending(id); await load(); }
+  };
+  const toggleSettled = async (item: ExtraSpending) => {
+    setBusyId(item.id);
+    setStatusError(null);
+    try {
+      await repo.updateExtraSpending(item.id, { isSettled: !item.isSettled });
+      await load();
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : '결재 상태를 저장하지 못했습니다.');
+    } finally {
+      setBusyId(null);
+    }
   };
 
   return (
@@ -119,6 +133,8 @@ export default function ExtraSpendingPage() {
           {sortByAmount ? '최신순' : '고액순'}
         </button>
       </div>
+      <p className="text-xs text-gray-500">결재완 항목은 기록에 남고 추가지출 합계에서는 제외됩니다.</p>
+      {statusError && <p role="alert" className="text-sm text-neg">{statusError}</p>}
 
       {items.length === 0 ? (
         <p className="text-gray-400 text-sm text-center py-6">선택한 청구월에 추가지출이 없습니다.</p>
@@ -126,18 +142,30 @@ export default function ExtraSpendingPage() {
         items.map((item) => editingId === item.id ? (
           <ExtraRowEditor key={item.id} item={item} onSave={(patch) => saveEdit(item.id, patch)} onCancel={() => setEditingId(null)} />
         ) : (
-          <article key={item.id} className="flex items-center justify-between rounded-xl bg-white shadow-card px-3 py-2">
-            <div>
-              <div className="font-medium">
-                {item.name}
-                <span className="ml-2 text-xs rounded bg-gray-100 text-gray-500 px-1.5 py-0.5">{item.card}</span>
+          <article key={item.id} aria-label={item.name} className={`rounded-xl shadow-card px-3 py-2.5 space-y-2 ${item.isSettled ? 'bg-gray-50' : 'bg-white'}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className={`font-medium break-words ${item.isSettled ? 'text-gray-500 line-through' : ''}`}>
+                  {item.name}
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-400">
+                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-500">{item.card}</span>
+                  <span>사용일 {item.spentOn} · 청구월 {formatYearMonth(item.yearMonth)}</span>
+                </div>
               </div>
-              <div className="text-xs text-gray-400">사용일 {item.spentOn} · 청구월 {formatYearMonth(item.yearMonth)}</div>
+              <span className={`shrink-0 font-semibold tabular-nums ${item.isSettled ? 'text-gray-400 line-through' : 'text-neg'}`}>{formatKRW(item.amount)}</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="font-semibold text-neg">{formatKRW(item.amount)}</span>
-              <button className="text-gray-400 text-sm" onClick={() => setEditingId(item.id)}>수정</button>
-              <button className="text-neg text-sm" onClick={() => remove(item.id)}>삭제</button>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={item.isSettled ? 'rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-gray-600' : 'text-xs text-gray-400'}>
+                {item.isSettled ? '결재완 · 합계 제외' : '합계 포함'}
+              </span>
+              <div className="flex items-center gap-3 text-sm">
+                <button type="button" className="text-gray-500" onClick={() => setEditingId(item.id)}>수정</button>
+                <button type="button" className="text-neg" onClick={() => remove(item.id)}>삭제</button>
+                <button type="button" aria-pressed={item.isSettled} disabled={busyId === item.id}
+                  className="rounded-lg border border-gray-200 px-2 py-1 text-gray-700 disabled:opacity-50"
+                  onClick={() => void toggleSettled(item)}>{item.isSettled ? '완료 취소' : '결재완'}</button>
+              </div>
             </div>
           </article>
         ))

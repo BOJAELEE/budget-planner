@@ -71,7 +71,7 @@ export function emergencyCoverage(needAfterFlexibleFunds: number) {
 }
 
 export function extraSpendingTotal(items: ExtraSpending[]): number {
-  return items.reduce((a, x) => a + x.amount, 0);
+  return items.reduce((a, x) => a + (x.isSettled ? 0 : x.amount), 0);
 }
 
 export function sortedExtraSpendings(items: ExtraSpending[], sortByAmount: boolean): ExtraSpending[] {
@@ -95,7 +95,7 @@ export function displayPercentage(numerator: number, denominator: number): numbe
 
 export function extraByCardFromSpendings(items: ExtraSpending[]): Record<CardMethod, number> {
   const r = Object.fromEntries(CARD_METHODS.map((c) => [c, 0])) as Record<CardMethod, number>;
-  for (const it of items) r[it.card] += it.amount;
+  for (const it of items) if (!it.isSettled) r[it.card] += it.amount;
   return r;
 }
 
@@ -136,12 +136,11 @@ export type DashboardScenario = {
   flexibleAvailable: number;
   flexibleUsed: number;
   flexibleRemaining: number;
-  balanceUsage: number;
+  uncoveredAmount: number;
   emergencyUsed: number;
   emergencyRemaining: number;
   balanceProjection: BalanceProjection;
   currentAccountBalance: number;
-  nextMonthBalance: number;
 };
 
 export function calculateDashboardScenario(
@@ -158,16 +157,15 @@ export function calculateDashboardScenario(
   const flexibleUsed = totalBudget - fixedCostTotal;
   const flexibleRemaining = flexibleAvailable - flexibleUsed;
   const emergency = emergencyCoverage(-flexibleRemaining);
-  const balanceUsage = emergency.accountUsage;
-  const balanceProjection = projectBalanceUsage(startingBalances, balanceUsage);
+  const uncoveredAmount = emergency.accountUsage;
+  const balanceProjection = projectBalanceUsage(startingBalances, 0);
   const currentAccountBalance = ACCOUNT_NAMES.reduce(
     (sum, account) => sum + balanceProjection.balancesAfter[account], 0,
   );
   return {
-    totalBudget, remaining, shortage, flexibleAvailable, flexibleUsed, flexibleRemaining, balanceUsage,
+    totalBudget, remaining, shortage, flexibleAvailable, flexibleUsed, flexibleRemaining, uncoveredAmount,
     emergencyUsed: emergency.used, emergencyRemaining: emergency.remaining,
     balanceProjection, currentAccountBalance,
-    nextMonthBalance: Math.max(0, currentAccountBalance + flexibleRemaining),
   };
 }
 

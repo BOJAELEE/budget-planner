@@ -5,21 +5,9 @@ import { CARD_METHODS } from '../types';
 import {
   transferTotal, cardBaseline, incomeTotal, categoryBreakdown,
   fixedCostsTotal, extraSpendingTotal, extraByCardFromSpendings,
-  flexibleFundsRemaining, emergencyCoverage, buildMonthlyBalanceSeries, projectBalanceUsage, calculateDashboardScenario,
+  buildMonthlyBalanceSeries, projectBalanceUsage, calculateDashboardScenario,
 } from '../lib/calc';
-import { dateInKorea, nextYearMonth, previousYearMonth } from '../lib/billing';
-
-const addMonth = (yearMonth: string) => {
-  const [year, month] = yearMonth.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month, 1));
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-};
-
-const monthRange = (from: string, through: string) => {
-  const months: string[] = [];
-  for (let month = from; month <= through; month = addMonth(month)) months.push(month);
-  return months;
-};
+import { nextYearMonth, previousYearMonth } from '../lib/billing';
 
 export function useBudget(yearMonth: string) {
   const repo = useRepository();
@@ -39,35 +27,16 @@ export function useBudget(yearMonth: string) {
     setLoading(true);
     setError(null);
     try {
-      const [fc, allFixedCosts, inc, ex, ac, allEx, allActuals, allIncomes, storedBalances] = await Promise.all([
+      const [fc, allFixedCosts, inc, ex, ac, allEx, storedBalances] = await Promise.all([
         repo.listFixedCosts(sourceMonth), repo.listAllFixedCosts(), repo.listIncomes(sourceMonth), repo.listExtraSpendings(yearMonth), repo.listActuals(yearMonth),
-        repo.listAllExtraSpendings(), repo.listAllActuals(), repo.listAllIncomes(), repo.listMonthlyAccountBalances(),
+        repo.listAllExtraSpendings(), repo.listMonthlyAccountBalances(),
       ]);
-      const manualMonths = storedBalances.filter((item) => item.isManual).map((item) => nextYearMonth(item.yearMonth));
-      const knownMonths = [yearMonth, ...manualMonths, ...storedBalances.map((item) => nextYearMonth(item.yearMonth)), ...allFixedCosts.map((item) => nextYearMonth(item.yearMonth)), ...allEx.map((item) => item.yearMonth), ...allActuals.map((item) => item.yearMonth), ...allIncomes.map((item) => nextYearMonth(item.yearMonth))];
-      const firstMonth = manualMonths.sort((a, b) => a.localeCompare(b))[0] ?? yearMonth;
-      const throughMonth = knownMonths.sort((a, b) => b.localeCompare(a))[0] > yearMonth
-        ? knownMonths.sort((a, b) => b.localeCompare(a))[0]
-        : yearMonth;
-      const balanceUsageByMonth: Record<string, number> = {};
-      await Promise.all(monthRange(firstMonth, throughMonth).map(async (month) => {
-        const monthFixedCosts = allFixedCosts.filter((item) => item.yearMonth === previousYearMonth(month));
-        const monthExtras = allEx.filter((item) => item.yearMonth === month);
-        const byCard = extraByCardFromSpendings(monthExtras);
-        const expectedByCard = Object.fromEntries(CARD_METHODS.map((card) => [card, cardBaseline(monthFixedCosts, card) + byCard[card]])) as Record<CardMethod, number>;
-        const actualByCard = Object.fromEntries(CARD_METHODS.map((card) => [
-          card, allActuals.find((item) => item.yearMonth === month && item.paymentMethod === card)?.actualAmount ?? expectedByCard[card],
-        ])) as Record<CardMethod, number>;
-        const budget = transferTotal(monthFixedCosts) + CARD_METHODS.reduce((sum, card) => sum + actualByCard[card], 0);
-        const income = incomeTotal(await repo.listIncomes(previousYearMonth(month)));
-        const remainingFlexible = flexibleFundsRemaining(income, fixedCostsTotal(monthFixedCosts), budget);
-        balanceUsageByMonth[month] = emergencyCoverage(-remainingFlexible).accountUsage;
-      }));
-      const series = buildMonthlyBalanceSeries(storedBalances, balanceUsageByMonth, throughMonth);
-      const currentCalendarMonth = dateInKorea().slice(0, 7);
-      const persistedAutomaticBalances = series.automaticBalances.filter((item) => item.yearMonth <= currentCalendarMonth);
-      await repo.replaceAutomaticMonthlyAccountBalances(persistedAutomaticBalances);
-      const nextBalances = [...storedBalances.filter((item) => item.isManual), ...persistedAutomaticBalances];
+      const knownMonths = [yearMonth, ...storedBalances.map((item) => nextYearMonth(item.yearMonth)), ...allFixedCosts.map((item) => nextYearMonth(item.yearMonth)), ...allEx.map((item) => item.yearMonth)];
+      const throughMonth = knownMonths.sort((a, b) => b.localeCompare(a))[0];
+      // Existing saved automatic balances remain untouched; new months carry the last saved amounts without deductions.
+      const carryForwardRecords = storedBalances.map((item) => ({ ...item, isManual: true }));
+      const series = buildMonthlyBalanceSeries(carryForwardRecords, { [yearMonth]: 0 }, throughMonth);
+      const nextBalances = [...storedBalances, ...series.automaticBalances];
       setFixedCosts(fc); setIncomes(inc); setExtras(ex); setActuals(ac); setAllExtras(allEx);
       setFixedCostBillingMonths(allFixedCosts.map((item) => nextYearMonth(item.yearMonth)));
       setMonthlyBalances(nextBalances); setBalanceProjection(series.projections[yearMonth]);

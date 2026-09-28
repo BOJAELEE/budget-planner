@@ -1,16 +1,10 @@
-import { MONTHLY_EMERGENCY_AMOUNT, MONTHLY_FLEXIBLE_BASE, displayPercentage, type DashboardScenario } from '../lib/calc';
+import { MONTHLY_EMERGENCY_AMOUNT, MONTHLY_FLEXIBLE_BASE, displayPercentage } from '../lib/calc';
 import { dashboardGraphAmounts } from '../lib/dashboardGraph';
-import { ACCOUNT_NAMES } from '../types';
 import { formatKRW } from '../lib/format';
 
-export function BalanceUsage({ scenario, graph }: {
-  scenario: DashboardScenario;
+export function BalanceUsage({ graph }: {
   graph: ReturnType<typeof dashboardGraphAmounts>;
 }) {
-  const projection = scenario.balanceProjection;
-  const startingTotal = ACCOUNT_NAMES.reduce((sum, account) => sum + projection.startingBalances[account], 0);
-  const remainingTotal = ACCOUNT_NAMES.reduce((sum, account) => sum + projection.balancesAfter[account], 0);
-  const coveredByAccounts = startingTotal - remainingTotal;
   const sources = [
     { key: 'income', label: '여유 자금', capacity: graph.incomeMargin, used: graph.incomeMarginUsed },
     { key: 'base', label: '15만 원', capacity: MONTHLY_FLEXIBLE_BASE, used: graph.flexibleBaseUsed },
@@ -20,12 +14,12 @@ export function BalanceUsage({ scenario, graph }: {
   const percentage = Math.round(displayPercentage(usedTotal, graph.fundingCapacity));
 
   return (
-    <div className="space-y-2.5" aria-label="자금 사용">
+    <div className="space-y-2.5" aria-label="예비 자금">
       <div className="flex items-baseline justify-between gap-2 text-base">
-        <span className="budget-label min-w-0 font-semibold">자금 사용</span>
+        <span className="budget-label min-w-0 font-semibold">예비 자금</span>
         <span className="budget-balance font-semibold">{percentage}%</span>
       </div>
-      <div className="budget-track funding-track flex h-3 overflow-hidden rounded-full" role="progressbar" aria-label="자금 사용" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage}
+      <div className="budget-track funding-track flex h-3 overflow-hidden rounded-full" role="progressbar" aria-label="예비 자금 사용" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage}
         aria-valuetext={`${formatKRW(usedTotal)} / ${formatKRW(graph.fundingCapacity)}`}>
         {sources.filter((source) => source.capacity > 0).map((source) => (
           <div key={source.key} className={`funding-segment funding-segment--${source.key} h-full min-w-0`} style={{ flexGrow: source.capacity, flexBasis: 0 }}
@@ -44,16 +38,6 @@ export function BalanceUsage({ scenario, graph }: {
         ))}
       </div>
       {graph.incomeMargin === 0 && <p className="budget-detail text-sm">수입보다 고정비가 커서 여유 자금 구간은 0원입니다.</p>}
-      <details className="text-sm text-gray-500">
-        <summary className="cursor-pointer">통장 추가 충당 {formatKRW(coveredByAccounts)} · 남은 통장 잔고 {formatKRW(remainingTotal)}</summary>
-        <div className="mt-2 space-y-1">
-          {ACCOUNT_NAMES.map((account) => {
-            const used = projection.startingBalances[account] - projection.balancesAfter[account];
-            return <div key={account} className="flex justify-between gap-2"><span>{account}</span><span className="text-right">시작 {formatKRW(projection.startingBalances[account])} · 사용 {formatKRW(used)} · 잔액 {formatKRW(projection.balancesAfter[account])}</span></div>;
-          })}
-        </div>
-      </details>
-      {projection.uncoveredAmount > 0 && <p className="text-sm font-semibold text-neg">미충당 금액 {formatKRW(projection.uncoveredAmount)}</p>}
     </div>
   );
 }

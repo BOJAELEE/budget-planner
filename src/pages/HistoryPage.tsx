@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRepository } from '../data/RepositoryContext';
-import { fixedCostsTotal } from '../lib/calc';
+import { extraSpendingTotal, fixedCostsTotal } from '../lib/calc';
 import { HistoryChart } from '../components/HistoryChart';
 import { formatKRW } from '../lib/format';
 import { nextYearMonth, previousYearMonth } from '../lib/billing';
@@ -16,7 +16,7 @@ export default function HistoryPage() {
       ]);
       const byMonth = new Map<string, number>();
       extras.forEach((e) => {
-        byMonth.set(e.yearMonth, (byMonth.get(e.yearMonth) ?? 0) + e.amount);
+        byMonth.set(e.yearMonth, (byMonth.get(e.yearMonth) ?? 0) + extraSpendingTotal([e]));
       });
       const months = [...new Set([
         ...byMonth.keys(),

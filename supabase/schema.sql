@@ -59,11 +59,13 @@ create table if not exists extra_spendings (
   name text not null,
   amount integer not null check (amount >= 0),
   spent_on date not null default current_date,
+  is_settled boolean not null default false,
   created_at timestamptz not null default now()
 );
 
 -- 기존 데이터는 입력 시각을 한국 시간의 실제 사용일로 간주하여 청구월을 다시 계산한다.
 alter table extra_spendings add column if not exists spent_on date;
+alter table extra_spendings add column if not exists is_settled boolean not null default false;
 alter table extra_spendings alter column spent_on set default current_date;
 update extra_spendings
 set spent_on = (created_at at time zone 'Asia/Seoul')::date

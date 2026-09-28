@@ -65,7 +65,7 @@ describe('calc', () => {
 
 const ex = (over: Partial<ExtraSpending>): ExtraSpending => ({
   id: Math.random().toString(), yearMonth: '2026-07', card: '현대카드',
-  name: 'x', amount: 1000, spentOn: '2026-06-10', createdAt: new Date().toISOString(), ...over,
+  name: 'x', amount: 1000, spentOn: '2026-06-10', createdAt: new Date().toISOString(), isSettled: false, ...over,
 });
 
 describe('extra spending calc', () => {
@@ -79,6 +79,13 @@ describe('extra spending calc', () => {
   });
   it('extraSpendingTotal', () => {
     expect(extraSpendingTotal([ex({ amount: 30000 }), ex({ amount: 20000 })])).toBe(50000);
+  });
+  it('keeps settled records but excludes them from totals and card estimates', () => {
+    const items = [ex({ amount: 30000 }), ex({ amount: 20000, isSettled: true })];
+    expect(items).toHaveLength(2);
+    expect(extraSpendingTotal(items)).toBe(30000);
+    expect(extraByCardFromSpendings(items)['현대카드']).toBe(30000);
+    expect(totalBudgetV2(costs, items)).toBe(234000);
   });
   it('sorts extras by amount and uses recency for ties', () => {
     const items = [
@@ -177,7 +184,8 @@ describe('dashboard scenario comparison', () => {
     expect(scenario.flexibleUsed).toBe(1480000);
     expect(scenario.flexibleRemaining).toBe(-1190000);
     expect(scenario.emergencyUsed).toBe(500000);
-    expect(scenario.balanceProjection.uncoveredAmount).toBe(690000);
+    expect(scenario.uncoveredAmount).toBe(690000);
+    expect(scenario.balanceProjection.uncoveredAmount).toBe(0);
   });
 
   it('uses one opening balance for both card totals without mutating it', () => {
@@ -199,17 +207,17 @@ describe('dashboard scenario comparison', () => {
     expect(balances).toEqual({ '월급통장': 100000, '비상금통장': 200000, '여행통장': 0 });
   });
 
-  it('uses the monthly emergency reserve before drawing from accounts', () => {
+  it('shows any shortfall after the monthly emergency reserve without drawing from accounts', () => {
     const balances = { '월급통장': 100000, '비상금통장': 200000, '여행통장': 0 };
     const expected = calculateDashboardScenario(500000, 900000, 550000, 600000, balances);
     const actual = calculateDashboardScenario(500000, 1100000, 550000, 600000, balances);
 
     expect(expected.emergencyUsed).toBe(500000);
-    expect(expected.balanceUsage).toBe(200000);
-    expect(expected.balanceProjection.balancesAfter).toEqual({ '월급통장': 0, '비상금통장': 100000, '여행통장': 0 });
+    expect(expected.uncoveredAmount).toBe(200000);
+    expect(expected.balanceProjection.balancesAfter).toEqual(balances);
     expect(actual.emergencyUsed).toBe(500000);
-    expect(actual.balanceUsage).toBe(400000);
-    expect(actual.balanceProjection.uncoveredAmount).toBe(100000);
+    expect(actual.uncoveredAmount).toBe(400000);
+    expect(actual.balanceProjection.balancesAfter).toEqual(balances);
     expect(balances).toEqual({ '월급통장': 100000, '비상금통장': 200000, '여행통장': 0 });
   });
 

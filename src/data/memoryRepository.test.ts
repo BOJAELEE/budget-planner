@@ -89,6 +89,10 @@ describe('MemoryRepository', () => {
     expect(await repo.listAllExtraSpendings()).toHaveLength(2);
     await repo.updateExtraSpending(a.id, { amount: 130000 });
     expect((await repo.listExtraSpendings('2026-07'))[0].amount).toBe(130000);
+    await repo.updateExtraSpending(a.id, { isSettled: true });
+    expect((await repo.listExtraSpendings('2026-07'))[0].isSettled).toBe(true);
+    await repo.updateExtraSpending(a.id, { isSettled: false });
+    expect((await repo.listExtraSpendings('2026-07'))[0].isSettled).toBe(false);
     await repo.updateExtraSpending(a.id, { spentOn: '2026-06-20' });
     expect(await repo.listExtraSpendings('2026-07')).toHaveLength(0);
     expect(await repo.listExtraSpendings('2026-08')).toHaveLength(1);

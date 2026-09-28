@@ -46,7 +46,8 @@ describe('backup', () => {
 
   it('백업에 추가지출 포함 (교체 복원)', async () => {
     const src = createSeededMemoryRepository();
-    await src.addExtraSpending({ card: '현대카드', name: '코스트코', amount: 120000, spentOn: '2026-06-10' });
+    const paid = await src.addExtraSpending({ card: '현대카드', name: '코스트코', amount: 120000, spentOn: '2026-06-10' });
+    await src.updateExtraSpending(paid.id, { isSettled: true });
     const json = await exportData(src);
 
     const dst = createSeededMemoryRepository();
@@ -58,6 +59,7 @@ describe('backup', () => {
     expect(extras[0].name).toBe('코스트코');
     expect(extras[0].amount).toBe(120000);
     expect(extras[0].spentOn).toBe('2026-06-10');
+    expect(extras[0].isSettled).toBe(true);
   });
 
   it('imports legacy extras with a billing month calculated from the created time', async () => {
@@ -75,6 +77,18 @@ describe('backup', () => {
     const [extra] = await repo.listAllExtraSpendings();
     expect(extra.spentOn).toBe('2026-07-20');
     expect(extra.yearMonth).toBe('2026-09');
+    expect(extra.isSettled).toBe(false);
+  });
+
+  it('결재 상태가 잘못된 백업은 기존 데이터를 지우기 전에 거부한다', async () => {
+    const repo = createSeededMemoryRepository();
+    await expect(importData(repo, JSON.stringify({
+      version: 8,
+      fixedCosts: [],
+      incomes: [],
+      extraSpendings: [{ card: '현대카드', name: '오류', amount: 1000, spentOn: '2026-07-01', isSettled: 'yes' }],
+    }))).rejects.toThrow('백업 파일 형식');
+    expect(await repo.listFixedCosts('2026-07')).toHaveLength(39);
   });
 
   it('exports and restores monthly opening balances', async () => {

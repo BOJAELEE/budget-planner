@@ -15,7 +15,7 @@ const fromFixed = (d: Partial<Omit<FixedCost, 'id'>>) => ({
 });
 const toExtra = (r: any): ExtraSpending => ({
   id: r.id, yearMonth: r.year_month, card: r.card, name: r.name, amount: r.amount,
-  spentOn: r.spent_on, createdAt: r.created_at,
+  spentOn: r.spent_on, createdAt: r.created_at, isSettled: r.is_settled,
 });
 const toIncomeTemplate = (r: any): IncomeTemplate => ({
   id: r.id, name: r.name, defaultAmount: r.default_amount, active: r.active,
@@ -192,15 +192,21 @@ export class SupabaseRepository implements Repository {
     return toExtra(data);
   }
   async updateExtraSpending(id: string, patch: ExtraSpendingPatch) {
-    const { data: current, error: loadError } = await this.db
-      .from('extra_spendings').select('*').eq('id', id).single();
-    if (loadError) throw loadError;
-    const card = patch.card ?? current.card as CardMethod;
-    const spentOn = patch.spentOn ?? current.spent_on;
+    let yearMonth: string | undefined;
+    if (patch.card !== undefined || patch.spentOn !== undefined) {
+      const { data: current, error: loadError } = await this.db
+        .from('extra_spendings').select('card, spent_on').eq('id', id).single();
+      if (loadError) throw loadError;
+      yearMonth = billingMonthFor(patch.card ?? current.card as CardMethod, patch.spentOn ?? current.spent_on);
+    }
     const { error } = await this.db.from('extra_spendings')
       .update({
-        card: patch.card, name: patch.name, amount: patch.amount, spent_on: patch.spentOn,
-        year_month: billingMonthFor(card, spentOn),
+        ...(patch.card !== undefined ? { card: patch.card } : {}),
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.amount !== undefined ? { amount: patch.amount } : {}),
+        ...(patch.spentOn !== undefined ? { spent_on: patch.spentOn } : {}),
+        ...(patch.isSettled !== undefined ? { is_settled: patch.isSettled } : {}),
+        ...(yearMonth !== undefined ? { year_month: yearMonth } : {}),
       }).eq('id', id);
     if (error) throw error;
   }

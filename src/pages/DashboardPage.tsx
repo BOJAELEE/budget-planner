@@ -152,12 +152,11 @@ function ScenarioPanel({
           { label: '부족금액', amount: scenario.shortage, amountClassName: scenario.shortage > 0 ? 'text-neg' : undefined },
         ]} />
         <SummaryCard items={[
-          { label: '저축 금액', amount: scenario.flexibleRemaining, amountClassName: scenario.flexibleRemaining < 0 ? 'text-neg' : undefined },
-          { label: '금월 잔고', amount: scenario.currentAccountBalance },
+          { label: '예비 자금', amount: scenario.flexibleRemaining, amountClassName: scenario.flexibleRemaining < 0 ? 'text-neg' : undefined },
+          { label: '잔액/저축액', amount: scenario.currentAccountBalance },
         ]} />
         <SummaryCard items={[
-          { label: '미충당 금액', amount: scenario.balanceProjection.uncoveredAmount, amountClassName: scenario.balanceProjection.uncoveredAmount > 0 ? 'text-neg' : undefined },
-          { label: '익월 잔고', amount: scenario.nextMonthBalance },
+          { label: '미충당 금액', amount: scenario.uncoveredAmount, amountClassName: scenario.uncoveredAmount > 0 ? 'text-neg' : undefined },
         ]} />
       </section>
       <section className="budget-overview rounded-2xl border p-4 shadow-card space-y-5" aria-label={`${title} 현황`}>
@@ -166,7 +165,7 @@ function ScenarioPanel({
           fixedTotal={fixedTotal}
           graph={graph}
         />
-        <BalanceUsage scenario={scenario} graph={graph} />
+        <BalanceUsage graph={graph} />
       </section>
     </section>
   );
