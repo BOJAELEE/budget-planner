@@ -136,6 +136,7 @@ export type DashboardScenario = {
   flexibleAvailable: number;
   flexibleUsed: number;
   flexibleRemaining: number;
+  reserveRemaining: number;
   uncoveredAmount: number;
   emergencyUsed: number;
   emergencyRemaining: number;
@@ -156,6 +157,7 @@ export function calculateDashboardScenario(
   const flexibleAvailable = flexibleFunds(incomeSum, fixedCostTotal);
   const flexibleUsed = totalBudget - fixedCostTotal;
   const flexibleRemaining = flexibleAvailable - flexibleUsed;
+  const reserveRemaining = flexibleRemaining + MONTHLY_EMERGENCY_AMOUNT;
   const emergency = emergencyCoverage(-flexibleRemaining);
   const uncoveredAmount = emergency.accountUsage;
   const balanceProjection = projectBalanceUsage(startingBalances, 0);
@@ -163,7 +165,7 @@ export function calculateDashboardScenario(
     (sum, account) => sum + balanceProjection.balancesAfter[account], 0,
   );
   return {
-    totalBudget, remaining, shortage, flexibleAvailable, flexibleUsed, flexibleRemaining, uncoveredAmount,
+    totalBudget, remaining, shortage, flexibleAvailable, flexibleUsed, flexibleRemaining, reserveRemaining, uncoveredAmount,
     emergencyUsed: emergency.used, emergencyRemaining: emergency.remaining,
     balanceProjection, currentAccountBalance,
   };

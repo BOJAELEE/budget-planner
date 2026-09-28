@@ -30,7 +30,7 @@ describe('DashboardPage', () => {
     const expectedSummary = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 요약' });
     expect(within(expectedSummary).getByText('총필요 예산').nextElementSibling).toHaveTextContent(formatKRW(1040000 + savings));
     expect(within(expectedSummary).getByText('부족금액').nextElementSibling).toHaveTextContent(formatKRW(shortage + 10000));
-    expect(within(expectedSummary).getByText('예비 자금').nextElementSibling).toHaveTextContent(formatKRW(140000 - shortage));
+    expect(within(expectedSummary).getByText('예비 자금').nextElementSibling).toHaveTextContent(formatKRW(640000 - shortage));
     expect(within(expectedSummary).getByText('미충당 금액').nextElementSibling).toHaveTextContent(formatKRW(Math.max(shortage - 640000, 0)));
     const expectedOverview = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 현황' });
     const income = 1030000 + savings - shortage;
@@ -45,7 +45,7 @@ describe('DashboardPage', () => {
       '추가 지출': 50000,
       '수입': 1030000 + savings - shortage,
       '부족금액': shortage,
-      '예비 자금': 150000 - shortage,
+      '예비 자금': 650000 - shortage,
       '잔액/저축액': 100000,
       '미충당 금액': Math.max(shortage - 650000, 0),
     };
@@ -112,12 +112,12 @@ describe('DashboardPage', () => {
     const income = incomeTotal(await repo.listIncomes(sourceMonth));
     const total = fixedCostsTotal(sourceFixedCosts) + 150000;
     const shortage = Math.max(total - income, 0);
-    const flexibleRemaining = income - total + 150000;
+    const reserveRemaining = income - total + 150000 + 500000;
     expect(within(summary).getByText(formatKRW(total))).toBeInTheDocument();
     expect(within(summary).getByText(formatKRW(150000))).toBeInTheDocument();
     expect(within(summary).getByText(formatKRW(income))).toBeInTheDocument();
     expect(within(summary).getByText(formatKRW(shortage))).toHaveClass('text-neg');
-    expect(within(summary).getByText('예비 자금').nextElementSibling).toHaveTextContent(formatKRW(flexibleRemaining));
+    expect(within(summary).getByText('예비 자금').nextElementSibling).toHaveTextContent(formatKRW(reserveRemaining));
     const overview = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 현황' });
     expect(within(overview).getByText('여유 자금')).toBeInTheDocument();
     expect(within(overview).getByText('15만 원')).toBeInTheDocument();

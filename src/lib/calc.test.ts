@@ -183,6 +183,7 @@ describe('dashboard scenario comparison', () => {
     expect(scenario.flexibleAvailable).toBe(290000);
     expect(scenario.flexibleUsed).toBe(1480000);
     expect(scenario.flexibleRemaining).toBe(-1190000);
+    expect(scenario.reserveRemaining).toBe(-690000);
     expect(scenario.emergencyUsed).toBe(500000);
     expect(scenario.uncoveredAmount).toBe(690000);
     expect(scenario.balanceProjection.uncoveredAmount).toBe(0);
@@ -228,8 +229,19 @@ describe('dashboard scenario comparison', () => {
     expect(scenario.flexibleAvailable).toBe(200000);
     expect(scenario.flexibleUsed).toBe(-50000);
     expect(scenario.flexibleRemaining).toBe(250000);
+    expect(scenario.reserveRemaining).toBe(750000);
     expect(scenario.emergencyUsed).toBe(0);
     expect(scenario.balanceProjection.uncoveredAmount).toBe(0);
+  });
+
+  it('includes the monthly 500,000 won reserve in the displayed remaining funds', () => {
+    const balances = { '월급통장': 0, '비상금통장': 0, '여행통장': 0 };
+    const scenario = calculateDashboardScenario(5_523_256, 526_250, 5_610_000, 5_523_256, balances);
+
+    expect(scenario.totalBudget).toBe(6_049_506);
+    expect(scenario.flexibleRemaining).toBe(-289_506);
+    expect(scenario.reserveRemaining).toBe(210_494);
+    expect(scenario.uncoveredAmount).toBe(0);
   });
 });
 
