@@ -5,32 +5,45 @@ import { describe, expect, it } from 'vitest';
 import { RepositoryProvider } from '../data/RepositoryContext';
 import { createSeededMemoryRepository, MemoryRepository } from '../data/memoryRepository';
 import { defaultBillingYearMonth, nextYearMonth, previousYearMonth } from '../lib/billing';
-import { fixedCostsTotal, incomeTotal, savingsTotals } from '../lib/calc';
+import { fixedCostsTotal, incomeTotal } from '../lib/calc';
 import { formatKRW } from '../lib/format';
 import { CARD_METHODS } from '../types';
 import DashboardPage from './DashboardPage';
 
 describe('DashboardPage', () => {
   it.each([
-    { savings: 150000, shortage: 0, current: 100000, next: 250000, uncovered: 0, percentage: 0 },
-    { savings: 150000, shortage: 50000, current: 100000, next: 200000, uncovered: 0, percentage: 33 },
+    { savings: 150000, shortage: 0, current: 100000, next: 250000, uncovered: 0, percentage: 21 },
+    { savings: 150000, shortage: 50000, current: 100000, next: 200000, uncovered: 0, percentage: 29 },
     { savings: 150000, shortage: 150000, current: 100000, next: 100000, uncovered: 0, percentage: 100 },
     { savings: 150000, shortage: 200000, current: 100000, next: 50000, uncovered: 0, percentage: 100 },
     { savings: 150000, shortage: 300000, current: 100000, next: 0, uncovered: 0, percentage: 100 },
     { savings: 150000, shortage: 800000, current: 0, next: 0, uncovered: 50000, percentage: 100 },
-    { savings: 0, shortage: 50000, current: 100000, next: 50000, uncovered: 0, percentage: 0 },
-    { savings: 400000, shortage: 200000, current: 100000, next: 300000, uncovered: 0, percentage: 50 },
-  ])('preserves all totals with savings $savings and shortage $shortage', async ({ savings, shortage, current, next, uncovered, percentage }) => {
+    { savings: 0, shortage: 50000, current: 100000, next: 200000, uncovered: 0, percentage: 29 },
+    { savings: 400000, shortage: 200000, current: 100000, next: 50000, uncovered: 0, percentage: 100 },
+  ])('uses income after fixed costs with savings $savings and shortage $shortage', async ({ savings, shortage, current, next, uncovered, percentage }) => {
+    const user = userEvent.setup();
     const repo = await createSavingsScenario(savings, shortage);
     renderDashboard(repo);
-    const actualPanel = await screen.findByRole('region', { name: '실제 카드값 기준 대시보드' });
+    const expectedPanel = await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
+    expect(screen.queryByRole('region', { name: '실제 카드값 기준 대시보드' })).not.toBeInTheDocument();
+    expect(within(expectedPanel).getByRole('button', { name: '예상' })).toHaveAttribute('aria-pressed', 'true');
+    const expectedSummary = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 요약' });
+    expect(within(expectedSummary).getByText('총필요 예산').nextElementSibling).toHaveTextContent(formatKRW(1040000 + savings));
+    expect(within(expectedSummary).getByText('부족금액').nextElementSibling).toHaveTextContent(formatKRW(shortage + 10000));
+    expect(within(expectedSummary).getByText('저축 금액').nextElementSibling).toHaveTextContent(formatKRW(140000 - shortage));
+    const expectedOverview = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 현황' });
+    expect(within(expectedOverview).getByText(`${formatKRW(50000)} / ${formatKRW(190000 - shortage)}`)).toBeInTheDocument();
+    await user.click(within(expectedPanel).getByRole('button', { name: '실제' }));
+    const actualPanel = screen.getByRole('region', { name: '실제 카드값 기준 대시보드' });
+    expect(screen.queryByRole('region', { name: '예상 카드값 기준 대시보드' })).not.toBeInTheDocument();
+    expect(within(actualPanel).getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
     const summary = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 요약' });
     const expectedTotals = {
       '총필요 예산': 1030000 + savings,
       '추가 지출': 50000,
       '수입': 1030000 + savings - shortage,
       '부족금액': shortage,
-      '저축 금액': savings - shortage,
+      '저축 금액': 150000 - shortage,
       '금월 잔고': current,
       '미충당 금액': uncovered,
       '익월 잔고': next,
@@ -48,19 +61,18 @@ describe('DashboardPage', () => {
     const usage = progress.parentElement;
     if (!usage) throw new Error('여유 자금 그래프가 없습니다.');
     expect(progress).toHaveAttribute('aria-valuenow', String(percentage));
-    expect(within(usage).getByText(`${formatKRW(shortage)} / ${formatKRW(savings)}`)).toBeInTheDocument();
-    const remaining = within(usage).getByText(`잔액 ${formatKRW(savings - shortage)}`);
-    if (shortage > savings) expect(remaining).toHaveClass('text-neg');
+    expect(within(usage).getByText(`${formatKRW(40000)} / ${formatKRW(190000 - shortage)}`)).toBeInTheDocument();
+    const remaining = within(usage).getByText(`잔액 ${formatKRW(150000 - shortage)}`);
+    if (shortage > 150000) expect(remaining).toHaveClass('text-neg');
     else expect(remaining).not.toHaveClass('text-neg');
-    const emergencyUsed = Math.min(Math.max(shortage - savings, 0), 500000);
+    const emergencyUsed = Math.min(Math.max(shortage - 150000, 0), 500000);
     expect(within(overview).getByRole('progressbar', { name: '비상금 잔액' })).toHaveAttribute('aria-valuenow', String(Math.round((500000 - emergencyUsed) / 500000 * 100)));
     expect(within(overview).getByText(`사용 ${formatKRW(emergencyUsed)} / 월 ${formatKRW(500000)}`)).toBeInTheDocument();
     expect(within(overview).queryByText('저축 잔액')).not.toBeInTheDocument();
     expect(within(overview).queryByText(/여행 저금/)).not.toBeInTheDocument();
-    const expectedPanel = screen.getByRole('region', { name: '예상 카드값 기준 대시보드' });
-    const expectedSummary = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 요약' });
-    expect(within(expectedSummary).getByText('총필요 예산').nextElementSibling).toHaveTextContent(formatKRW(1040000 + savings));
-    expect(within(expectedSummary).getByText('부족금액').nextElementSibling).toHaveTextContent(formatKRW(shortage + 10000));
+    await user.click(within(actualPanel).getByRole('button', { name: '예상' }));
+    expect(screen.getByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: '실제 카드값 기준 대시보드' })).not.toBeInTheDocument();
   });
 
   it('shows the combined dashboard summary cards', async () => {
@@ -77,6 +89,8 @@ describe('DashboardPage', () => {
 
     await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
 
+    const expectedPanel = screen.getByRole('region', { name: '예상 카드값 기준 대시보드' });
+    await userEvent.setup().click(within(expectedPanel).getByRole('button', { name: '실제' }));
     const actualPanel = screen.getByRole('region', { name: '실제 카드값 기준 대시보드' });
     const summary = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 요약' });
     expect(within(summary).getByText('총필요 예산')).toBeInTheDocument();
@@ -92,13 +106,13 @@ describe('DashboardPage', () => {
     const income = incomeTotal(await repo.listIncomes(sourceMonth));
     const total = fixedCostsTotal(sourceFixedCosts) + 150000;
     const shortage = Math.max(total - income, 0);
-    const savingsAfterShortage = savingsTotals(sourceFixedCosts).totalSavings - shortage;
+    const flexibleRemaining = income - total + 150000;
     expect(within(summary).getByText(formatKRW(total))).toBeInTheDocument();
     expect(within(summary).getByText(formatKRW(150000))).toBeInTheDocument();
     expect(within(summary).getByText(formatKRW(income))).toBeInTheDocument();
     expect(within(summary).getByText(formatKRW(shortage))).toHaveClass('text-neg');
-    expect(within(summary).getAllByText(formatKRW(savingsAfterShortage))).toHaveLength(2);
-    expect(within(summary).getAllByText('₩0')).toHaveLength(2);
+    expect(within(summary).getByText('저축 금액').nextElementSibling).toHaveTextContent(formatKRW(flexibleRemaining));
+    expect(within(summary).getByText('익월 잔고').nextElementSibling).toHaveTextContent(formatKRW(10132));
     const overview = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 현황' });
     expect(within(overview).getByText('여유 자금')).toBeInTheDocument();
     expect(within(overview).getByText('비상금')).toBeInTheDocument();
@@ -125,10 +139,11 @@ describe('DashboardPage', () => {
       .reduce((total, item) => total + item.amount, 0);
     const expectedTotal = fixedCostsTotal(sourceFixedCosts) - originalCardAmount + 200000;
     const expectedPanel = screen.getByRole('region', { name: '예상 카드값 기준 대시보드' });
+    expect(within(expectedPanel).getByText('총필요 예산').nextElementSibling).toHaveTextContent(formatKRW(fixedCostsTotal(sourceFixedCosts)));
+    await user.click(within(expectedPanel).getByRole('button', { name: '실제' }));
     const actualPanel = screen.getByRole('region', { name: '실제 카드값 기준 대시보드' });
     await waitFor(() => expect(within(actualPanel).getByText(formatKRW(expectedTotal))).toBeInTheDocument());
     expect(within(actualPanel).getByText('총필요 예산').nextElementSibling).toHaveTextContent(formatKRW(expectedTotal));
-    expect(within(expectedPanel).getByText('총필요 예산').nextElementSibling).toHaveTextContent(formatKRW(fixedCostsTotal(sourceFixedCosts)));
     expect(within(cardRow).getByRole('textbox', { name: `${card} 실제 카드값` })).toHaveValue('200,000');
   });
 

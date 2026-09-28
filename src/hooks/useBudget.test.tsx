@@ -51,7 +51,7 @@ describe('useBudget', () => {
     const { result } = renderHook(() => useBudget('2026-09'), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.derived.balanceProjection.startingBalances['월급통장']).toBe(100000);
+    expect(result.current.derived.balanceProjection.startingBalances['월급통장']).toBe(250000);
     expect((await repo.listMonthlyAccountBalances()).find((item) => item.yearMonth === '2026-07' && item.accountName === '월급통장' && item.isManual)?.openingAmount).toBe(300000);
   });
 

@@ -7,8 +7,11 @@ import { displayPercentage, type DashboardScenario } from '../lib/calc';
 import { AmountInput } from '../components/AmountInput';
 import { BalanceUsage } from '../components/BalanceUsage';
 
+type ScenarioView = 'expected' | 'actual';
+
 export default function DashboardPage() {
   const [yearMonth, setYearMonth] = useState(defaultBillingYearMonth);
+  const [scenarioView, setScenarioView] = useState<ScenarioView>('expected');
   const { loading, error, derived, availableMonths, setActual } = useBudget(yearMonth);
 
   if (loading) return <div className="p-8 text-center text-gray-400">불러오는 중입니다.</div>;
@@ -34,22 +37,15 @@ export default function DashboardPage() {
         </select>
       </label>
       <ScenarioPanel
-        title="예상 카드값 기준"
-        description="카드별 예상 금액으로 계산"
-        variant="expected"
-        scenario={derived.expectedScenario}
+        title={scenarioView === 'expected' ? '예상 카드값 기준' : '실제 카드값 기준'}
+        description={scenarioView === 'expected'
+          ? '카드별 예상 금액으로 계산'
+          : `실제값 ${enteredCardCount}/${CARD_METHODS.length}건 입력 · 미입력 카드는 예상값 적용`}
+        variant={scenarioView}
+        onVariantChange={setScenarioView}
+        scenario={scenarioView === 'expected' ? derived.expectedScenario : derived.actualScenario}
         extraTotal={derived.extraTotal}
         incomeSum={derived.incomeSum}
-        totalSavings={derived.savings.totalSavings}
-      />
-      <ScenarioPanel
-        title="실제 카드값 기준"
-        description={`실제값 ${enteredCardCount}/${CARD_METHODS.length}건 입력 · 미입력 카드는 예상값 적용`}
-        variant="actual"
-        scenario={derived.actualScenario}
-        extraTotal={derived.extraTotal}
-        incomeSum={derived.incomeSum}
-        totalSavings={derived.savings.totalSavings}
       />
 
       <section className="overflow-hidden rounded-2xl bg-white shadow-card" aria-label="카드별 예산">
@@ -111,21 +107,36 @@ export default function DashboardPage() {
 }
 
 function ScenarioPanel({
-  title, description, variant, scenario, extraTotal, incomeSum, totalSavings,
+  title, description, variant, onVariantChange, scenario, extraTotal, incomeSum,
 }: {
   title: string;
   description: string;
-  variant: 'expected' | 'actual';
+  variant: ScenarioView;
+  onVariantChange: (variant: ScenarioView) => void;
   scenario: DashboardScenario;
   extraTotal: number;
   incomeSum: number;
-  totalSavings: number;
 }) {
   return (
     <section className={`scenario-panel scenario-panel--${variant} space-y-3 rounded-2xl border p-3`} aria-label={`${title} 대시보드`}>
-      <div className="px-1">
-        <h2 className="text-lg font-bold">{title}</h2>
-        <p className="text-sm text-gray-500">{description}</p>
+      <div className="flex items-start justify-between gap-2 px-1">
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold">{title}</h2>
+          <p className="text-sm text-gray-500">{description}</p>
+        </div>
+        <div className="flex shrink-0 rounded-xl border border-gray-200 bg-gray-100 p-0.5" role="group" aria-label="대시보드 기준">
+          {(['expected', 'actual'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={variant === option}
+              onClick={() => onVariantChange(option)}
+              className={`min-h-9 rounded-lg px-2.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage ${variant === option ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'}`}
+            >
+              {option === 'expected' ? '예상' : '실제'}
+            </button>
+          ))}
+        </div>
       </div>
       <section className="grid grid-cols-2 gap-2.5" aria-label={`${title} 요약`}>
         <SummaryCard items={[
@@ -137,7 +148,7 @@ function ScenarioPanel({
           { label: '부족금액', amount: scenario.shortage, amountClassName: scenario.shortage > 0 ? 'text-neg' : undefined },
         ]} />
         <SummaryCard items={[
-          { label: '저축 금액', amount: scenario.savingsAfterShortage, amountClassName: scenario.savingsAfterShortage < 0 ? 'text-neg' : undefined },
+          { label: '저축 금액', amount: scenario.flexibleRemaining, amountClassName: scenario.flexibleRemaining < 0 ? 'text-neg' : undefined },
           { label: '금월 잔고', amount: scenario.currentAccountBalance },
         ]} />
         <SummaryCard items={[
@@ -156,10 +167,10 @@ function ScenarioPanel({
         />
         <BudgetProgress
           label="여유 자금"
-          numerator={scenario.shortage}
-          denominator={totalSavings}
-          detail={`${formatKRW(scenario.shortage)} / ${formatKRW(totalSavings)}`}
-          balance={scenario.savingsAfterShortage}
+          numerator={scenario.flexibleUsed}
+          denominator={scenario.flexibleAvailable}
+          detail={`${formatKRW(scenario.flexibleUsed)} / ${formatKRW(scenario.flexibleAvailable)}`}
+          balance={scenario.flexibleRemaining}
           colorClass="bg-aqua"
         />
         <BalanceUsage scenario={scenario} />
@@ -193,9 +204,8 @@ function BudgetProgress({
   balance: number;
   colorClass: string;
 }) {
-  const rawPercentage = denominator > 0 ? (numerator / denominator) * 100 : 0;
-  const percentage = displayPercentage(numerator, denominator);
-  const isAlert = rawPercentage > 100 || numerator < 0;
+  const percentage = denominator <= 0 && balance < 0 ? 100 : displayPercentage(numerator, denominator);
+  const isAlert = balance < 0;
   const width = percentage;
 
   return (

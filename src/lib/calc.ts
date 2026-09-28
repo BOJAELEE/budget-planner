@@ -42,38 +42,31 @@ export function fixedCostsTotal(fixedCosts: FixedCost[]): number {
   return activeAmount(fixedCosts);
 }
 
-export function savingsTotals(fixedCosts: FixedCost[]) {
-  let travelSaving = 0;
-  let reserveLiving = 0;
+export const MONTHLY_FLEXIBLE_BASE = 150_000;
 
-  for (const cost of fixedCosts) {
-    if (!cost.active) continue;
-    const normalizedName = cost.name.replace(/\s/g, '');
-    if (normalizedName.includes('여행저금')) travelSaving += cost.amount;
-    if (normalizedName.includes('예비생활비')) reserveLiving += cost.amount;
-  }
-
-  return {
-    travelSaving,
-    reserveLiving,
-    totalSavings: travelSaving + reserveLiving,
-  };
+/** Available funds after fixed costs, including the monthly savings allowance. */
+export function flexibleFunds(incomeAmount: number, fixedCostAmount: number): number {
+  return incomeAmount - fixedCostAmount + MONTHLY_FLEXIBLE_BASE;
 }
 
-/** Amount that must be covered by account balances after pausing this month's savings. */
-export function balanceUsageAmount(shortageAmount: number, totalSavings: number): number {
-  return Math.max(Math.max(0, shortageAmount) - Math.max(0, totalSavings), 0);
+/** Amount remaining after the flexible funds are used. */
+export function flexibleFundsRemaining(
+  incomeAmount: number,
+  fixedCostAmount: number,
+  totalBudgetAmount: number,
+): number {
+  return flexibleFunds(incomeAmount, fixedCostAmount) - (totalBudgetAmount - fixedCostAmount);
 }
 
 export const MONTHLY_EMERGENCY_AMOUNT = 500_000;
 
-export function emergencyCoverage(shortageAmount: number, totalSavings: number) {
-  const needAfterSavings = balanceUsageAmount(shortageAmount, totalSavings);
-  const used = Math.min(needAfterSavings, MONTHLY_EMERGENCY_AMOUNT);
+export function emergencyCoverage(needAfterFlexibleFunds: number) {
+  const amountNeeded = Math.max(needAfterFlexibleFunds, 0);
+  const used = Math.min(amountNeeded, MONTHLY_EMERGENCY_AMOUNT);
   return {
     used,
     remaining: MONTHLY_EMERGENCY_AMOUNT - used,
-    accountUsage: needAfterSavings - used,
+    accountUsage: amountNeeded - used,
   };
 }
 
@@ -140,7 +133,9 @@ export type DashboardScenario = {
   totalBudget: number;
   remaining: number;
   shortage: number;
-  savingsAfterShortage: number;
+  flexibleAvailable: number;
+  flexibleUsed: number;
+  flexibleRemaining: number;
   balanceUsage: number;
   emergencyUsed: number;
   emergencyRemaining: number;
@@ -153,24 +148,26 @@ export function calculateDashboardScenario(
   transferSum: number,
   cardTotal: number,
   incomeSum: number,
-  totalSavings: number,
+  fixedCostTotal: number,
   startingBalances: Record<AccountName, number>,
 ): DashboardScenario {
   const totalBudget = transferSum + cardTotal;
   const remaining = incomeSum - totalBudget;
   const shortage = Math.max(-remaining, 0);
-  const savingsAfterShortage = totalSavings - shortage;
-  const emergency = emergencyCoverage(shortage, totalSavings);
+  const flexibleAvailable = flexibleFunds(incomeSum, fixedCostTotal);
+  const flexibleUsed = totalBudget - fixedCostTotal;
+  const flexibleRemaining = flexibleAvailable - flexibleUsed;
+  const emergency = emergencyCoverage(-flexibleRemaining);
   const balanceUsage = emergency.accountUsage;
   const balanceProjection = projectBalanceUsage(startingBalances, balanceUsage);
   const currentAccountBalance = ACCOUNT_NAMES.reduce(
     (sum, account) => sum + balanceProjection.balancesAfter[account], 0,
   );
   return {
-    totalBudget, remaining, shortage, savingsAfterShortage, balanceUsage,
+    totalBudget, remaining, shortage, flexibleAvailable, flexibleUsed, flexibleRemaining, balanceUsage,
     emergencyUsed: emergency.used, emergencyRemaining: emergency.remaining,
     balanceProjection, currentAccountBalance,
-    nextMonthBalance: Math.max(0, currentAccountBalance + savingsAfterShortage),
+    nextMonthBalance: Math.max(0, currentAccountBalance + flexibleRemaining),
   };
 }
 
