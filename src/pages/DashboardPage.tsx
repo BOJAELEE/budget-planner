@@ -4,6 +4,7 @@ import { CARD_METHODS } from '../types';
 import { formatKRW } from '../lib/format';
 import { defaultBillingYearMonth, formatYearMonth } from '../lib/billing';
 import { displayPercentage, type DashboardScenario } from '../lib/calc';
+import { dashboardGraphAmounts } from '../lib/dashboardGraph';
 import { AmountInput } from '../components/AmountInput';
 import { BalanceUsage } from '../components/BalanceUsage';
 
@@ -46,6 +47,7 @@ export default function DashboardPage() {
         scenario={scenarioView === 'expected' ? derived.expectedScenario : derived.actualScenario}
         extraTotal={derived.extraTotal}
         incomeSum={derived.incomeSum}
+        fixedTotal={derived.fixedTotal}
       />
 
       <section className="overflow-hidden rounded-2xl bg-white shadow-card" aria-label="카드별 예산">
@@ -107,7 +109,7 @@ export default function DashboardPage() {
 }
 
 function ScenarioPanel({
-  title, description, variant, onVariantChange, scenario, extraTotal, incomeSum,
+  title, description, variant, onVariantChange, scenario, extraTotal, incomeSum, fixedTotal,
 }: {
   title: string;
   description: string;
@@ -116,7 +118,9 @@ function ScenarioPanel({
   scenario: DashboardScenario;
   extraTotal: number;
   incomeSum: number;
+  fixedTotal: number;
 }) {
+  const graph = dashboardGraphAmounts(incomeSum, fixedTotal, scenario.totalBudget);
   return (
     <section className={`scenario-panel scenario-panel--${variant} space-y-3 rounded-2xl border p-3`} aria-label={`${title} 대시보드`}>
       <div className="flex items-start justify-between gap-2 px-1">
@@ -158,22 +162,11 @@ function ScenarioPanel({
       </section>
       <section className="budget-overview rounded-2xl border p-4 shadow-card space-y-5" aria-label={`${title} 현황`}>
         <BudgetProgress
-          label="예산"
-          numerator={scenario.totalBudget}
-          denominator={incomeSum}
-          detail={`${formatKRW(scenario.totalBudget)} / ${formatKRW(incomeSum)}`}
-          balance={scenario.remaining}
-          colorClass="bg-sage"
+          totalBudget={scenario.totalBudget}
+          fixedTotal={fixedTotal}
+          graph={graph}
         />
-        <BudgetProgress
-          label="여유 자금"
-          numerator={scenario.flexibleUsed}
-          denominator={scenario.flexibleAvailable}
-          detail={`${formatKRW(scenario.flexibleUsed)} / ${formatKRW(scenario.flexibleAvailable)}`}
-          balance={scenario.flexibleRemaining}
-          colorClass="bg-aqua"
-        />
-        <BalanceUsage scenario={scenario} />
+        <BalanceUsage scenario={scenario} graph={graph} />
       </section>
     </section>
   );
@@ -194,34 +187,38 @@ function SummaryCard({ items }: {
   );
 }
 
-function BudgetProgress({
-  label, numerator, denominator, detail, balance, colorClass,
-}: {
-  label: string;
-  numerator: number;
-  denominator: number;
-  detail: string;
-  balance: number;
-  colorClass: string;
+function BudgetProgress({ totalBudget, fixedTotal, graph }: {
+  totalBudget: number;
+  fixedTotal: number;
+  graph: ReturnType<typeof dashboardGraphAmounts>;
 }) {
-  const percentage = denominator <= 0 && balance < 0 ? 100 : displayPercentage(numerator, denominator);
-  const isAlert = balance < 0;
-  const width = percentage;
+  const percentage = displayPercentage(totalBudget, graph.budgetCapacity);
+  const isAlert = graph.budgetRemaining < 0;
+  const fixedWidth = displayPercentage(graph.fixedSpent, graph.budgetCapacity);
+  const additionalWidth = Math.min(displayPercentage(graph.additionalSpent, graph.budgetCapacity), 100 - fixedWidth);
 
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 text-base">
-        <span className="budget-label min-w-0 whitespace-nowrap font-semibold">{label}</span>
+        <span className="budget-label min-w-0 whitespace-nowrap font-semibold">예산</span>
         <span className="ml-auto flex shrink-0 items-baseline gap-3 text-right">
-          <span className={balance < 0 ? 'font-semibold text-neg' : 'budget-balance font-semibold'}>잔액 {formatKRW(balance)}</span>
+          <span className={isAlert ? 'font-semibold text-neg' : 'budget-balance font-semibold'}>잔액 {formatKRW(graph.budgetRemaining)}</span>
           <span className={isAlert ? 'font-semibold text-neg' : 'budget-percentage'}>{Math.round(percentage)}%</span>
         </span>
       </div>
-      <div className="budget-track h-3 overflow-hidden rounded-full"
-        role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percentage)}>
-        <div className={`h-full rounded-full ${isAlert ? 'bg-neg' : colorClass}`} style={{ width: `${width}%` }} />
+      <div className="budget-track flex h-3 overflow-hidden rounded-full"
+        role="progressbar" aria-label="예산 사용" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(percentage)}
+        aria-valuetext={`${formatKRW(totalBudget)} / ${formatKRW(graph.budgetCapacity)}`}>
+        <div className="budget-fixed-fill h-full" style={{ width: `${fixedWidth}%` }} />
+        <div className="budget-extra-fill h-full" style={{ width: `${additionalWidth}%` }} />
       </div>
-      <div className={isAlert ? 'text-sm text-neg' : 'budget-detail text-sm'}>{detail}</div>
+      <div className="budget-detail text-sm">사용 {formatKRW(totalBudget)} / 가용 {formatKRW(graph.budgetCapacity)}</div>
+      <div className="budget-legend flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <span><i className="budget-legend-dot budget-fixed-fill" />고정비 {formatKRW(graph.fixedSpent)}</span>
+        <span><i className="budget-legend-dot budget-extra-fill" />추가지출 {formatKRW(graph.additionalSpent)}</span>
+      </div>
+      {totalBudget < fixedTotal && <p className="budget-detail text-sm">고정비 기준 {formatKRW(fixedTotal)}보다 {formatKRW(fixedTotal - totalBudget)} 적게 사용</p>}
+      {isAlert && <p className="text-sm font-semibold text-neg">가용 예산 초과 {formatKRW(-graph.budgetRemaining)}</p>}
     </div>
   );
 }

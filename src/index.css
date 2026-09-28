@@ -78,6 +78,28 @@
 .app-shell .budget-percentage { color: #52625a; }
 .app-shell .budget-track { background: #e5ebe4; }
 .app-shell .budget-detail { color: #718077; }
+.app-shell .budget-fixed-fill { background: #81a891; }
+.app-shell .budget-extra-fill { background: #d6ad66; }
+.app-shell .budget-legend { color: #52625a; }
+.app-shell .budget-legend-dot {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  margin-right: 0.4rem;
+  border-radius: 0.2rem;
+  vertical-align: -0.02rem;
+}
+.app-shell .funding-segment--income { background: #e1eee8; }
+.app-shell .funding-segment--base { background: #f7ecd8; }
+.app-shell .funding-segment--emergency { background: #f3e4df; }
+.app-shell .funding-segment + .funding-segment { border-left: 3px solid #fbfcf9; }
+.app-shell .funding-fill--income,
+.app-shell .funding-segment--income .funding-fill { background: #6f9e85; }
+.app-shell .funding-fill--base,
+.app-shell .funding-segment--base .funding-fill { background: #c99c50; }
+.app-shell .funding-fill--emergency,
+.app-shell .funding-segment--emergency .funding-fill { background: #c9857a; }
+.app-shell .funding-source-list { color: #52625a; }
 .app-shell .text-white { color: #2f3b35; }
 .app-shell .bg-brand.text-white { color: #ffffff; }
 

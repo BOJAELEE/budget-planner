@@ -12,15 +12,15 @@ import DashboardPage from './DashboardPage';
 
 describe('DashboardPage', () => {
   it.each([
-    { savings: 150000, shortage: 0, current: 100000, next: 250000, uncovered: 0, percentage: 21 },
-    { savings: 150000, shortage: 50000, current: 100000, next: 200000, uncovered: 0, percentage: 29 },
-    { savings: 150000, shortage: 150000, current: 100000, next: 100000, uncovered: 0, percentage: 100 },
-    { savings: 150000, shortage: 200000, current: 100000, next: 50000, uncovered: 0, percentage: 100 },
-    { savings: 150000, shortage: 300000, current: 100000, next: 0, uncovered: 0, percentage: 100 },
-    { savings: 150000, shortage: 800000, current: 0, next: 0, uncovered: 50000, percentage: 100 },
-    { savings: 0, shortage: 50000, current: 100000, next: 200000, uncovered: 0, percentage: 29 },
-    { savings: 400000, shortage: 200000, current: 100000, next: 50000, uncovered: 0, percentage: 100 },
-  ])('uses income after fixed costs with savings $savings and shortage $shortage', async ({ savings, shortage, current, next, uncovered, percentage }) => {
+    { savings: 150000, shortage: 0, current: 100000, next: 250000, uncovered: 0 },
+    { savings: 150000, shortage: 50000, current: 100000, next: 200000, uncovered: 0 },
+    { savings: 150000, shortage: 150000, current: 100000, next: 100000, uncovered: 0 },
+    { savings: 150000, shortage: 200000, current: 100000, next: 50000, uncovered: 0 },
+    { savings: 150000, shortage: 300000, current: 100000, next: 0, uncovered: 0 },
+    { savings: 150000, shortage: 800000, current: 0, next: 0, uncovered: 50000 },
+    { savings: 0, shortage: 50000, current: 100000, next: 200000, uncovered: 0 },
+    { savings: 400000, shortage: 200000, current: 100000, next: 50000, uncovered: 0 },
+  ])('uses income after fixed costs with savings $savings and shortage $shortage', async ({ savings, shortage, current, next, uncovered }) => {
     const user = userEvent.setup();
     const repo = await createSavingsScenario(savings, shortage);
     renderDashboard(repo);
@@ -32,7 +32,8 @@ describe('DashboardPage', () => {
     expect(within(expectedSummary).getByText('부족금액').nextElementSibling).toHaveTextContent(formatKRW(shortage + 10000));
     expect(within(expectedSummary).getByText('저축 금액').nextElementSibling).toHaveTextContent(formatKRW(140000 - shortage));
     const expectedOverview = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 현황' });
-    expect(within(expectedOverview).getByText(`${formatKRW(50000)} / ${formatKRW(190000 - shortage)}`)).toBeInTheDocument();
+    const income = 1030000 + savings - shortage;
+    expect(within(expectedOverview).getByText(`사용 ${formatKRW(1040000 + savings)} / 가용 ${formatKRW(income + 650000)}`)).toBeInTheDocument();
     await user.click(within(expectedPanel).getByRole('button', { name: '실제' }));
     const actualPanel = screen.getByRole('region', { name: '실제 카드값 기준 대시보드' });
     expect(screen.queryByRole('region', { name: '예상 카드값 기준 대시보드' })).not.toBeInTheDocument();
@@ -57,17 +58,22 @@ describe('DashboardPage', () => {
     expect(within(totals).getAllByRole('cell').map((cell) => cell.textContent))
       .toEqual([180000, 190000, 140000, 50000].map(formatKRW));
     const overview = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 현황' });
-    const progress = within(overview).getByRole('progressbar', { name: '여유 자금' });
-    const usage = progress.parentElement;
-    if (!usage) throw new Error('여유 자금 그래프가 없습니다.');
-    expect(progress).toHaveAttribute('aria-valuenow', String(percentage));
-    expect(within(usage).getByText(`${formatKRW(40000)} / ${formatKRW(190000 - shortage)}`)).toBeInTheDocument();
-    const remaining = within(usage).getByText(`잔액 ${formatKRW(150000 - shortage)}`);
-    if (shortage > 150000) expect(remaining).toHaveClass('text-neg');
-    else expect(remaining).not.toHaveClass('text-neg');
+    expect(within(overview).getAllByRole('progressbar')).toHaveLength(2);
+    expect(within(overview).getByRole('progressbar', { name: '예산 사용' }))
+      .toHaveAttribute('aria-valuetext', `${formatKRW(1030000 + savings)} / ${formatKRW(income + 650000)}`);
+    expect(within(overview).getByText(`고정비 ${formatKRW(990000 + savings)}`)).toBeInTheDocument();
+    expect(within(overview).getByText(`추가지출 ${formatKRW(40000)}`)).toBeInTheDocument();
+    const incomeMargin = Math.max(40000 - shortage, 0);
+    const incomeMarginUsed = Math.min(incomeMargin, 40000);
+    const baseUsed = Math.min(shortage, 150000);
     const emergencyUsed = Math.min(Math.max(shortage - 150000, 0), 500000);
-    expect(within(overview).getByRole('progressbar', { name: '비상금 잔액' })).toHaveAttribute('aria-valuenow', String(Math.round((500000 - emergencyUsed) / 500000 * 100)));
-    expect(within(overview).getByText(`사용 ${formatKRW(emergencyUsed)} / 월 ${formatKRW(500000)}`)).toBeInTheDocument();
+    const fundingUsed = incomeMarginUsed + baseUsed + emergencyUsed;
+    const fundingCapacity = incomeMargin + 650000;
+    expect(within(overview).getByRole('progressbar', { name: '자금 사용' }))
+      .toHaveAttribute('aria-valuetext', `${formatKRW(fundingUsed)} / ${formatKRW(fundingCapacity)}`);
+    expect(within(overview).getByText(`${formatKRW(incomeMarginUsed)} / ${formatKRW(incomeMargin)}`)).toBeInTheDocument();
+    expect(within(overview).getByText(`${formatKRW(baseUsed)} / ${formatKRW(150000)}`)).toBeInTheDocument();
+    expect(within(overview).getByText(`${formatKRW(emergencyUsed)} / ${formatKRW(500000)}`)).toBeInTheDocument();
     expect(within(overview).queryByText('저축 잔액')).not.toBeInTheDocument();
     expect(within(overview).queryByText(/여행 저금/)).not.toBeInTheDocument();
     await user.click(within(actualPanel).getByRole('button', { name: '예상' }));
@@ -115,7 +121,8 @@ describe('DashboardPage', () => {
     expect(within(summary).getByText('익월 잔고').nextElementSibling).toHaveTextContent(formatKRW(10132));
     const overview = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 현황' });
     expect(within(overview).getByText('여유 자금')).toBeInTheDocument();
-    expect(within(overview).getByText('비상금')).toBeInTheDocument();
+    expect(within(overview).getByText('15만 원')).toBeInTheDocument();
+    expect(within(overview).getByText('50만 원')).toBeInTheDocument();
     expect(within(overview).queryByText('예비금 사용')).not.toBeInTheDocument();
     expect(within(overview).queryByText('저축 사용')).not.toBeInTheDocument();
   });
