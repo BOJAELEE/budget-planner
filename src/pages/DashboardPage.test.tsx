@@ -30,7 +30,8 @@ describe('DashboardPage', () => {
     const expectedSummary = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 요약' });
     expect(within(expectedSummary).getByText('총필요 예산').nextElementSibling).toHaveTextContent(formatKRW(1040000 + savings));
     expect(within(expectedSummary).getByText('부족금액').nextElementSibling).toHaveTextContent(formatKRW(shortage + 10000));
-    expect(within(expectedSummary).getByText('예비 자금').nextElementSibling).toHaveTextContent(formatKRW(640000 - shortage));
+    expect(within(expectedSummary).getByText('잔액/저축액').nextElementSibling).toHaveTextContent(formatKRW(640000 - shortage));
+    expect(within(expectedSummary).getAllByText('잔액/저축액')).toHaveLength(1);
     expect(within(expectedSummary).getByText('미충당 금액').nextElementSibling).toHaveTextContent(formatKRW(Math.max(shortage - 640000, 0)));
     const expectedOverview = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 현황' });
     const income = 1030000 + savings - shortage;
@@ -45,8 +46,7 @@ describe('DashboardPage', () => {
       '추가 지출': 50000,
       '수입': 1030000 + savings - shortage,
       '부족금액': shortage,
-      '예비 자금': 650000 - shortage,
-      '잔액/저축액': 100000,
+      '잔액/저축액': 650000 - shortage,
       '미충당 금액': Math.max(shortage - 650000, 0),
     };
     for (const [label, value] of Object.entries(expectedTotals)) {
@@ -103,9 +103,9 @@ describe('DashboardPage', () => {
     expect(within(summary).getByText('추가 지출')).toBeInTheDocument();
     expect(within(summary).getByText('수입')).toBeInTheDocument();
     expect(within(summary).getByText('부족금액')).toBeInTheDocument();
-    expect(within(summary).getByText('예비 자금')).toBeInTheDocument();
+    expect(within(summary).getAllByText('잔액/저축액')).toHaveLength(1);
     expect(within(summary).getByText('미충당 금액')).toBeInTheDocument();
-    expect(within(summary).getByText('잔액/저축액')).toBeInTheDocument();
+    expect(within(summary).queryByText('예비 자금')).not.toBeInTheDocument();
     expect(within(summary).queryByText('익월 잔고')).not.toBeInTheDocument();
     const sourceMonth = previousYearMonth(yearMonth);
     const sourceFixedCosts = await repo.listFixedCosts(sourceMonth);
@@ -117,7 +117,7 @@ describe('DashboardPage', () => {
     expect(within(summary).getByText(formatKRW(150000))).toBeInTheDocument();
     expect(within(summary).getByText(formatKRW(income))).toBeInTheDocument();
     expect(within(summary).getByText(formatKRW(shortage))).toHaveClass('text-neg');
-    expect(within(summary).getByText('예비 자금').nextElementSibling).toHaveTextContent(formatKRW(reserveRemaining));
+    expect(within(summary).getByText('잔액/저축액').nextElementSibling).toHaveTextContent(formatKRW(reserveRemaining));
     const overview = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 현황' });
     expect(within(overview).getByText('여유 자금')).toBeInTheDocument();
     expect(within(overview).getByText('15만 원')).toBeInTheDocument();

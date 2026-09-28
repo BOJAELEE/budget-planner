@@ -152,8 +152,7 @@ function ScenarioPanel({
           { label: '부족금액', amount: scenario.shortage, amountClassName: scenario.shortage > 0 ? 'text-neg' : undefined },
         ]} />
         <SummaryCard items={[
-          { label: '예비 자금', amount: scenario.reserveRemaining, amountClassName: scenario.reserveRemaining < 0 ? 'text-neg' : undefined },
-          { label: '잔액/저축액', amount: scenario.currentAccountBalance },
+          { label: '잔액/저축액', amount: scenario.reserveRemaining, amountClassName: scenario.reserveRemaining < 0 ? 'text-neg' : undefined },
         ]} />
         <SummaryCard items={[
           { label: '미충당 금액', amount: scenario.uncoveredAmount, amountClassName: scenario.uncoveredAmount > 0 ? 'text-neg' : undefined },
