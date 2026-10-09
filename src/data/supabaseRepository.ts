@@ -3,6 +3,7 @@ import { type Repository, type ExtraSpendingInput, type ExtraSpendingPatch, type
 import { getSupabase } from '../lib/supabase';
 import { billingMonthFor } from '../lib/billing';
 import { defaultIncomeAmount } from '../lib/incomeDefaults';
+import { validateMonthlyMemo } from '../lib/monthlyMemo';
 
 // DB(snake_case) ↔ 도메인(camelCase) 매핑
 const toFixed = (r: any): FixedCost => ({
@@ -31,6 +32,30 @@ const toMonthlyAccountBalance = (r: any): MonthlyAccountBalance => ({
 
 export class SupabaseRepository implements Repository {
   private db = getSupabase();
+
+  async getMonthlyMemo(yearMonth: string) {
+    validateMonthlyMemo({ yearMonth, content: '' });
+    const { data, error } = await this.db.from('monthly_memos')
+      .select('year_month, content').eq('year_month', yearMonth).maybeSingle();
+    if (error) throw error;
+    return data ? validateMonthlyMemo({ yearMonth: data.year_month, content: data.content }).content : '';
+  }
+  async setMonthlyMemo(yearMonth: string, content: string) {
+    const memo = validateMonthlyMemo({ yearMonth, content });
+    const { error } = await this.db.from('monthly_memos')
+      .upsert({ year_month: memo.yearMonth, content: memo.content }, { onConflict: 'year_month' })
+      .select('year_month').single();
+    if (error) throw error;
+  }
+  async listMonthlyMemos() {
+    const { data, error } = await this.db.from('monthly_memos').select('year_month, content').order('year_month');
+    if (error) throw error;
+    return (data ?? []).map((row) => validateMonthlyMemo({ yearMonth: row.year_month, content: row.content }));
+  }
+  async deleteAllMonthlyMemos() {
+    const { error } = await this.db.from('monthly_memos').delete().not('year_month', 'is', null);
+    if (error) throw error;
+  }
 
   async listFixedCosts(yearMonth: string) {
     const { data, error } = await this.db.from('fixed_costs').select('*').eq('year_month', yearMonth).order('sort_order');

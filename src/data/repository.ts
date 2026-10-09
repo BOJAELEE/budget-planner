@@ -1,4 +1,4 @@
-import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, MonthlyAccountBalance } from '../types';
+import type { FixedCost, Income, IncomeTemplate, MonthlyCardActual, ExtraSpending, CardMethod, AccountName, MonthlyAccountBalance, MonthlyMemo } from '../types';
 
 export type ExtraSpendingInput = { card: CardMethod; name: string; amount: number; spentOn: string };
 export type ExtraSpendingPatch = Partial<{ card: CardMethod; name: string; amount: number; spentOn: string; isSettled: boolean }>;
@@ -6,6 +6,11 @@ export type IncomeInput = Omit<Income, 'id'>;
 export type FixedCostCopyResult = { copiedCount: number };
 
 export interface Repository {
+  getMonthlyMemo(yearMonth: string): Promise<string>;
+  setMonthlyMemo(yearMonth: string, content: string): Promise<void>;
+  listMonthlyMemos(): Promise<MonthlyMemo[]>;
+  deleteAllMonthlyMemos(): Promise<void>;
+
   listFixedCosts(yearMonth: string): Promise<FixedCost[]>;
   listAllFixedCosts(): Promise<FixedCost[]>;
   copyPreviousMonthFixedCosts(yearMonth: string): Promise<FixedCostCopyResult>;

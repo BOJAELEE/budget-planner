@@ -9,7 +9,7 @@
     color: #2f3b35;
   }
 
-  button, input, select { font: inherit; }
+  button, input, select, textarea { font: inherit; }
 }
 
 /* Off-white Sage: low-saturation surfaces with high-contrast financial data. */
@@ -36,14 +36,17 @@
 
 .app-shell .shadow-card { box-shadow: 0 10px 26px rgba(55, 68, 59, 0.07); }
 .app-shell input,
+.app-shell textarea,
 .app-shell select {
   background: #ffffff;
   color: #2f3b35;
   border-color: #dce4da;
 }
-.app-shell input::placeholder { color: #97a39b; }
+.app-shell input::placeholder,
+.app-shell textarea::placeholder { color: #97a39b; }
 .app-shell option { background: #ffffff; color: #2f3b35; }
 .app-shell input:focus,
+.app-shell textarea:focus,
 .app-shell select:focus {
   border-color: #8fae9a;
   outline: 2px solid rgba(143, 174, 154, 0.26);
@@ -51,6 +54,14 @@
 }
 .app-shell .focus\:ring-brand:focus { --tw-ring-color: #8fae9a; }
 .app-shell .focus\:ring-offset-2:focus { --tw-ring-offset-color: #f6f5f1; }
+
+.app-shell .monthly-memo { border-color: #cbdaca; }
+.app-shell .memo-action { color: #526c58; }
+.app-shell .memo-action:hover { background: #dce8dc; }
+.app-shell .memo-action:focus-visible {
+  outline: 2px solid #8fae9a;
+  outline-offset: 2px;
+}
 
 .app-shell .budget-overview {
   background: #fbfcf9;

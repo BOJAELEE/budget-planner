@@ -2,6 +2,22 @@ import { describe, it, expect } from 'vitest';
 import { createSeededMemoryRepository } from './memoryRepository';
 
 describe('MemoryRepository', () => {
+  it('stores and replaces monthly memos without changing financial records', async () => {
+    const repo = createSeededMemoryRepository();
+    const before = await repo.listAllFixedCosts();
+    expect(await repo.getMonthlyMemo('2026-11')).toBe('');
+    await repo.setMonthlyMemo('2026-11', '첫 줄\n두 번째 줄');
+    await repo.setMonthlyMemo('2026-12', '다음 달');
+    await repo.setMonthlyMemo('2026-11', '수정');
+    expect(await repo.listMonthlyMemos()).toEqual([
+      { yearMonth: '2026-11', content: '수정' }, { yearMonth: '2026-12', content: '다음 달' },
+    ]);
+    expect(await repo.listAllFixedCosts()).toEqual(before);
+    await expect(repo.setMonthlyMemo('2026-00', '오류')).rejects.toThrow();
+    await repo.deleteAllMonthlyMemos();
+    expect(await repo.listMonthlyMemos()).toEqual([]);
+  });
+
   it('시드 고정비 39개 로드', async () => {
     const repo = createSeededMemoryRepository();
     expect(await repo.listFixedCosts('2026-07')).toHaveLength(39);

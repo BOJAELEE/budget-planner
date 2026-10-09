@@ -3,6 +3,7 @@ import { type Repository, type ExtraSpendingInput, type ExtraSpendingPatch, type
 import { SEED_FIXED_COSTS, SEED_INCOME_TEMPLATES } from './seedData';
 import { billingMonthFor, previousYearMonth } from '../lib/billing';
 import { defaultIncomeAmount } from '../lib/incomeDefaults';
+import { validateMonthlyMemo } from '../lib/monthlyMemo';
 
 const uid = () =>
   (globalThis.crypto?.randomUUID?.() ?? `id_${Math.random().toString(36).slice(2)}`);
@@ -14,6 +15,23 @@ export class MemoryRepository implements Repository {
   private actuals: MonthlyCardActual[] = [];
   private extras: ExtraSpending[] = [];
   private monthlyAccountBalances: MonthlyAccountBalance[] = [];
+  private monthlyMemos = new Map<string, string>();
+
+  async getMonthlyMemo(yearMonth: string) {
+    validateMonthlyMemo({ yearMonth, content: '' });
+    return this.monthlyMemos.get(yearMonth) ?? '';
+  }
+  async setMonthlyMemo(yearMonth: string, content: string) {
+    const memo = validateMonthlyMemo({ yearMonth, content });
+    this.monthlyMemos.set(memo.yearMonth, memo.content);
+  }
+  async listMonthlyMemos() {
+    return [...this.monthlyMemos].map(([yearMonth, content]) => ({ yearMonth, content }))
+      .sort((a, b) => a.yearMonth.localeCompare(b.yearMonth));
+  }
+  async deleteAllMonthlyMemos() {
+    this.monthlyMemos.clear();
+  }
 
   async listFixedCosts(yearMonth: string) {
     return this.fixedCosts.filter((item) => item.yearMonth === yearMonth)

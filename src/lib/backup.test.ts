@@ -3,6 +3,38 @@ import { exportData, importData } from './backup';
 import { createSeededMemoryRepository, MemoryRepository } from '../data/memoryRepository';
 
 describe('backup', () => {
+  it('exports and replaces monthly memos with all line breaks preserved', async () => {
+    const src = createSeededMemoryRepository();
+    await src.setMonthlyMemo('2026-11', '보험료 확인\n여행 준비');
+    await src.setMonthlyMemo('2026-12', '연말 정산');
+    const json = await exportData(src);
+    expect(JSON.parse(json).version).toBe(9);
+    const dst = new MemoryRepository();
+    await dst.setMonthlyMemo('2026-10', '복원 전 메모');
+    await importData(dst, json);
+    expect(await dst.listMonthlyMemos()).toEqual(await src.listMonthlyMemos());
+  });
+
+  it('keeps existing memos when restoring a legacy backup without memos', async () => {
+    const repo = new MemoryRepository();
+    await repo.setMonthlyMemo('2026-11', '보존할 메모');
+    await importData(repo, JSON.stringify({ version: 8, fixedCosts: [], incomes: [] }));
+    expect(await repo.getMonthlyMemo('2026-11')).toBe('보존할 메모');
+  });
+
+  it.each([
+    { monthlyMemos: 'invalid' },
+    { monthlyMemos: [{ yearMonth: '2026-13', content: '오류' }] },
+    { monthlyMemos: [{ yearMonth: '2026-11', content: 3 }] },
+    { monthlyMemos: [{ yearMonth: '2026-11', content: '첫째' }, { yearMonth: '2026-11', content: '중복' }] },
+  ])('rejects malformed memos before deleting existing data %j', async (memos) => {
+    const repo = createSeededMemoryRepository();
+    await repo.setMonthlyMemo('2026-11', '기존 메모');
+    await expect(importData(repo, JSON.stringify({ version: 9, fixedCosts: [], incomes: [], ...memos }))).rejects.toThrow();
+    expect(await repo.listFixedCosts('2026-07')).toHaveLength(39);
+    expect(await repo.getMonthlyMemo('2026-11')).toBe('기존 메모');
+  });
+
   it('내보낸 JSON을 새 저장소로 복원하면 동일 개수', async () => {
     const src = createSeededMemoryRepository();
     await src.setActual('2026-07', '현대카드', 104000);

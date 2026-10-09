@@ -20,6 +20,11 @@ export type IncomeType = (typeof INCOME_TYPES)[number];
 export const ACCOUNT_NAMES = ['월급통장', '비상금통장', '여행통장'] as const;
 export type AccountName = (typeof ACCOUNT_NAMES)[number];
 
+export interface MonthlyMemo {
+  yearMonth: string;
+  content: string;
+}
+
 export interface MonthlyAccountBalance {
   id: string;
   /** Balance month. This opening amount is applied to the following billing month. */

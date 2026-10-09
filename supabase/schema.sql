@@ -163,3 +163,14 @@ create table if not exists monthly_account_balances (
 );
 alter table monthly_account_balances enable row level security;
 create policy "anon all monthly account balances" on monthly_account_balances for all using (true) with check (true);
+
+-- 청구월별 메모. 금융 집계와는 독립적으로 저장한다.
+create table if not exists public.monthly_memos (
+  year_month text primary key check (year_month ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'),
+  content text not null default '' check (char_length(content) <= 10000)
+);
+alter table public.monthly_memos enable row level security;
+create policy "shared monthly memos" on public.monthly_memos
+  for all to anon, authenticated using (true) with check (true);
+revoke all on public.monthly_memos from anon, authenticated;
+grant select, insert, update, delete on public.monthly_memos to anon, authenticated;

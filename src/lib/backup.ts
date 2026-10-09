@@ -1,18 +1,19 @@
 import type { Repository } from '../data/repository';
 import { dateInKorea, defaultBillingYearMonth, previousYearMonth, spentOnFromCreatedAt } from './billing';
+import { validateMonthlyMemo } from './monthlyMemo';
 
 export async function exportData(repo: Repository): Promise<string> {
-  const [fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances] = await Promise.all([
+  const [fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances, monthlyMemos] = await Promise.all([
     repo.listAllFixedCosts(), repo.listIncomeTemplates(), repo.listAllIncomes(), repo.listAllActuals(), repo.listAllExtraSpendings(),
-    repo.listMonthlyAccountBalances(),
+    repo.listMonthlyAccountBalances(), repo.listMonthlyMemos(),
   ]);
-  return JSON.stringify({ version: 8, fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances }, null, 2);
+  return JSON.stringify({ version: 9, fixedCosts, incomeTemplates, incomes, actuals, extraSpendings, monthlyAccountBalances, monthlyMemos }, null, 2);
 }
 
 export async function importData(repo: Repository, json: string): Promise<void> {
   const parsed = JSON.parse(json) as {
     version?: unknown; fixedCosts?: unknown; incomeTemplates?: unknown; incomes?: unknown; actuals?: unknown; extraSpendings?: unknown;
-    monthlyAccountBalances?: unknown; accountBalances?: unknown; balanceSettlements?: unknown;
+    monthlyAccountBalances?: unknown; accountBalances?: unknown; balanceSettlements?: unknown; monthlyMemos?: unknown;
   };
   const invalidSettlementFlag = Array.isArray(parsed?.extraSpendings) && parsed.extraSpendings.some((item: unknown) => {
     if (item === null || typeof item !== 'object') return true;
@@ -29,9 +30,14 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     invalidSettlementFlag ||
     (parsed.monthlyAccountBalances !== undefined && !Array.isArray(parsed.monthlyAccountBalances)) ||
     (parsed.accountBalances !== undefined && !Array.isArray(parsed.accountBalances)) ||
-    (parsed.balanceSettlements !== undefined && !Array.isArray(parsed.balanceSettlements))
+    (parsed.balanceSettlements !== undefined && !Array.isArray(parsed.balanceSettlements)) ||
+    (parsed.monthlyMemos !== undefined && !Array.isArray(parsed.monthlyMemos))
   ) {
     throw new Error('백업 파일 형식이 올바르지 않습니다.');
+  }
+  const monthlyMemos = Array.isArray(parsed.monthlyMemos) ? parsed.monthlyMemos.map(validateMonthlyMemo) : undefined;
+  if (monthlyMemos && new Set(monthlyMemos.map((memo) => memo.yearMonth)).size !== monthlyMemos.length) {
+    throw new Error('백업 파일에 동일한 청구월의 메모가 중복되어 있습니다.');
   }
   const data = parsed as {
     version?: unknown; fixedCosts: any[]; incomeTemplates?: any[]; incomes: any[]; actuals?: any[]; extraSpendings?: any[];
@@ -49,7 +55,7 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     const { id, ...rest } = f;
     await repo.addFixedCost({
       ...rest,
-      yearMonth: (data.version === 7 || data.version === 8) && typeof rest.yearMonth === 'string'
+      yearMonth: (data.version === 7 || data.version === 8 || data.version === 9) && typeof rest.yearMonth === 'string'
         ? rest.yearMonth
         : dateInKorea().slice(0, 7),
     });
@@ -86,7 +92,7 @@ export async function importData(repo: Repository, json: string): Promise<void> 
     if (e.isSettled === true) await repo.updateExtraSpending(restored.id, { isSettled: true });
   }
   if (data.monthlyAccountBalances !== undefined) {
-    const usesBalanceMonth = data.version === 6 || data.version === 7 || data.version === 8;
+    const usesBalanceMonth = data.version === 6 || data.version === 7 || data.version === 8 || data.version === 9;
     await repo.replaceMonthlyAccountBalances(data.monthlyAccountBalances.map((balance) => ({
       ...balance,
       yearMonth: usesBalanceMonth ? balance.yearMonth : previousYearMonth(balance.yearMonth),
@@ -98,5 +104,10 @@ export async function importData(repo: Repository, json: string): Promise<void> 
       yearMonth, accountName: balance.accountName,
       openingAmount: balance.amount, isManual: true,
     })));
+  }
+  // 메모가 없는 구버전 백업은 현재 메모를 지우지 않는다.
+  if (monthlyMemos !== undefined) {
+    await repo.deleteAllMonthlyMemos();
+    for (const memo of monthlyMemos) await repo.setMonthlyMemo(memo.yearMonth, memo.content);
   }
 }

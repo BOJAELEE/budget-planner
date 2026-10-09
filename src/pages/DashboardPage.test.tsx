@@ -11,6 +11,26 @@ import { CARD_METHODS } from '../types';
 import DashboardPage from './DashboardPage';
 
 describe('DashboardPage', () => {
+  it('shows the selected billing month memo above the selector without changing totals', async () => {
+    const repo = await createSavingsScenario(150000, 50000);
+    const month = defaultBillingYearMonth();
+    await repo.setMonthlyMemo(month, '이번 달 확인사항\n카드 대금 확인');
+    const user = userEvent.setup();
+    renderDashboard(repo);
+    const panel = await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
+    const summaryBefore = within(panel).getByRole('region', { name: '예상 카드값 기준 요약' }).textContent;
+    const tableBefore = screen.getByRole('table', { name: '카드별 예산' }).textContent;
+    const memo = await screen.findByRole('region', { name: /메모$/ });
+    const select = screen.getByRole('combobox', { name: '청구월' });
+    expect(memo.compareDocumentPosition(select) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    await user.click(within(memo).getByRole('button', { name: '수정' }));
+    await user.type(within(memo).getByRole('textbox'), '\n추가 메모');
+    await user.click(within(memo).getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(within(memo).queryByRole('textbox')).not.toBeInTheDocument());
+    expect(within(panel).getByRole('region', { name: '예상 카드값 기준 요약' }).textContent).toBe(summaryBefore);
+    expect(screen.getByRole('table', { name: '카드별 예산' }).textContent).toBe(tableBefore);
+  });
+
   it.each([
     { savings: 150000, shortage: 0 },
     { savings: 150000, shortage: 50000 },

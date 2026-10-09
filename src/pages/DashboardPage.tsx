@@ -7,6 +7,7 @@ import { displayPercentage, type DashboardScenario } from '../lib/calc';
 import { dashboardGraphAmounts } from '../lib/dashboardGraph';
 import { AmountInput } from '../components/AmountInput';
 import { BalanceUsage } from '../components/BalanceUsage';
+import { MonthlyMemoCard } from '../components/MonthlyMemoCard';
 
 type ScenarioView = 'expected' | 'actual';
 
@@ -27,16 +28,18 @@ export default function DashboardPage() {
 
   return (
     <main className="p-4 space-y-4">
-      <label className="block text-base font-medium text-gray-600">
-        청구월
+      <section className="space-y-2">
+        <label htmlFor="dashboard-billing-month" className="block text-base font-medium text-gray-600">청구월</label>
+        <MonthlyMemoCard key={yearMonth} yearMonth={yearMonth} />
         <select
-          className="mt-1 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base text-gray-900"
+          id="dashboard-billing-month"
+          className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base text-gray-900"
           value={yearMonth}
           onChange={(event) => setYearMonth(event.target.value)}
         >
           {availableMonths.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
         </select>
-      </label>
+      </section>
       <ScenarioPanel
         title={scenarioView === 'expected' ? '예상 카드값 기준' : '실제 카드값 기준'}
         description={scenarioView === 'expected'
