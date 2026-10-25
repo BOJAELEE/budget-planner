@@ -133,7 +133,7 @@
 }
 
 .app-shell nav {
-  max-width: 28rem;
+  width: 100%;
   margin: 0 auto;
   background: rgba(255, 255, 255, 0.96);
   border-color: #e2e7df;
