@@ -5,16 +5,25 @@ import { formatKRW } from '../lib/format';
 import { defaultBillingYearMonth, formatYearMonth } from '../lib/billing';
 import { displayPercentage, type DashboardScenario } from '../lib/calc';
 import { dashboardGraphAmounts } from '../lib/dashboardGraph';
+import { loadMonthlyScenarioViews, saveMonthlyScenarioViews, type ScenarioView } from '../lib/dashboardScenarioView';
 import { AmountInput } from '../components/AmountInput';
 import { BalanceUsage } from '../components/BalanceUsage';
 import { MonthlyMemoCard } from '../components/MonthlyMemoCard';
-
-type ScenarioView = 'expected' | 'actual';
+import { FundingSummary } from '../components/FundingSummary';
+import { CardPaymentFunding } from '../components/CardPaymentFunding';
 
 export default function DashboardPage() {
   const [yearMonth, setYearMonth] = useState(defaultBillingYearMonth);
-  const [scenarioView, setScenarioView] = useState<ScenarioView>('expected');
+  const [scenarioViews, setScenarioViews] = useState(loadMonthlyScenarioViews);
+  const [selectionSaveFailed, setSelectionSaveFailed] = useState(false);
+  const scenarioView = scenarioViews[yearMonth] ?? 'expected';
   const { loading, error, derived, availableMonths, setActual } = useBudget(yearMonth);
+
+  const selectScenarioView = (view: ScenarioView) => {
+    const nextViews = { ...scenarioViews, [yearMonth]: view };
+    setScenarioViews(nextViews);
+    setSelectionSaveFailed(!saveMonthlyScenarioViews(nextViews));
+  };
 
   if (loading) return <div className="p-8 text-center text-gray-400">불러오는 중입니다.</div>;
   if (error) return (
@@ -25,6 +34,7 @@ export default function DashboardPage() {
   );
 
   const enteredCardCount = CARD_METHODS.filter((card) => derived.enteredActualByCard[card] !== undefined).length;
+  const selectedScenario = scenarioView === 'expected' ? derived.expectedScenario : derived.actualScenario;
 
   return (
     <main className="p-4 space-y-4">
@@ -40,14 +50,15 @@ export default function DashboardPage() {
           {availableMonths.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
         </select>
       </section>
+      {selectionSaveFailed && <p role="status" className="text-sm text-gray-600">선택을 브라우저에 저장하지 못했습니다. 앱을 다시 열면 초기화될 수 있습니다.</p>}
       <ScenarioPanel
         title={scenarioView === 'expected' ? '예상 카드값 기준' : '실제 카드값 기준'}
         description={scenarioView === 'expected'
           ? '카드별 예상 금액으로 계산'
           : `실제값 ${enteredCardCount}/${CARD_METHODS.length}건 입력 · 미입력 카드는 예상값 적용`}
         variant={scenarioView}
-        onVariantChange={setScenarioView}
-        scenario={scenarioView === 'expected' ? derived.expectedScenario : derived.actualScenario}
+        onVariantChange={selectScenarioView}
+        scenario={selectedScenario}
         extraTotal={derived.extraTotal}
         incomeSum={derived.incomeSum}
         fixedTotal={derived.fixedTotal}
@@ -107,6 +118,7 @@ export default function DashboardPage() {
           </tfoot>
         </table>
       </section>
+      <CardPaymentFunding shortageAmount={selectedScenario.shortage} yearMonth={yearMonth} variant={scenarioView} />
     </main>
   );
 }
@@ -128,8 +140,8 @@ function ScenarioPanel({
     <section className={`scenario-panel scenario-panel--${variant} space-y-3 rounded-2xl border p-3`} aria-label={`${title} 대시보드`}>
       <div className="flex items-start justify-between gap-2 px-1">
         <div className="min-w-0">
-          <h2 className="text-lg font-bold">{title}</h2>
-          <p className="text-sm text-gray-500">{description}</p>
+          <h2 className="text-xl font-bold">이번 달 자금</h2>
+          <p className="text-sm text-gray-500">{title} · {description}</p>
         </div>
         <div className="flex shrink-0 rounded-xl border border-gray-200 bg-gray-100 p-0.5" role="group" aria-label="대시보드 기준">
           {(['expected', 'actual'] as const).map((option) => (
@@ -145,6 +157,7 @@ function ScenarioPanel({
           ))}
         </div>
       </div>
+      <FundingSummary availableAmount={graph.fundingCapacity} remainingAmount={scenario.reserveRemaining} />
       <section className="grid grid-cols-2 gap-2.5" aria-label={`${title} 요약`}>
         <SummaryCard items={[
           { label: '총필요 예산', amount: scenario.totalBudget },

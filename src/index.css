@@ -80,6 +80,112 @@
   font-size: clamp(0.95rem, 4vw, 1.125rem);
   font-variant-numeric: tabular-nums;
 }
+
+.app-shell .funding-summary {
+  container-type: inline-size;
+  padding: clamp(12px, 2vw, 24px);
+  border: 1px solid #d5e0d2;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(53, 75, 59, 0.03);
+}
+.app-shell .funding-summary-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 20px;
+  color: #68786e;
+  font-size: 13px;
+}
+.app-shell .funding-summary-heading h3 { margin: 0; font-weight: 500; }
+.app-shell .funding-summary-heading > span { font-size: 12px; white-space: nowrap; }
+.app-shell .funding-summary-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+.app-shell .funding-summary-metrics > div { min-width: 0; padding-right: clamp(4px, 1.5cqw, 14px); }
+.app-shell .funding-summary-metrics > div + div {
+  border-left: 1px solid #dfe6dc;
+  padding-left: clamp(8px, 3cqw, 24px);
+}
+.app-shell .funding-summary-metrics > div:last-child { padding-right: 0; }
+.app-shell .funding-summary-metrics dt { color: #68786e; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.app-shell .funding-summary-metrics dd {
+  margin: 10px 0 0;
+  font-size: clamp(13px, var(--funding-number-size), 40px);
+  line-height: 1.2;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.app-shell .funding-summary-result dt,
+.app-shell .funding-summary-result dd { color: #436c54; }
+.app-shell .funding-summary-result--over dt,
+.app-shell .funding-summary-result--over dd { color: #bd6054; }
+.app-shell .funding-summary-footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid #dfe6dc;
+  font-size: 13px;
+  color: #68786e;
+}
+.app-shell .funding-summary-footer > span:last-child { white-space: nowrap; }
+.app-shell .funding-summary-footer.text-neg { color: #bd6054; }
+.app-shell .payment-funding {
+  padding: clamp(16px, 3vw, 28px);
+  border: 1px solid #cbdaca;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(55, 68, 59, 0.07);
+}
+.app-shell .payment-funding-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.app-shell .payment-funding-heading p { margin: 0 0 4px; color: #66796d; font-size: 13px; }
+.app-shell .payment-funding-heading h2 { margin: 0; font-size: 20px; font-weight: 750; }
+.app-shell .payment-funding-badge { padding: 5px 9px; border-radius: 8px; background: #edf3ec; color: #526c58; font-size: 12px; white-space: nowrap; }
+.app-shell .payment-funding-route { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-top: 20px; padding: 12px; border-radius: 12px; background: #edf3ec; color: #365a42; text-align: center; font-size: 14px; font-weight: 650; }
+.app-shell .payment-funding-route > span { min-width: 0; }
+.app-shell .payment-funding-description { margin: 12px 0 20px; color: #66796d; font-size: 14px; line-height: 1.6; }
+.app-shell .payment-funding-sources { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.app-shell .payment-funding-source { min-width: 0; padding: 16px; border: 1px solid #eadcc0; border-radius: 14px; background: #fffaf0; }
+.app-shell .payment-funding-source--monthly { border-color: #d3e2d6; background: #f2f7f1; }
+.app-shell .payment-funding-source--extra { border-color: #ecd2cd; background: #fcf1ef; }
+.app-shell .payment-funding-source dt { display: flex; align-items: flex-start; gap: 8px; font-size: 15px; font-weight: 650; }
+.app-shell .payment-funding-step { display: inline-grid; place-items: center; width: 23px; height: 23px; flex-shrink: 0; border-radius: 50%; background: #ffffff; color: #66796d; font-size: 12px; }
+.app-shell .payment-funding-source small { display: block; margin-top: 4px; color: #66796d; font-size: 12px; font-weight: 400; line-height: 1.5; }
+.app-shell .payment-funding-source dd { margin: 16px 0 0 31px; font-size: clamp(17px, 2.8vw, 24px); font-weight: 750; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.app-shell .payment-funding-source--extra dd { color: #b4564c; }
+.app-shell .payment-funding-source--unused { border-color: #e2e6df; background: #f7f8f5; }
+.app-shell .payment-funding-source--unused dd { color: #718077; }
+.app-shell .payment-funding-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; margin-top: 20px; padding: 20px; border-radius: 14px; background: #eaf1ea; color: #365a42; }
+.app-shell .payment-funding-total > span { font-size: 15px; font-weight: 650; }
+.app-shell .payment-funding-total strong { font-size: clamp(26px, 4vw, 36px); line-height: 1.2; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.app-shell .payment-funding-note { margin: 12px 0 0; font-size: 14px; line-height: 1.6; color: #526c58; }
+.app-shell .payment-funding-note--extra { color: #b4564c; font-weight: 600; }
+.app-shell .payment-funding-disclaimer { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: #718077; }
+@media (max-width: 679px) {
+  .app-shell .payment-funding-sources { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .app-shell .payment-funding-source { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 14px 12px; }
+  .app-shell .payment-funding-source dt { min-width: 0; font-size: 14px; }
+  .app-shell .payment-funding-source small { font-size: 11px; }
+  .app-shell .payment-funding-source dd { max-width: 100%; margin: 0 0 0 auto; font-size: 18px; }
+  .app-shell .payment-funding-total { padding: 16px; }
+}
+@media (max-width: 447px) {
+  .app-shell .payment-funding-heading h2 { font-size: 18px; }
+  .app-shell .payment-funding-badge { padding: 4px 6px; font-size: 11px; }
+  .app-shell .funding-summary-heading { margin-bottom: 16px; font-size: 12px; }
+  .app-shell .funding-summary-heading > span { font-size: 11px; }
+  .app-shell .funding-summary-metrics dt { font-size: 12px; }
+  .app-shell .funding-summary-footer { margin-top: 16px; font-size: 11px; }
+}
+
 .app-shell .budget-overview > * + * {
   border-top: 1px solid #e6ebe4;
   padding-top: 1.25rem;
