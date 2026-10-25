@@ -133,6 +133,9 @@ export default function ExtraSpendingPage() {
           {sortByAmount ? '최신순' : '고액순'}
         </button>
       </div>
+      <div className="rounded-2xl bg-brand-soft p-4 text-sm">
+        {formatYearMonth(billingMonth)} 추가지출 합계 <b>{formatKRW(extraSpendingTotal(items))}</b>
+      </div>
       <p className="text-xs text-gray-500">결재완 항목은 기록에 남고 추가지출 합계에서는 제외됩니다.</p>
       {statusError && <p role="alert" className="text-sm text-neg">{statusError}</p>}
 
@@ -171,9 +174,6 @@ export default function ExtraSpendingPage() {
         ))
       )}
 
-      <div className="rounded-2xl bg-brand-soft p-4 text-sm">
-        {formatYearMonth(billingMonth)} 추가지출 합계 <b>{formatKRW(extraSpendingTotal(items))}</b>
-      </div>
     </main>
   );
 }
