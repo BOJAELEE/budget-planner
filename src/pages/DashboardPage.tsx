@@ -11,6 +11,7 @@ import { BalanceUsage } from '../components/BalanceUsage';
 import { MonthlyMemoCard } from '../components/MonthlyMemoCard';
 import { FundingSummary } from '../components/FundingSummary';
 import { CardPaymentFunding } from '../components/CardPaymentFunding';
+import { SwimmingSchedule } from '../components/SwimmingSchedule';
 
 export default function DashboardPage() {
   const [yearMonth, setYearMonth] = useState(defaultBillingYearMonth);
@@ -38,11 +39,12 @@ export default function DashboardPage() {
 
   return (
     <main className="p-4 space-y-4">
+      <SwimmingSchedule yearMonth={yearMonth} />
       <section className="space-y-2">
-        <label htmlFor="dashboard-billing-month" className="block text-base font-medium text-gray-600">청구월</label>
         <MonthlyMemoCard key={yearMonth} yearMonth={yearMonth} />
         <select
           id="dashboard-billing-month"
+          aria-label="청구월"
           className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base text-gray-900"
           value={yearMonth}
           onChange={(event) => setYearMonth(event.target.value)}

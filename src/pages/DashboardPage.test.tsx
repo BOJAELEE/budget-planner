@@ -16,6 +16,32 @@ describe('DashboardPage', () => {
   beforeEach(() => localStorage.removeItem(DASHBOARD_SCENARIO_VIEWS_KEY));
   afterEach(() => vi.restoreAllMocks());
 
+  it('shows the compact schedule above the memo without navigating months or changing financial data', async () => {
+    const repo = await createSavingsScenario(150000, 50000);
+    await repo.addExtraSpending({ card: '현대카드', name: '11월 항목', amount: 1000, spentOn: '2026-10-01' });
+    await repo.addExtraSpending({ card: '현대카드', name: '익년 항목', amount: 2000, spentOn: '2026-12-01' });
+    const originalData = await exportData(repo);
+    const user = userEvent.setup();
+    renderDashboard(repo);
+    const monthSelect = await screen.findByRole('combobox', { name: '청구월' });
+    await user.selectOptions(monthSelect, '2026-11');
+    const schedule = await screen.findByRole('region', { name: '2026년 수영회비 납부 일정' });
+    const memo = screen.getByRole('region', { name: /메모$/ });
+    expect(screen.getByRole('main').firstElementChild).toBe(schedule);
+    expect(schedule.compareDocumentPosition(memo) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(screen.queryByText('청구월')).not.toBeInTheDocument();
+    expect(within(schedule).getByText('해당 월말에 납부')).toBeInTheDocument();
+    const tableBefore = screen.getByRole('table', { name: '카드별 예산' }).textContent;
+    await user.click(within(schedule).getByRole('listitem', { name: '2026년 5월 수영회비 해당 월말에 납부' }));
+    expect(screen.getByRole('combobox', { name: '청구월' })).toHaveValue('2026-11');
+    expect(screen.getByRole('table', { name: '카드별 예산' }).textContent).toBe(tableBefore);
+    await user.selectOptions(screen.getByRole('combobox', { name: '청구월' }), '2027-01');
+    const nextYearSchedule = await screen.findByRole('region', { name: '2027년 수영회비 납부 일정' });
+    expect(within(nextYearSchedule).getAllByRole('listitem').filter((cell) => cell.classList.contains('swimming-month--due'))
+      .map((cell) => cell.textContent)).toEqual(['2', '3', '5', '6', '8', '9', '11', '12']);
+    expect(await exportData(repo)).toBe(originalData);
+  });
+
   it('shows the unified funds headline below the memo and updates it with the selected scenario without changing data', async () => {
     const repo = new MemoryRepository();
     const month = defaultBillingYearMonth();
@@ -114,7 +140,7 @@ describe('DashboardPage', () => {
     expect(await screen.findByRole('region', { name: '실제 카드값 기준 대시보드' })).toBeInTheDocument();
   });
 
-  it('keeps the selected billing month memo at the top above the selector and funds headline without changing totals', async () => {
+  it('keeps the selected billing month memo below the schedule and above the selector and funds headline without changing totals', async () => {
     const repo = await createSavingsScenario(150000, 50000);
     const month = defaultBillingYearMonth();
     await repo.setMonthlyMemo(month, '이번 달 확인사항\n카드 대금 확인');

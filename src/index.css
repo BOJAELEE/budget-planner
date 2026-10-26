@@ -55,6 +55,54 @@
 .app-shell .focus\:ring-brand:focus { --tw-ring-color: #8fae9a; }
 .app-shell .focus\:ring-offset-2:focus { --tw-ring-offset-color: #f6f5f1; }
 
+.app-shell .swimming-schedule-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  line-height: 18px;
+}
+.app-shell .swimming-schedule-heading h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: inherit;
+  white-space: nowrap;
+}
+.app-shell .swimming-schedule-note { color: #66796d; font-size: 11px; font-weight: 400; }
+.app-shell .swimming-schedule-year { color: #66796d; font-size: 12px; white-space: nowrap; }
+.app-shell .swimming-schedule-months {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.app-shell .swimming-month {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 28px;
+  padding: 0;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #66796d;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.app-shell .swimming-month--due { background: #fbefd7; color: #78551d; }
+@media (max-width: 447px) {
+  .app-shell .swimming-month { font-size: 11px; }
+}
+
 .app-shell .monthly-memo { border-color: #cbdaca; }
 .app-shell .memo-action { color: #526c58; }
 .app-shell .memo-action:hover { background: #dce8dc; }
