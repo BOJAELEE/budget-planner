@@ -46,6 +46,52 @@ describe('CardPaymentFunding', () => {
     expect(screen.getAllByRole('definition').every((amount) => amount.textContent === '₩0')).toBe(true);
     expect(screen.getByText('현재 수입으로 결제할 수 있어 추가로 옮길 금액이 없습니다.')).toBeInTheDocument();
     expect(screen.queryByLabelText('월급 변동 반영')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('수입·고정비 차액')).not.toBeInTheDocument();
+  });
+
+  it('displays the income minus fixed-cost gap when income and fixed totals are provided', () => {
+    const { rerender } = render(
+      <CardPaymentFunding
+        shortageAmount={1_516_084}
+        incomeSum={5_610_000}
+        fixedTotal={5_610_158}
+        yearMonth="2026-11"
+        variant="expected"
+      />,
+    );
+    const deficitGap = screen.getByLabelText('수입·고정비 차액');
+    expect(deficitGap).toHaveClass('payment-funding-gap--deficit');
+    expect(deficitGap).toHaveTextContent('수입 ₩5,610,000 − 고정비 ₩5,610,158 · 고정비 초과분 포함');
+    expect(deficitGap).toHaveTextContent('-₩158');
+    expect(deficitGap).toHaveTextContent('고정비 초과');
+
+    rerender(
+      <CardPaymentFunding
+        shortageAmount={1_316_084}
+        incomeSum={5_810_000}
+        fixedTotal={5_610_158}
+        yearMonth="2026-11"
+        variant="expected"
+      />,
+    );
+    const surplusGap = screen.getByLabelText('수입·고정비 차액');
+    expect(surplusGap).toHaveClass('payment-funding-gap--surplus');
+    expect(surplusGap).toHaveTextContent('수입 ₩5,810,000 − 고정비 ₩5,610,158 · 수입 여유분 반영');
+    expect(surplusGap).toHaveTextContent('+₩199,842');
+    expect(surplusGap).toHaveTextContent('수입 여유');
+
+    rerender(
+      <CardPaymentFunding
+        shortageAmount={1_515_926}
+        incomeSum={5_610_000}
+        fixedTotal={5_610_000}
+        yearMonth="2026-11"
+        variant="expected"
+      />,
+    );
+    const zeroGap = screen.getByLabelText('수입·고정비 차액');
+    expect(zeroGap).toHaveTextContent('₩0');
+    expect(zeroGap).toHaveTextContent('차액 없음');
   });
 
   it('shows how much less or more needs to be transferred when salary varies from baseline', () => {

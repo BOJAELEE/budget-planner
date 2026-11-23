@@ -7,17 +7,22 @@ export function CardPaymentFunding({
   shortageAmount,
   remainingAmount = -Math.max(shortageAmount, 0),
   salaryDelta = 0,
+  incomeSum,
+  fixedTotal,
   yearMonth,
   variant,
 }: {
   shortageAmount: number;
   remainingAmount?: number;
   salaryDelta?: number;
+  incomeSum?: number;
+  fixedTotal?: number;
   yearMonth: string;
   variant: ScenarioView;
 }) {
   const plan = cardPaymentPlan(shortageAmount);
   const salaryImpact = cardPaymentSalaryImpact(shortageAmount, remainingAmount, salaryDelta);
+  const fixedCostGap = incomeSum !== undefined && fixedTotal !== undefined ? incomeSum - fixedTotal : undefined;
   const excludedSources = [
     { key: 'reserve', label: '월급 여유 자금', limit: '월급통장 정산 후 여유 자금(완충 자금)', amount: plan.reserveUsed },
     { key: 'monthly', label: '월간 비상금', limit: '월간 비상금(26일 자동이체)', amount: plan.monthlyEmergencyUsed },
@@ -45,6 +50,24 @@ export function CardPaymentFunding({
       <p className="payment-funding-description">
         현금이체 후 월급통장에 남은 월급 여유 자금(15만 원)과 26일 자동이체되는 월간 비상금(50만 원)은 제외하고, 추가로 부족한 금액만 비상금통장에서 직접 옮깁니다.
       </p>
+      {fixedCostGap !== undefined && incomeSum !== undefined && fixedTotal !== undefined && (
+        <div
+          className={`payment-funding-gap ${fixedCostGap < 0 ? 'payment-funding-gap--deficit' : fixedCostGap > 0 ? 'payment-funding-gap--surplus' : ''}`}
+          aria-label="수입·고정비 차액"
+        >
+          <div>
+            <span>수입·고정비 차액</span>
+            <small>
+              수입 {formatKRW(incomeSum)} − 고정비 {formatKRW(fixedTotal)}
+              {fixedCostGap < 0 ? ' · 고정비 초과분 포함' : fixedCostGap > 0 ? ' · 수입 여유분 반영' : ''}
+            </small>
+          </div>
+          <strong>
+            {formatSignedKRW(fixedCostGap)}
+            <small>{fixedCostGap < 0 ? '고정비 초과' : fixedCostGap > 0 ? '수입 여유' : '차액 없음'}</small>
+          </strong>
+        </div>
+      )}
       <dl className="payment-funding-sources">
         <div className="payment-funding-group-heading" aria-hidden="true">이체 제외 · 자동 충당</div>
         {excludedSources.map((source, index) => (

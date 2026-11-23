@@ -151,6 +151,8 @@ export default function DashboardPage() {
         shortageAmount={selectedScenario.shortage}
         remainingAmount={selectedScenario.remaining}
         salaryDelta={derived.salaryDelta}
+        incomeSum={derived.incomeSum}
+        fixedTotal={derived.fixedTotal}
         yearMonth={budgetMonth}
         variant={scenarioView}
       />
