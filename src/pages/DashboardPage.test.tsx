@@ -70,13 +70,13 @@ describe('DashboardPage', () => {
     expect(cardTable.compareDocumentPosition(paymentFunding) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(screen.getByRole('main').lastElementChild).toBe(paymentFunding);
     expect(within(paymentFunding).getByText('월급 여유 자금').closest('dt')?.nextElementSibling).toHaveTextContent('₩150,000');
-    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩507,556');
+    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩7,556');
     expect(within(paymentFunding).getByText('추가 충당').closest('dt')?.nextElementSibling).toHaveTextContent('₩7,556');
     await user.click(screen.getByRole('button', { name: '실제' }));
     expect(within(headline).getByText('사용금액').nextElementSibling).toHaveTextContent('510,772');
     expect(within(headline).getByText('잔액', { exact: true }).nextElementSibling).toHaveTextContent('208,732');
     expect(within(headline).queryByText('초과금액')).not.toBeInTheDocument();
-    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩291,268');
+    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩0');
     expect(within(paymentFunding).getByText('월간 비상금').closest('dt')?.nextElementSibling).toHaveTextContent('₩291,268');
     expect(within(paymentFunding).getByText('추가 충당').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
     expect(await exportData(repo)).toBe(originalData);
@@ -380,9 +380,9 @@ describe('DashboardPage', () => {
     const paymentFunding = screen.getByRole('region', { name: '카드결제 이체금' });
     await waitFor(() => expect(within(summary).getByText('부족금액').nextElementSibling).toHaveTextContent('₩1,057,556'));
     expect(within(salarySection).getByText('기준 대비 -₩400,000')).toBeInTheDocument();
-    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩907,556');
+    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩407,556');
     const moreImpact = within(paymentFunding).getByLabelText('월급 변동 반영');
-    expect(moreImpact).toHaveTextContent('기준 월급 대비 -₩400,000 · 기준 이체금 ₩507,556');
+    expect(moreImpact).toHaveTextContent('기준 월급 대비 -₩400,000 · 기준 이체금 ₩7,556');
     expect(moreImpact).toHaveTextContent('+₩400,000');
     expect(moreImpact).toHaveTextContent('더 옮김');
     expect(setFixedIncomeSpy).toHaveBeenCalledWith(budgetMonth, template.id, 5_000_000);
@@ -397,8 +397,8 @@ describe('DashboardPage', () => {
     expect(within(salarySection).getByText('기준 대비 +₩600,000')).toBeInTheDocument();
     expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩0');
     const lessImpact = within(paymentFunding).getByLabelText('월급 변동 반영');
-    expect(lessImpact).toHaveTextContent('기준 월급 대비 +₩600,000 · 기준 이체금 ₩507,556');
-    expect(lessImpact).toHaveTextContent('-₩507,556');
+    expect(lessImpact).toHaveTextContent('기준 월급 대비 +₩600,000 · 기준 이체금 ₩7,556');
+    expect(lessImpact).toHaveTextContent('-₩7,556');
     expect(lessImpact).toHaveTextContent('덜 옮김');
     expect((await repo.listIncomes(budgetMonth)).find((item) => item.name === '월급')?.amount).toBe(6_000_000);
     expect(await repo.listActuals(billingMonth)).toEqual([]);
