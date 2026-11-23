@@ -218,15 +218,15 @@ describe('DashboardPage', () => {
       .toHaveAttribute('aria-valuetext', `${formatKRW(1030000 + savings)} / ${formatKRW(income + 650000)}`);
     expect(within(overview).getByText(`고정비 ${formatKRW(990000 + savings)}`)).toBeInTheDocument();
     expect(within(overview).getByText(`추가지출 ${formatKRW(40000)}`)).toBeInTheDocument();
-    const incomeMargin = Math.max(40000 - shortage, 0);
-    const incomeMarginUsed = Math.min(incomeMargin, 40000);
     const baseUsed = Math.min(shortage, 150000);
     const emergencyUsed = Math.min(Math.max(shortage - 150000, 0), 500000);
-    const fundingUsed = incomeMarginUsed + baseUsed + emergencyUsed;
-    const fundingCapacity = incomeMargin + 650000;
+    const fundingUsed = baseUsed + emergencyUsed;
+    const fundingCapacity = 650000;
     expect(within(overview).getByRole('progressbar', { name: '예비 자금 사용' }))
       .toHaveAttribute('aria-valuetext', `${formatKRW(fundingUsed)} / ${formatKRW(fundingCapacity)}`);
-    expect(within(overview).getByText(`${formatKRW(incomeMarginUsed)} / ${formatKRW(incomeMargin)}`)).toBeInTheDocument();
+    expect(within(overview).queryByText('여유 자금')).not.toBeInTheDocument();
+    expect(within(overview).getByText('월급 여유 자금')).toBeInTheDocument();
+    expect(within(overview).getByText('월간 비상금')).toBeInTheDocument();
     expect(within(overview).getByText(`${formatKRW(baseUsed)} / ${formatKRW(150000)}`)).toBeInTheDocument();
     expect(within(overview).getByText(`${formatKRW(emergencyUsed)} / ${formatKRW(500000)}`)).toBeInTheDocument();
     expect(within(overview).queryByText('저축 잔액')).not.toBeInTheDocument();
@@ -274,9 +274,12 @@ describe('DashboardPage', () => {
     expect(within(summary).getByText(formatKRW(shortage))).toHaveClass('text-neg');
     expect(within(summary).getByText('잔액/저축액').nextElementSibling).toHaveTextContent(formatKRW(reserveRemaining));
     const overview = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 현황' });
-    expect(within(overview).getByText('여유 자금')).toBeInTheDocument();
-    expect(within(overview).getByText('15만 원')).toBeInTheDocument();
-    expect(within(overview).getByText('50만 원')).toBeInTheDocument();
+    expect(within(overview).queryByText('여유 자금')).not.toBeInTheDocument();
+    expect(within(overview).queryByText('수입보다 고정비가 커서 여유 자금 구간은 0원입니다.')).not.toBeInTheDocument();
+    expect(within(overview).getByText('월급 여유 자금')).toBeInTheDocument();
+    expect(within(overview).getByText('월간 비상금')).toBeInTheDocument();
+    expect(within(overview).queryByText('15만 원')).not.toBeInTheDocument();
+    expect(within(overview).queryByText('50만 원')).not.toBeInTheDocument();
     expect(within(overview).queryByText(/통장 추가 충당/)).not.toBeInTheDocument();
     expect(within(overview).queryByText('예비금 사용')).not.toBeInTheDocument();
     expect(within(overview).queryByText('저축 사용')).not.toBeInTheDocument();
