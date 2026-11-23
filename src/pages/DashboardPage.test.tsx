@@ -65,7 +65,7 @@ describe('DashboardPage', () => {
     const cardTable = screen.getByRole('table', { name: '카드별 예산' });
     expect(cardTable.compareDocumentPosition(paymentFunding) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(screen.getByRole('main').lastElementChild).toBe(paymentFunding);
-    expect(within(paymentFunding).getByText('예비자금').closest('dt')?.nextElementSibling).toHaveTextContent('₩150,000');
+    expect(within(paymentFunding).getByText('월급 여유 자금').closest('dt')?.nextElementSibling).toHaveTextContent('₩150,000');
     expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩507,556');
     expect(within(paymentFunding).getByText('추가 충당').closest('dt')?.nextElementSibling).toHaveTextContent('₩7,556');
     await user.click(screen.getByRole('button', { name: '실제' }));
@@ -73,7 +73,7 @@ describe('DashboardPage', () => {
     expect(within(headline).getByText('잔액', { exact: true }).nextElementSibling).toHaveTextContent('208,732');
     expect(within(headline).queryByText('초과금액')).not.toBeInTheDocument();
     expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩291,268');
-    expect(within(paymentFunding).getByText('월 비상금 사용').closest('dt')?.nextElementSibling).toHaveTextContent('₩291,268');
+    expect(within(paymentFunding).getByText('월간 비상금').closest('dt')?.nextElementSibling).toHaveTextContent('₩291,268');
     expect(within(paymentFunding).getByText('추가 충당').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
     expect(await exportData(repo)).toBe(originalData);
   });
