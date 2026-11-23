@@ -135,4 +135,26 @@ describe('useBudget', () => {
     expect(result.current.derived.actualByCard['현대카드']).toBe(150_000);
     expect(result.current.derived.extraTotal).toBe(0);
   });
+
+  it('reads and updates only the source month salary linked to income templates', async () => {
+    const repo = createSeededMemoryRepository();
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <RepositoryProvider repo={repo}>{children}</RepositoryProvider>
+    );
+    const { result } = renderHook(() => useBudget('2026-08'), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.derived.salaryAmount).toBe(5_400_000);
+    expect(result.current.derived.incomeSum).toBe(5_505_000);
+
+    await act(async () => { await result.current.setSalary(5_000_000); });
+    expect(result.current.derived.salaryAmount).toBe(5_000_000);
+    expect(result.current.derived.incomeSum).toBe(5_105_000);
+    expect(result.current.derived.expectedScenario.shortage).toBe(494_868);
+
+    const julyIncomes = await repo.listIncomes('2026-07');
+    expect(julyIncomes.find((item) => item.name === '월급')?.amount).toBe(5_000_000);
+    const augustIncomes = await repo.listIncomes('2026-08');
+    expect(augustIncomes.find((item) => item.name === '월급')?.amount).toBe(5_400_000);
+  });
 });

@@ -62,6 +62,24 @@ export function useBudget(yearMonth: string) {
     }
   }, [repo, yearMonth]);
 
+  const setSalary = useCallback(async (amount: number) => {
+    try {
+      setError(null);
+      const currentSalary = incomes.find((item) => item.active && item.type === '고정수입' && item.name === '월급')
+        ?? incomes.find((item) => item.active && item.name === '월급');
+      if (currentSalary?.type === '고정수입' && currentSalary.templateId) {
+        await repo.setFixedIncome(sourceMonth, currentSalary.templateId, amount);
+      } else if (currentSalary) {
+        await repo.updateIncome(currentSalary.id, { amount });
+      } else {
+        await repo.addIncome({ yearMonth: sourceMonth, type: '고정수입', name: '월급', amount, active: true });
+      }
+      setIncomes(await repo.listIncomes(sourceMonth));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [incomes, repo, sourceMonth]);
+
   const setMonthlyAccountBalance = useCallback(async (accountName: MonthlyAccountBalance['accountName'], amount: number) => {
     try {
       await repo.setMonthlyAccountBalance(sourceMonth, accountName, amount);
@@ -92,6 +110,9 @@ export function useBudget(yearMonth: string) {
     const transferSum = transferTotal(fixedCosts);
     const fixedTotal = fixedCostsTotal(fixedCosts);
     const incomeSum = incomeTotal(incomes);
+    const salaryItem = incomes.find((item) => item.active && item.type === '고정수입' && item.name === '월급')
+      ?? incomes.find((item) => item.active && item.name === '월급');
+    const salaryAmount = salaryItem?.amount ?? 0;
     const expectedScenario = calculateDashboardScenario(
       transferSum, expectedCardTotal, incomeSum, fixedTotal, balanceProjection.startingBalances,
     );
@@ -101,7 +122,7 @@ export function useBudget(yearMonth: string) {
     return {
       transferSum, cardBaselines, extraByCard, expectedByCard, enteredActualByCard, actualByCard,
       cardFixedTotal, cardExtraTotal, expectedCardTotal, actualCardTotal,
-      fixedTotal, extraTotal: extraSpendingTotal(extras), incomeSum,
+      fixedTotal, extraTotal: extraSpendingTotal(extras), incomeSum, salaryAmount,
       ...actualScenario, expectedScenario, actualScenario,
       breakdown: categoryBreakdown(fixedCosts),
     };
@@ -118,6 +139,6 @@ export function useBudget(yearMonth: string) {
 
   return {
     fixedCosts, incomes, extras, actuals, monthlyBalances, loading, error, reload,
-    setActual, setMonthlyAccountBalance, derived: { ...derived, incomeYearMonth: sourceMonth, balanceYearMonth: sourceMonth }, availableMonths,
+    setActual, setSalary, setMonthlyAccountBalance, derived: { ...derived, incomeYearMonth: sourceMonth, balanceYearMonth: sourceMonth }, availableMonths,
   };
 }

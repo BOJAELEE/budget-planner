@@ -3,7 +3,10 @@ import { useRepository } from '../data/RepositoryContext';
 import { formatYearMonth } from '../lib/billing';
 import { MAX_MONTHLY_MEMO_LENGTH } from '../lib/monthlyMemo';
 
-export function MonthlyMemoCard({ yearMonth }: { yearMonth: string }) {
+export function MonthlyMemoCard({ yearMonth, displayYearMonth = yearMonth }: {
+  yearMonth: string;
+  displayYearMonth?: string;
+}) {
   const repo = useRepository();
   const [content, setContent] = useState('');
   const [draft, setDraft] = useState('');
@@ -75,7 +78,7 @@ export function MonthlyMemoCard({ yearMonth }: { yearMonth: string }) {
   }
 
   return (
-    <section className="monthly-memo rounded-2xl border bg-brand-soft px-4 py-3" aria-label={`${formatYearMonth(yearMonth)} 메모`}>
+    <section className="monthly-memo rounded-2xl border bg-brand-soft px-4 py-3" aria-label={`${formatYearMonth(displayYearMonth)} 메모`}>
       <div className="flex items-center justify-between gap-3">
         <h2 className="flex min-w-0 items-center gap-2 text-base font-semibold">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true" className="shrink-0">
@@ -91,7 +94,7 @@ export function MonthlyMemoCard({ yearMonth }: { yearMonth: string }) {
       </div>
       {loading ? <p className="mt-2 text-sm text-gray-500" role="status">메모 불러오는 중…</p> : editing ? (
         <form className="mt-3 space-y-2" onSubmit={(event) => { event.preventDefault(); void saveMemo(); }}>
-          <textarea ref={textarea} aria-label={`${formatYearMonth(yearMonth)} 메모 내용`} autoFocus
+          <textarea ref={textarea} aria-label={`${formatYearMonth(displayYearMonth)} 메모 내용`} autoFocus
             className="block min-h-[88px] w-full resize-none overflow-hidden rounded-xl border px-3 py-2 text-sm leading-6"
             rows={3} value={draft} maxLength={MAX_MONTHLY_MEMO_LENGTH} disabled={saving}
             placeholder="이번 달에 기억할 내용을 적어주세요."

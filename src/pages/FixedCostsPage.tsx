@@ -113,7 +113,7 @@ export default function FixedCostsPage() {
           value={yearMonth}
           onChange={(event) => setYearMonth(event.target.value)}
         />
-        <span className="mt-1 block text-xs text-gray-400">{formatYearMonth(yearMonth)} 고정비는 다음 달 청구월에 적용됩니다.</span>
+        <span className="mt-1 block text-xs text-gray-400">{formatYearMonth(yearMonth)} 고정비는 {formatYearMonth(yearMonth)} 대시보드(다음 달 1일 카드결제)에 적용됩니다.</span>
       </label>
       {copyMessage && <p role="status" className="rounded-xl bg-brand-soft px-3 py-2 text-sm text-brand">{copyMessage}</p>}
       {copyError && <p role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-sm text-neg">{copyError}</p>}

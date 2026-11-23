@@ -19,7 +19,7 @@ export default function BalancePage() {
     <main className="p-4 space-y-4">
       <div>
         <h1 className="text-xl font-bold">잔고</h1>
-        <p className="mt-1 text-sm text-gray-500">입력한 월의 잔고는 다음 달 청구월에 적용됩니다. 직접 입력한 달은 보호되며, 이후 월에는 잔고를 차감하지 않고 그대로 이월합니다.</p>
+        <p className="mt-1 text-sm text-gray-500">입력한 월의 잔고는 해당 월 대시보드에 적용됩니다. 직접 입력한 달은 보호되며, 이후 월에는 잔고를 차감하지 않고 그대로 이월합니다.</p>
       </div>
       {error && <p className="rounded-xl bg-white p-3 text-sm text-neg">{error}</p>}
       <label className="block text-base font-medium text-gray-600">

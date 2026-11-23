@@ -3,7 +3,7 @@ import { useRepository } from '../data/RepositoryContext';
 import { extraSpendingTotal, fixedCostsTotal } from '../lib/calc';
 import { HistoryChart } from '../components/HistoryChart';
 import { formatKRW } from '../lib/format';
-import { nextYearMonth, previousYearMonth } from '../lib/billing';
+import { budgetMonthFromBillingMonth } from '../lib/billing';
 
 export default function HistoryPage() {
   const repo = useRepository();
@@ -16,18 +16,19 @@ export default function HistoryPage() {
       ]);
       const byMonth = new Map<string, number>();
       extras.forEach((e) => {
-        byMonth.set(e.yearMonth, (byMonth.get(e.yearMonth) ?? 0) + extraSpendingTotal([e]));
+        const displayMonth = budgetMonthFromBillingMonth(e.yearMonth);
+        byMonth.set(displayMonth, (byMonth.get(displayMonth) ?? 0) + extraSpendingTotal([e]));
       });
       const months = [...new Set([
         ...byMonth.keys(),
-        ...incomes.map((income) => nextYearMonth(income.yearMonth)),
-        ...fixedCosts.map((fixedCost) => nextYearMonth(fixedCost.yearMonth)),
+        ...incomes.map((income) => income.yearMonth),
+        ...fixedCosts.map((fixedCost) => fixedCost.yearMonth),
       ])];
       const result = await Promise.all(months
         .sort((a, b) => a.localeCompare(b))
         .map(async (yearMonth) => {
           const extraSum = byMonth.get(yearMonth) ?? 0;
-          const totalBudget = fixedCostsTotal(fixedCosts.filter((item) => item.yearMonth === previousYearMonth(yearMonth))) + extraSum;
+          const totalBudget = fixedCostsTotal(fixedCosts.filter((item) => item.yearMonth === yearMonth)) + extraSum;
           return { yearMonth, totalBudget, extraSpending: extraSum };
         }));
       setRows(result);

@@ -60,6 +60,21 @@ export function nextYearMonth(yearMonth: string): string {
   return shiftYearMonth(yearMonth, 1);
 }
 
+/** Convert an internal card billing month (paid on the 1st of next month) to its displayed budget month. */
+export function budgetMonthFromBillingMonth(billingMonth: string): string {
+  return previousYearMonth(billingMonth);
+}
+
+/** Convert a displayed budget month to the internal billing month key used in storage. */
+export function billingMonthFromBudgetMonth(budgetMonth: string): string {
+  return nextYearMonth(budgetMonth);
+}
+
+/** Default displayed budget month (switches on the 2nd so payment day on the 1st stays on the closing month). */
+export function defaultBudgetYearMonth(date: Date = new Date()): string {
+  return budgetMonthFromBillingMonth(defaultBillingYearMonth(date));
+}
+
 export function spentOnFromCreatedAt(createdAt: string | undefined): string {
   const date = createdAt ? new Date(createdAt) : new Date();
   return Number.isNaN(date.getTime()) ? dateInKorea() : dateInKorea(date);

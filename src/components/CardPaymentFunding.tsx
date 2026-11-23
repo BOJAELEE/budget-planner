@@ -10,7 +10,7 @@ export function CardPaymentFunding({ shortageAmount, yearMonth, variant }: {
 }) {
   const plan = cardPaymentPlan(shortageAmount);
   const transferSources = [
-    { key: 'monthly', label: '월간 비상금', limit: '월 정액 50만 원 중', amount: plan.monthlyEmergencyUsed },
+    { key: 'monthly', label: '월간 비상금', limit: '월간 비상금(26일 자동이체)', amount: plan.monthlyEmergencyUsed },
     { key: 'extra', label: '추가 충당', limit: '월급 여유 자금·월간 비상금 초과분', amount: plan.extraEmergencyNeeded },
   ];
   const note = plan.extraEmergencyNeeded > 0
@@ -40,7 +40,7 @@ export function CardPaymentFunding({ shortageAmount, yearMonth, variant }: {
         <div className={`payment-funding-source payment-funding-source--reserve ${plan.reserveUsed === 0 ? 'payment-funding-source--unused' : ''}`}>
           <dt>
             <span className="payment-funding-step" aria-hidden="true">1</span>
-            <span>월급 여유 자금<small>월급통장 잔여 15만 원 중 · 이체 제외</small></span>
+            <span>월급 여유 자금<small>월급통장 정산 후 여유 자금(완충 자금)</small></span>
           </dt>
           <dd>{formatKRW(plan.reserveUsed)}</dd>
         </div>

@@ -95,4 +95,23 @@ describe('MonthlyMemoCard', () => {
     expect(await screen.findByText('이번 달 메모를 남겨보세요.')).toBeInTheDocument();
     expect(await repo.getMonthlyMemo('2026-11')).toBe('');
   });
+
+  it('uses displayYearMonth for labels while storing under the internal yearMonth key', async () => {
+    const repo = new MemoryRepository();
+    await repo.setMonthlyMemo('2026-12', '기존 11월 대시보드 메모');
+    const user = userEvent.setup();
+    render(
+      <RepositoryProvider repo={repo}>
+        <MonthlyMemoCard yearMonth="2026-12" displayYearMonth="2026-11" />
+      </RepositoryProvider>,
+    );
+    const region = await screen.findByRole('region', { name: '2026년 11월 메모' });
+    expect(region).toHaveTextContent('기존 11월 대시보드 메모');
+    await user.click(screen.getByRole('button', { name: '수정' }));
+    const field = screen.getByRole('textbox', { name: '2026년 11월 메모 내용' });
+    fireEvent.change(field, { target: { value: '수정된 메모' } });
+    await user.click(screen.getByRole('button', { name: '저장' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('저장되었습니다.');
+    expect(await repo.getMonthlyMemo('2026-12')).toBe('수정된 메모');
+  });
 });

@@ -4,7 +4,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RepositoryProvider } from '../data/RepositoryContext';
 import { createSeededMemoryRepository, MemoryRepository } from '../data/memoryRepository';
-import { defaultBillingYearMonth, nextYearMonth, previousYearMonth } from '../lib/billing';
+import {
+  defaultBillingYearMonth, defaultBudgetYearMonth, nextYearMonth, previousYearMonth,
+} from '../lib/billing';
 import { fixedCostsTotal, incomeTotal } from '../lib/calc';
 import { formatKRW } from '../lib/format';
 import { DASHBOARD_SCENARIO_VIEWS_KEY } from '../lib/dashboardScenarioView';
@@ -18,24 +20,26 @@ describe('DashboardPage', () => {
 
   it('shows the compact schedule above the memo without navigating months or changing financial data', async () => {
     const repo = await createSavingsScenario(150000, 50000);
-    await repo.addExtraSpending({ card: '현대카드', name: '11월 항목', amount: 1000, spentOn: '2026-10-01' });
-    await repo.addExtraSpending({ card: '현대카드', name: '익년 항목', amount: 2000, spentOn: '2026-12-01' });
+    await repo.addExtraSpending({ card: '현대카드', name: '10월 항목', amount: 1000, spentOn: '2026-10-01' });
+    await repo.addExtraSpending({ card: '현대카드', name: '익년 항목', amount: 2000, spentOn: '2027-01-01' });
     const originalData = await exportData(repo);
     const user = userEvent.setup();
     renderDashboard(repo);
-    const monthSelect = await screen.findByRole('combobox', { name: '청구월' });
-    await user.selectOptions(monthSelect, '2026-11');
+    const monthSelect = await screen.findByRole('combobox', { name: '기준월' });
+    expect(monthSelect).toHaveValue(defaultBudgetYearMonth());
+    await user.selectOptions(monthSelect, '2026-10');
     const schedule = await screen.findByRole('region', { name: '2026년 수영회비 납부 일정' });
     const memo = screen.getByRole('region', { name: /메모$/ });
     expect(screen.getByRole('main').firstElementChild).toBe(schedule);
     expect(schedule.compareDocumentPosition(memo) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(screen.queryByText('청구월')).not.toBeInTheDocument();
+    expect(screen.queryByText('기준월')).not.toBeInTheDocument();
     expect(within(schedule).getByText('해당 월말에 납부')).toBeInTheDocument();
     const tableBefore = screen.getByRole('table', { name: '카드별 예산' }).textContent;
     await user.click(within(schedule).getByRole('listitem', { name: '2026년 5월 수영회비 해당 월말에 납부' }));
-    expect(screen.getByRole('combobox', { name: '청구월' })).toHaveValue('2026-11');
+    expect(screen.getByRole('combobox', { name: '기준월' })).toHaveValue('2026-10');
     expect(screen.getByRole('table', { name: '카드별 예산' }).textContent).toBe(tableBefore);
-    await user.selectOptions(screen.getByRole('combobox', { name: '청구월' }), '2027-01');
+    await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2027-01');
     const nextYearSchedule = await screen.findByRole('region', { name: '2027년 수영회비 납부 일정' });
     expect(within(nextYearSchedule).getAllByRole('listitem').filter((cell) => cell.classList.contains('swimming-month--due'))
       .map((cell) => cell.textContent)).toEqual(['2', '3', '5', '6', '8', '9', '11', '12']);
@@ -80,8 +84,8 @@ describe('DashboardPage', () => {
 
   it('remembers each month independently and defaults new months to expected even with actual values entered', async () => {
     const repo = await createSavingsScenario(150000, 50000);
-    await repo.addExtraSpending({ card: '현대카드', name: '5월 항목', amount: 1000, spentOn: '2026-04-01' });
-    await repo.addExtraSpending({ card: '현대카드', name: '6월 항목', amount: 2000, spentOn: '2026-05-01' });
+    await repo.addExtraSpending({ card: '현대카드', name: '4월 항목', amount: 1000, spentOn: '2026-04-01' });
+    await repo.addExtraSpending({ card: '현대카드', name: '5월 항목', amount: 2000, spentOn: '2026-05-01' });
     await repo.setActual('2026-05', '현대카드', 9000);
     const originalActuals = await repo.listAllActuals();
     const user = userEvent.setup();
@@ -89,37 +93,37 @@ describe('DashboardPage', () => {
     expect(await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '실제' }));
 
-    await user.selectOptions(screen.getByRole('combobox', { name: '청구월' }), '2026-05');
+    await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-04');
     expect(await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: '카드결제 이체금' })).getByText('2026년 5월 · 예상 기준')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: '카드결제 이체금' })).getByText('2026년 4월 · 예상 기준')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '실제' }));
     await user.click(screen.getByRole('button', { name: '예상' }));
-    await user.selectOptions(screen.getByRole('combobox', { name: '청구월' }), '2026-06');
+    await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-05');
     expect(await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '실제' }));
 
-    await user.selectOptions(screen.getByRole('combobox', { name: '청구월' }), '2026-05');
+    await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-04');
     expect(await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
-    await user.selectOptions(screen.getByRole('combobox', { name: '청구월' }), '2026-06');
+    await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-05');
     expect(await screen.findByRole('region', { name: '실제 카드값 기준 대시보드' })).toBeInTheDocument();
     expect(await repo.listAllActuals()).toEqual(originalActuals);
   });
 
   it('restores monthly choices after reopening the dashboard', async () => {
     const repo = createSeededMemoryRepository();
-    await repo.addExtraSpending({ card: '현대카드', name: '5월 항목', amount: 1000, spentOn: '2026-04-01' });
+    await repo.addExtraSpending({ card: '현대카드', name: '4월 항목', amount: 1000, spentOn: '2026-04-01' });
     const user = userEvent.setup();
     const view = renderDashboard(repo);
     await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
     await user.click(screen.getByRole('button', { name: '실제' }));
-    await user.selectOptions(screen.getByRole('combobox', { name: '청구월' }), '2026-05');
+    await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-04');
     await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
     await user.click(screen.getByRole('button', { name: '예상' }));
     view.unmount();
 
     renderDashboard(repo);
     expect(await screen.findByRole('region', { name: '실제 카드값 기준 대시보드' })).toBeInTheDocument();
-    await user.selectOptions(screen.getByRole('combobox', { name: '청구월' }), '2026-05');
+    await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-04');
     expect(await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
   });
 
@@ -127,17 +131,17 @@ describe('DashboardPage', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
     const repo = createSeededMemoryRepository();
-    await repo.addExtraSpending({ card: '현대카드', name: '5월 항목', amount: 1000, spentOn: '2026-04-01' });
-    await repo.addExtraSpending({ card: '현대카드', name: '현재 월 항목', amount: 2000, spentOn: `${previousYearMonth(defaultBillingYearMonth())}-01` });
+    await repo.addExtraSpending({ card: '현대카드', name: '4월 항목', amount: 1000, spentOn: '2026-04-01' });
+    await repo.addExtraSpending({ card: '현대카드', name: '현재 월 항목', amount: 2000, spentOn: `${defaultBudgetYearMonth()}-01` });
     const user = userEvent.setup();
     renderDashboard(repo);
     await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
     await user.click(screen.getByRole('button', { name: '실제' }));
     expect(screen.getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('선택을 브라우저에 저장하지 못했습니다. 앱을 다시 열면 초기화될 수 있습니다.')).toBeInTheDocument();
-    await user.selectOptions(screen.getByRole('combobox', { name: '청구월' }), '2026-05');
+    await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-04');
     await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
-    await user.selectOptions(screen.getByRole('combobox', { name: '청구월' }), defaultBillingYearMonth());
+    await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), defaultBudgetYearMonth());
     expect(await screen.findByRole('region', { name: '실제 카드값 기준 대시보드' })).toBeInTheDocument();
   });
 
@@ -150,8 +154,9 @@ describe('DashboardPage', () => {
     const panel = await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
     const summaryBefore = within(panel).getByRole('region', { name: '예상 카드값 기준 요약' }).textContent;
     const tableBefore = screen.getByRole('table', { name: '카드별 예산' }).textContent;
-    const memo = await screen.findByRole('region', { name: /메모$/ });
-    const select = screen.getByRole('combobox', { name: '청구월' });
+    const memo = await screen.findByRole('region', { name: `${formatKRW(0).replace('₩0', '')}${defaultBudgetYearMonth().slice(0, 4)}년 ${Number(defaultBudgetYearMonth().slice(5))}월 메모` });
+    expect(memo).toHaveTextContent('이번 달 확인사항');
+    const select = screen.getByRole('combobox', { name: '기준월' });
     const headline = screen.getByRole('region', { name: '월별 자금 핵심 요약' });
     const overview = screen.getByRole('region', { name: '예상 카드값 기준 현황' });
     expect(memo.compareDocumentPosition(select) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
@@ -331,10 +336,60 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
 
     renderDashboard(repo);
-    const monthSelect = await screen.findByRole('combobox');
-    await user.selectOptions(monthSelect, '2025-02');
+    const monthSelect = await screen.findByRole('combobox', { name: '기준월' });
+    await user.selectOptions(monthSelect, '2025-01');
 
     await waitFor(() => expect(screen.getByRole('row', { name: new RegExp(CARD_METHODS[0].replace('카드', '')) })).toHaveTextContent('₩1,000'));
+  });
+
+  it('syncs actual salary above the card table with income and recalculates shortage and card transfer total', async () => {
+    const user = userEvent.setup();
+    const repo = new MemoryRepository();
+    const billingMonth = defaultBillingYearMonth();
+    const budgetMonth = defaultBudgetYearMonth();
+    const template = await repo.addIncomeTemplate({ name: '월급', defaultAmount: 5_400_000, active: true });
+    await repo.addIncome({ yearMonth: budgetMonth, type: '고정수입', name: '아동수당', amount: 210_000, active: true });
+    const base = { yearMonth: budgetMonth, variability: '고정' as const, active: true, sortOrder: 0 };
+    await repo.addFixedCost({ ...base, paymentMethod: '현금이체', category: '생활비', name: '현금 고정비', amount: 5_240_496 });
+    await repo.addFixedCost({ ...base, paymentMethod: '현대카드', category: '기타', name: '카드 고정비', amount: 300_000 });
+    await repo.addExtraSpending({ card: '현대카드', name: '추가 지출', amount: 727_060, spentOn: `${budgetMonth}-01` });
+
+    const setFixedIncomeSpy = vi.spyOn(repo, 'setFixedIncome');
+    renderDashboard(repo);
+
+    const salarySection = await screen.findByRole('region', { name: '실제 월급' });
+    const cardTable = screen.getByRole('table', { name: '카드별 예산' });
+    expect(salarySection.compareDocumentPosition(cardTable) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+
+    const salaryInput = within(salarySection).getByRole('textbox', { name: '실제 월급' });
+    expect(salaryInput).toHaveValue('5,400,000');
+
+    // Focus and blur without changes does not write to storage
+    await user.click(salaryInput);
+    await user.tab();
+    expect(setFixedIncomeSpy).not.toHaveBeenCalled();
+
+    // Lower salary by 400,000 -> shortage and transfer total increase by 400,000
+    await user.clear(salaryInput);
+    await user.type(salaryInput, '5000000');
+    await user.tab();
+
+    const summary = screen.getByRole('region', { name: '예상 카드값 기준 요약' });
+    const paymentFunding = screen.getByRole('region', { name: '카드결제 이체금' });
+    await waitFor(() => expect(within(summary).getByText('부족금액').nextElementSibling).toHaveTextContent('₩1,057,556'));
+    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩907,556');
+    expect(setFixedIncomeSpy).toHaveBeenCalledWith(budgetMonth, template.id, 5_000_000);
+    expect((await repo.listIncomes(budgetMonth)).find((item) => item.name === '월급')?.amount).toBe(5_000_000);
+
+    // Raise salary by 600,000 from 5,400,000 -> shortage and transfer total decrease by 600,000
+    await user.clear(salaryInput);
+    await user.type(salaryInput, '6000000');
+    await user.tab();
+
+    await waitFor(() => expect(within(summary).getByText('부족금액').nextElementSibling).toHaveTextContent('₩57,556'));
+    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩0');
+    expect((await repo.listIncomes(budgetMonth)).find((item) => item.name === '월급')?.amount).toBe(6_000_000);
+    expect(await repo.listActuals(billingMonth)).toEqual([]);
   });
 });
 

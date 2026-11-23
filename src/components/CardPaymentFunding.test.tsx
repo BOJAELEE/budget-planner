@@ -15,6 +15,8 @@ describe('CardPaymentFunding', () => {
     expect(within(funding).getByLabelText('이체 방향')).toHaveTextContent('비상금통장→월급통장 (카드결제)');
     expect(within(funding).getByText(/월급통장에 남은 월급 여유 자금\(15만 원\)은 이체 대상에서 제외/)).toBeInTheDocument();
     expect(within(funding).queryByText(/예비자금|여유자금/)).not.toBeInTheDocument();
+    expect(within(funding).getByText('월급통장 정산 후 여유 자금(완충 자금)')).toBeInTheDocument();
+    expect(within(funding).getByText('월간 비상금(26일 자동이체)')).toBeInTheDocument();
   });
 
   it('highlights an amount needed beyond the 150,000 and 500,000 won allowances', () => {

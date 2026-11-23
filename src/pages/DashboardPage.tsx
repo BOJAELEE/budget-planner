@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useBudget } from '../hooks/useBudget';
 import { CARD_METHODS } from '../types';
 import { formatKRW } from '../lib/format';
-import { defaultBillingYearMonth, formatYearMonth } from '../lib/billing';
+import {
+  billingMonthFromBudgetMonth, budgetMonthFromBillingMonth, defaultBudgetYearMonth, formatYearMonth,
+} from '../lib/billing';
 import { displayPercentage, type DashboardScenario } from '../lib/calc';
 import { dashboardGraphAmounts } from '../lib/dashboardGraph';
 import { loadMonthlyScenarioViews, saveMonthlyScenarioViews, type ScenarioView } from '../lib/dashboardScenarioView';
@@ -14,14 +16,15 @@ import { CardPaymentFunding } from '../components/CardPaymentFunding';
 import { SwimmingSchedule } from '../components/SwimmingSchedule';
 
 export default function DashboardPage() {
-  const [yearMonth, setYearMonth] = useState(defaultBillingYearMonth);
+  const [budgetMonth, setBudgetMonth] = useState(defaultBudgetYearMonth);
+  const billingMonth = billingMonthFromBudgetMonth(budgetMonth);
   const [scenarioViews, setScenarioViews] = useState(loadMonthlyScenarioViews);
   const [selectionSaveFailed, setSelectionSaveFailed] = useState(false);
-  const scenarioView = scenarioViews[yearMonth] ?? 'expected';
-  const { loading, error, derived, availableMonths, setActual } = useBudget(yearMonth);
+  const scenarioView = scenarioViews[billingMonth] ?? 'expected';
+  const { loading, error, derived, availableMonths, setActual, setSalary } = useBudget(billingMonth);
 
   const selectScenarioView = (view: ScenarioView) => {
-    const nextViews = { ...scenarioViews, [yearMonth]: view };
+    const nextViews = { ...scenarioViews, [billingMonth]: view };
     setScenarioViews(nextViews);
     setSelectionSaveFailed(!saveMonthlyScenarioViews(nextViews));
   };
@@ -36,20 +39,21 @@ export default function DashboardPage() {
 
   const enteredCardCount = CARD_METHODS.filter((card) => derived.enteredActualByCard[card] !== undefined).length;
   const selectedScenario = scenarioView === 'expected' ? derived.expectedScenario : derived.actualScenario;
+  const displayAvailableMonths = [...new Set(availableMonths.map(budgetMonthFromBillingMonth))];
 
   return (
     <main className="p-4 space-y-4">
-      <SwimmingSchedule yearMonth={yearMonth} />
+      <SwimmingSchedule yearMonth={budgetMonth} />
       <section className="space-y-2">
-        <MonthlyMemoCard key={yearMonth} yearMonth={yearMonth} />
+        <MonthlyMemoCard key={billingMonth} yearMonth={billingMonth} displayYearMonth={budgetMonth} />
         <select
           id="dashboard-billing-month"
-          aria-label="청구월"
+          aria-label="기준월"
           className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base text-gray-900"
-          value={yearMonth}
-          onChange={(event) => setYearMonth(event.target.value)}
+          value={budgetMonth}
+          onChange={(event) => setBudgetMonth(event.target.value)}
         >
-          {availableMonths.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
+          {displayAvailableMonths.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
         </select>
       </section>
       {selectionSaveFailed && <p role="status" className="text-sm text-gray-600">선택을 브라우저에 저장하지 못했습니다. 앱을 다시 열면 초기화될 수 있습니다.</p>}
@@ -65,6 +69,22 @@ export default function DashboardPage() {
         incomeSum={derived.incomeSum}
         fixedTotal={derived.fixedTotal}
       />
+
+      <section className="rounded-2xl bg-white px-4 py-3 shadow-card" aria-label="실제 월급">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-gray-900">실제 월급</h2>
+            <p className="text-xs text-gray-500">수입 탭 월급과 연동 · {formatYearMonth(budgetMonth)} 수입 합계 {formatKRW(derived.incomeSum)}</p>
+          </div>
+          <AmountInput
+            value={derived.salaryAmount}
+            ariaLabel="실제 월급"
+            commitUnchanged={false}
+            className="w-40 max-w-full actual-card-input"
+            onCommit={(amount) => void setSalary(amount)}
+          />
+        </div>
+      </section>
 
       <section className="overflow-hidden rounded-2xl bg-white shadow-card" aria-label="카드별 예산">
         <table aria-label="카드별 예산" className="card-budget-table w-full table-fixed border-collapse text-center text-sm">
@@ -120,7 +140,7 @@ export default function DashboardPage() {
           </tfoot>
         </table>
       </section>
-      <CardPaymentFunding shortageAmount={selectedScenario.shortage} yearMonth={yearMonth} variant={scenarioView} />
+      <CardPaymentFunding shortageAmount={selectedScenario.shortage} yearMonth={budgetMonth} variant={scenarioView} />
     </main>
   );
 }

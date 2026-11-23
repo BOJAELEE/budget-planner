@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { billingCutoffDay, billingMonthFor, defaultBillingYearMonth, nextYearMonth, previousYearMonth, spentOnFromCreatedAt } from './billing';
+import {
+  billingCutoffDay, billingMonthFor, billingMonthFromBudgetMonth, budgetMonthFromBillingMonth, defaultBillingYearMonth,
+  defaultBudgetYearMonth, nextYearMonth, previousYearMonth, spentOnFromCreatedAt,
+} from './billing';
 
 describe('billingMonthFor', () => {
   it.each([
@@ -52,5 +55,25 @@ describe('year month shifts', () => {
     expect(previousYearMonth('2026-08')).toBe('2026-07');
     expect(nextYearMonth('2026-12')).toBe('2027-01');
     expect(previousYearMonth('2026-01')).toBe('2025-12');
+  });
+});
+
+describe('budget month helpers', () => {
+  it.each([
+    ['2026-11-01T12:00:00.000Z', '2026-10'],
+    ['2026-11-02T12:00:00.000Z', '2026-11'],
+    ['2026-12-01T12:00:00.000Z', '2026-11'],
+    ['2026-12-02T12:00:00.000Z', '2026-12'],
+    ['2027-01-01T12:00:00.000Z', '2026-12'],
+    ['2027-01-02T12:00:00.000Z', '2027-01'],
+  ])('shows the closing budget month until the payment day: %s', (date, expected) => {
+    expect(defaultBudgetYearMonth(new Date(date))).toBe(expected);
+  });
+
+  it('converts between displayed budget months and stored billing months across years', () => {
+    expect(budgetMonthFromBillingMonth('2027-01')).toBe('2026-12');
+    expect(budgetMonthFromBillingMonth('2026-12')).toBe('2026-11');
+    expect(billingMonthFromBudgetMonth('2026-12')).toBe('2027-01');
+    expect(billingMonthFromBudgetMonth('2026-11')).toBe('2026-12');
   });
 });

@@ -6,14 +6,15 @@ import { AmountInput } from '../components/AmountInput';
 import { formatKRW } from '../lib/format';
 import { extraSpendingTotal, sortedExtraSpendings } from '../lib/calc';
 import {
-  billingCutoffDay, billingMonthFor, dateInKorea, defaultBillingYearMonth, formatYearMonth,
+  billingCutoffDay, billingMonthFor, billingMonthFromBudgetMonth, budgetMonthFromBillingMonth,
+  dateInKorea, defaultBudgetYearMonth, formatYearMonth,
 } from '../lib/billing';
 import { BillingDatePicker } from '../components/BillingDatePicker';
 
 export default function ExtraSpendingPage() {
   const repo = useRepository();
   const [allItems, setAllItems] = useState<ExtraSpending[]>([]);
-  const [billingMonth, setBillingMonth] = useState(defaultBillingYearMonth);
+  const [selectedMonth, setSelectedMonth] = useState(defaultBudgetYearMonth);
   const [name, setName] = useState('');
   const [card, setCard] = useState<CardMethod>('현대카드');
   const [amount, setAmount] = useState(0);
@@ -27,27 +28,32 @@ export default function ExtraSpendingPage() {
   const load = async () => setAllItems(await repo.listAllExtraSpendings());
   useEffect(() => { void load(); }, [repo]);
 
+  const selectedBillingMonth = billingMonthFromBudgetMonth(selectedMonth);
   const months = useMemo(() => (
-    [...new Set([billingMonth, defaultBillingYearMonth(), ...allItems.map((item) => item.yearMonth)])]
-      .sort((a, b) => b.localeCompare(a))
-  ), [allItems, billingMonth]);
+    [...new Set([
+      selectedMonth,
+      defaultBudgetYearMonth(),
+      ...allItems.map((item) => budgetMonthFromBillingMonth(item.yearMonth)),
+    ])].sort((a, b) => b.localeCompare(a))
+  ), [allItems, selectedMonth]);
   const items = useMemo(() => sortedExtraSpendings(
-    allItems.filter((item) => item.yearMonth === billingMonth && (cardFilter === 'all' || item.card === cardFilter)), sortByAmount,
-  ), [allItems, billingMonth, cardFilter, sortByAmount]);
+    allItems.filter((item) => item.yearMonth === selectedBillingMonth && (cardFilter === 'all' || item.card === cardFilter)), sortByAmount,
+  ), [allItems, selectedBillingMonth, cardFilter, sortByAmount]);
   const calculatedBillingMonth = billingMonthFor(card, spentOn);
+  const calculatedBudgetMonth = budgetMonthFromBillingMonth(calculatedBillingMonth);
   const cutoffDay = billingCutoffDay(card);
 
   const add = async () => {
     if (!name.trim() || amount <= 0) return;
     await repo.addExtraSpending({ card, name: name.trim(), amount, spentOn });
     setName(''); setAmount(0); setCard('현대카드'); setSpentOn(dateInKorea());
-    setBillingMonth(calculatedBillingMonth);
+    setSelectedMonth(calculatedBudgetMonth);
     await load();
   };
   const saveEdit = async (id: string, patch: { card: CardMethod; name: string; amount: number; spentOn: string }) => {
     await repo.updateExtraSpending(id, patch);
     setEditingId(null);
-    setBillingMonth(billingMonthFor(patch.card, patch.spentOn));
+    setSelectedMonth(budgetMonthFromBillingMonth(billingMonthFor(patch.card, patch.spentOn)));
     await load();
   };
   const remove = async (id: string) => {
@@ -89,8 +95,8 @@ export default function ExtraSpendingPage() {
           <BillingDatePicker card={card} value={spentOn} onChange={setSpentOn} />
         </div>
         <div><AmountInput value={amount} onCommit={setAmount} /></div>
-        <p className="text-sm font-medium text-amber-300">{card}은 매월 {cutoffDay}일까지 다음 달 청구, 이후 사용분은 다다음 달 청구</p>
-        <p className="text-xs text-gray-500">예상 청구월: <b>{formatYearMonth(calculatedBillingMonth)}</b></p>
+        <p className="text-sm font-medium text-amber-300">{card}는 매월 {cutoffDay}일까지 이번 달 반영(다음 달 1일 결제), 이후 사용분은 다음 달 반영</p>
+        <p className="text-xs text-gray-500">반영월: <b>{formatYearMonth(calculatedBudgetMonth)}</b> <span className="text-gray-400">({formatYearMonth(calculatedBillingMonth)} 결제)</span></p>
         <button
           className="w-full rounded-lg bg-brand text-white py-2 disabled:opacity-40"
           disabled={!name.trim() || amount <= 0}
@@ -102,11 +108,11 @@ export default function ExtraSpendingPage() {
 
       <div className="flex flex-wrap items-center justify-end gap-2 text-sm font-medium text-gray-600">
         <label className="flex items-center gap-2">
-        목록 청구월
+        목록 월
         <select
           className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-gray-900"
-          value={billingMonth}
-          onChange={(event) => setBillingMonth(event.target.value)}
+          value={selectedMonth}
+          onChange={(event) => setSelectedMonth(event.target.value)}
         >
           {months.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
           </select>
@@ -134,13 +140,13 @@ export default function ExtraSpendingPage() {
         </button>
       </div>
       <div className="rounded-2xl bg-brand-soft p-4 text-sm">
-        {formatYearMonth(billingMonth)} 추가지출 합계 <b>{formatKRW(extraSpendingTotal(items))}</b>
+        {formatYearMonth(selectedMonth)} 추가지출 합계 <b>{formatKRW(extraSpendingTotal(items))}</b>
       </div>
       <p className="text-xs text-gray-500">결재완 항목은 기록에 남고 추가지출 합계에서는 제외됩니다.</p>
       {statusError && <p role="alert" className="text-sm text-neg">{statusError}</p>}
 
       {items.length === 0 ? (
-        <p className="text-gray-400 text-sm text-center py-6">선택한 청구월에 추가지출이 없습니다.</p>
+        <p className="text-gray-400 text-sm text-center py-6">선택한 월에 추가지출이 없습니다.</p>
       ) : (
         items.map((item) => editingId === item.id ? (
           <ExtraRowEditor key={item.id} item={item} onSave={(patch) => saveEdit(item.id, patch)} onCancel={() => setEditingId(null)} />
@@ -153,7 +159,7 @@ export default function ExtraSpendingPage() {
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-400">
                   <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-500">{item.card}</span>
-                  <span>사용일 {item.spentOn} · 청구월 {formatYearMonth(item.yearMonth)}</span>
+                  <span>사용일 {item.spentOn} · 반영월 {formatYearMonth(budgetMonthFromBillingMonth(item.yearMonth))}</span>
                 </div>
               </div>
               <span className={`shrink-0 font-semibold tabular-nums ${item.isSettled ? 'text-gray-400 line-through' : 'text-neg'}`}>{formatKRW(item.amount)}</span>
@@ -201,7 +207,7 @@ function ExtraRowEditor({
         <BillingDatePicker card={card} value={spentOn} onChange={setSpentOn} />
       </div>
       <AmountInput value={amount} onCommit={setAmount} />
-      <p className="text-xs text-gray-500">예상 청구월: {formatYearMonth(nextBillingMonth)}</p>
+      <p className="text-xs text-gray-500">반영월: {formatYearMonth(budgetMonthFromBillingMonth(nextBillingMonth))} ({formatYearMonth(nextBillingMonth)} 결제)</p>
       <div className="flex gap-2 justify-end">
         <button className="px-3 py-1 text-gray-500" onClick={onCancel}>취소</button>
         <button className="px-3 py-1 rounded-lg bg-brand text-white" onClick={() => onSave({ card, name: name.trim(), amount, spentOn })}>저장</button>
