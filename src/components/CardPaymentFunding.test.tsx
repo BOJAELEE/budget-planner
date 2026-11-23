@@ -44,5 +44,52 @@ describe('CardPaymentFunding', () => {
     expect(screen.getAllByRole('term')).toHaveLength(3);
     expect(screen.getAllByRole('definition').every((amount) => amount.textContent === '₩0')).toBe(true);
     expect(screen.getByText('현재 수입으로 결제할 수 있어 이체할 금액이 없습니다.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('월급 변동 반영')).not.toBeInTheDocument();
+  });
+
+  it('shows how much less or more needs to be transferred when salary varies from baseline', () => {
+    const { rerender } = render(
+      <CardPaymentFunding
+        shortageAmount={1_316_084}
+        remainingAmount={-1_316_084}
+        salaryDelta={200_000}
+        yearMonth="2026-11"
+        variant="expected"
+      />,
+    );
+    const lessImpact = screen.getByLabelText('월급 변동 반영');
+    expect(lessImpact).toHaveClass('payment-funding-impact--less');
+    expect(lessImpact).toHaveTextContent('기준 월급 대비 +₩200,000 · 기준 이체금 ₩1,366,084');
+    expect(lessImpact).toHaveTextContent('-₩200,000');
+    expect(lessImpact).toHaveTextContent('덜 옮김');
+
+    rerender(
+      <CardPaymentFunding
+        shortageAmount={1_916_084}
+        remainingAmount={-1_916_084}
+        salaryDelta={-400_000}
+        yearMonth="2026-11"
+        variant="expected"
+      />,
+    );
+    const moreImpact = screen.getByLabelText('월급 변동 반영');
+    expect(moreImpact).toHaveClass('payment-funding-impact--more');
+    expect(moreImpact).toHaveTextContent('기준 월급 대비 -₩400,000 · 기준 이체금 ₩1,366,084');
+    expect(moreImpact).toHaveTextContent('+₩400,000');
+    expect(moreImpact).toHaveTextContent('더 옮김');
+
+    rerender(
+      <CardPaymentFunding
+        shortageAmount={50_000}
+        remainingAmount={-50_000}
+        salaryDelta={50_000}
+        yearMonth="2026-11"
+        variant="expected"
+      />,
+    );
+    const flatImpact = screen.getByLabelText('월급 변동 반영');
+    expect(flatImpact).toHaveTextContent('기준 월급 대비 +₩50,000 · 기준 이체금 ₩0');
+    expect(flatImpact).toHaveTextContent('₩0');
+    expect(flatImpact).toHaveTextContent('이체 변동 없음');
   });
 });

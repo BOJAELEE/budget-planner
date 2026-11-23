@@ -1,14 +1,23 @@
-import { cardPaymentPlan } from '../lib/cardPaymentPlan';
+import { cardPaymentPlan, cardPaymentSalaryImpact } from '../lib/cardPaymentPlan';
 import { formatYearMonth } from '../lib/billing';
-import { formatKRW } from '../lib/format';
+import { formatKRW, formatSignedKRW } from '../lib/format';
 import type { ScenarioView } from '../lib/dashboardScenarioView';
 
-export function CardPaymentFunding({ shortageAmount, yearMonth, variant }: {
+export function CardPaymentFunding({
+  shortageAmount,
+  remainingAmount = -Math.max(shortageAmount, 0),
+  salaryDelta = 0,
+  yearMonth,
+  variant,
+}: {
   shortageAmount: number;
+  remainingAmount?: number;
+  salaryDelta?: number;
   yearMonth: string;
   variant: ScenarioView;
 }) {
   const plan = cardPaymentPlan(shortageAmount);
+  const salaryImpact = cardPaymentSalaryImpact(shortageAmount, remainingAmount, salaryDelta);
   const transferSources = [
     { key: 'monthly', label: '월간 비상금', limit: '월간 비상금(26일 자동이체)', amount: plan.monthlyEmergencyUsed },
     { key: 'extra', label: '추가 충당', limit: '월급 여유 자금·월간 비상금 초과분', amount: plan.extraEmergencyNeeded },
@@ -55,6 +64,25 @@ export function CardPaymentFunding({ shortageAmount, yearMonth, variant }: {
           </div>
         ))}
       </dl>
+      {salaryDelta !== 0 && (
+        <div
+          className={`payment-funding-impact ${salaryImpact.transferDelta > 0 ? 'payment-funding-impact--more' : salaryImpact.transferDelta < 0 ? 'payment-funding-impact--less' : ''}`}
+          aria-label="월급 변동 반영"
+        >
+          <div>
+            <span>월급 변동 반영</span>
+            <small>
+              기준 월급 대비 {formatSignedKRW(salaryDelta)} · 기준 이체금 {formatKRW(salaryImpact.baselineTransferAmount)}
+            </small>
+          </div>
+          <strong>
+            {formatSignedKRW(salaryImpact.transferDelta)}
+            <small>
+              {salaryImpact.transferDelta < 0 ? '덜 옮김' : salaryImpact.transferDelta > 0 ? '더 옮김' : '이체 변동 없음'}
+            </small>
+          </strong>
+        </div>
+      )}
       <div className="payment-funding-total">
         <span>
           옮길 금액 합계

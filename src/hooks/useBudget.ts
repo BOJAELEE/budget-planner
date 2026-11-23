@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRepository } from '../data/RepositoryContext';
-import type { FixedCost, Income, ExtraSpending, CardMethod, MonthlyCardActual, MonthlyAccountBalance } from '../types';
+import type { FixedCost, Income, IncomeTemplate, ExtraSpending, CardMethod, MonthlyCardActual, MonthlyAccountBalance } from '../types';
 import { CARD_METHODS } from '../types';
 import {
   transferTotal, cardBaseline, incomeTotal, categoryBreakdown,
@@ -8,12 +8,14 @@ import {
   buildMonthlyBalanceSeries, projectBalanceUsage, calculateDashboardScenario,
 } from '../lib/calc';
 import { nextYearMonth, previousYearMonth } from '../lib/billing';
+import { defaultIncomeAmount } from '../lib/incomeDefaults';
 
 export function useBudget(yearMonth: string) {
   const repo = useRepository();
   const sourceMonth = previousYearMonth(yearMonth);
   const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
+  const [incomeTemplates, setIncomeTemplates] = useState<IncomeTemplate[]>([]);
   const [extras, setExtras] = useState<ExtraSpending[]>([]);
   const [actuals, setActuals] = useState<MonthlyCardActual[]>([]);
   const [allExtras, setAllExtras] = useState<ExtraSpending[]>([]);
@@ -27,8 +29,9 @@ export function useBudget(yearMonth: string) {
     setLoading(true);
     setError(null);
     try {
-      const [fc, allFixedCosts, inc, ex, ac, allEx, storedBalances] = await Promise.all([
-        repo.listFixedCosts(sourceMonth), repo.listAllFixedCosts(), repo.listIncomes(sourceMonth), repo.listExtraSpendings(yearMonth), repo.listActuals(yearMonth),
+      const [fc, allFixedCosts, inc, templates, ex, ac, allEx, storedBalances] = await Promise.all([
+        repo.listFixedCosts(sourceMonth), repo.listAllFixedCosts(), repo.listIncomes(sourceMonth), repo.listIncomeTemplates(),
+        repo.listExtraSpendings(yearMonth), repo.listActuals(yearMonth),
         repo.listAllExtraSpendings(), repo.listMonthlyAccountBalances(),
       ]);
       const knownMonths = [yearMonth, ...storedBalances.map((item) => nextYearMonth(item.yearMonth)), ...allFixedCosts.map((item) => nextYearMonth(item.yearMonth)), ...allEx.map((item) => item.yearMonth)];
@@ -37,7 +40,7 @@ export function useBudget(yearMonth: string) {
       const carryForwardRecords = storedBalances.map((item) => ({ ...item, isManual: true }));
       const series = buildMonthlyBalanceSeries(carryForwardRecords, { [yearMonth]: 0 }, throughMonth);
       const nextBalances = [...storedBalances, ...series.automaticBalances];
-      setFixedCosts(fc); setIncomes(inc); setExtras(ex); setActuals(ac); setAllExtras(allEx);
+      setFixedCosts(fc); setIncomes(inc); setIncomeTemplates(templates); setExtras(ex); setActuals(ac); setAllExtras(allEx);
       setFixedCostBillingMonths(allFixedCosts.map((item) => nextYearMonth(item.yearMonth)));
       setMonthlyBalances(nextBalances); setBalanceProjection(series.projections[yearMonth]);
     } catch (e) {
@@ -113,6 +116,12 @@ export function useBudget(yearMonth: string) {
     const salaryItem = incomes.find((item) => item.active && item.type === '고정수입' && item.name === '월급')
       ?? incomes.find((item) => item.active && item.name === '월급');
     const salaryAmount = salaryItem?.amount ?? 0;
+    const salaryTemplate = (salaryItem?.templateId
+      ? incomeTemplates.find((template) => template.id === salaryItem.templateId)
+      : undefined)
+      ?? incomeTemplates.find((template) => template.active && template.name === '월급');
+    const defaultSalaryAmount = salaryTemplate ? defaultIncomeAmount(salaryTemplate, sourceMonth) : salaryAmount;
+    const salaryDelta = salaryAmount - defaultSalaryAmount;
     const expectedScenario = calculateDashboardScenario(
       transferSum, expectedCardTotal, incomeSum, fixedTotal, balanceProjection.startingBalances,
     );
@@ -122,11 +131,11 @@ export function useBudget(yearMonth: string) {
     return {
       transferSum, cardBaselines, extraByCard, expectedByCard, enteredActualByCard, actualByCard,
       cardFixedTotal, cardExtraTotal, expectedCardTotal, actualCardTotal,
-      fixedTotal, extraTotal: extraSpendingTotal(extras), incomeSum, salaryAmount,
+      fixedTotal, extraTotal: extraSpendingTotal(extras), incomeSum, salaryAmount, defaultSalaryAmount, salaryDelta,
       ...actualScenario, expectedScenario, actualScenario,
       breakdown: categoryBreakdown(fixedCosts),
     };
-  }, [fixedCosts, incomes, extras, actuals, balanceProjection]);
+  }, [fixedCosts, incomes, incomeTemplates, sourceMonth, extras, actuals, balanceProjection]);
 
   const availableMonths = useMemo(() => (
     [...new Set([

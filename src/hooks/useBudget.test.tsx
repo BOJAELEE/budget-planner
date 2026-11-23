@@ -145,10 +145,14 @@ describe('useBudget', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(result.current.derived.salaryAmount).toBe(5_400_000);
+    expect(result.current.derived.defaultSalaryAmount).toBe(5_400_000);
+    expect(result.current.derived.salaryDelta).toBe(0);
     expect(result.current.derived.incomeSum).toBe(5_505_000);
 
     await act(async () => { await result.current.setSalary(5_000_000); });
     expect(result.current.derived.salaryAmount).toBe(5_000_000);
+    expect(result.current.derived.defaultSalaryAmount).toBe(5_400_000);
+    expect(result.current.derived.salaryDelta).toBe(-400_000);
     expect(result.current.derived.incomeSum).toBe(5_105_000);
     expect(result.current.derived.expectedScenario.shortage).toBe(494_868);
 

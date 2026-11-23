@@ -214,7 +214,14 @@
 .app-shell .payment-funding-source--extra dd { color: #b4564c; }
 .app-shell .payment-funding-source--unused { border-color: #e2e6df; background: #f7f8f5; }
 .app-shell .payment-funding-source--unused dd { color: #718077; }
-.app-shell .payment-funding-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; margin-top: 20px; padding: 20px; border-radius: 14px; background: #eaf1ea; color: #365a42; }
+.app-shell .payment-funding-impact { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-top: 16px; padding: 14px 16px; border: 1px solid #d5e0d2; border-radius: 14px; background: #f7f8f5; color: #3f4f45; }
+.app-shell .payment-funding-impact > div > span { display: block; font-size: 14px; font-weight: 650; }
+.app-shell .payment-funding-impact > div > small { display: block; margin-top: 2px; font-size: 12px; color: #66796d; }
+.app-shell .payment-funding-impact > strong { text-align: right; font-size: clamp(18px, 3vw, 22px); font-weight: 750; font-variant-numeric: tabular-nums; }
+.app-shell .payment-funding-impact > strong > small { display: block; font-size: 12px; font-weight: 600; }
+.app-shell .payment-funding-impact--less { border-color: #c5dbc9; background: #edf5ef; color: #365a42; }
+.app-shell .payment-funding-impact--more { border-color: #ecd2cd; background: #fcf1ef; color: #b4564c; }
+.app-shell .payment-funding-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; padding: 20px; border-radius: 14px; background: #eaf1ea; color: #365a42; }
 .app-shell .payment-funding-total > span { font-size: 15px; font-weight: 650; }
 .app-shell .payment-funding-total > span small { display: block; margin-top: 3px; color: #526c58; font-size: 12px; font-weight: 400; }
 .app-shell .payment-funding-total strong { font-size: clamp(26px, 4vw, 36px); line-height: 1.2; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

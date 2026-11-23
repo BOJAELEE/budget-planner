@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useBudget } from '../hooks/useBudget';
 import { CARD_METHODS } from '../types';
-import { formatKRW } from '../lib/format';
+import { formatKRW, formatSignedKRW } from '../lib/format';
 import {
   billingMonthFromBudgetMonth, budgetMonthFromBillingMonth, defaultBudgetYearMonth, formatYearMonth,
 } from '../lib/billing';
@@ -73,7 +73,14 @@ export default function DashboardPage() {
       <section className="rounded-2xl bg-white px-4 py-3 shadow-card" aria-label="실제 월급">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-gray-900">실제 월급</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold text-gray-900">실제 월급</h2>
+              {derived.salaryDelta !== 0 && (
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${derived.salaryDelta > 0 ? 'bg-brand-soft text-brand' : 'bg-red-50 text-neg'}`}>
+                  기준 대비 {formatSignedKRW(derived.salaryDelta)}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-500">수입 탭 월급과 연동 · {formatYearMonth(budgetMonth)} 수입 합계 {formatKRW(derived.incomeSum)}</p>
           </div>
           <AmountInput
@@ -140,7 +147,13 @@ export default function DashboardPage() {
           </tfoot>
         </table>
       </section>
-      <CardPaymentFunding shortageAmount={selectedScenario.shortage} yearMonth={budgetMonth} variant={scenarioView} />
+      <CardPaymentFunding
+        shortageAmount={selectedScenario.shortage}
+        remainingAmount={selectedScenario.remaining}
+        salaryDelta={derived.salaryDelta}
+        yearMonth={budgetMonth}
+        variant={scenarioView}
+      />
     </main>
   );
 }

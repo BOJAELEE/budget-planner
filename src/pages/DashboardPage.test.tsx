@@ -363,6 +363,8 @@ describe('DashboardPage', () => {
 
     const salaryInput = within(salarySection).getByRole('textbox', { name: '실제 월급' });
     expect(salaryInput).toHaveValue('5,400,000');
+    expect(within(salarySection).queryByText(/기준 대비/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('월급 변동 반영')).not.toBeInTheDocument();
 
     // Focus and blur without changes does not write to storage
     await user.click(salaryInput);
@@ -377,7 +379,12 @@ describe('DashboardPage', () => {
     const summary = screen.getByRole('region', { name: '예상 카드값 기준 요약' });
     const paymentFunding = screen.getByRole('region', { name: '카드결제 이체금' });
     await waitFor(() => expect(within(summary).getByText('부족금액').nextElementSibling).toHaveTextContent('₩1,057,556'));
+    expect(within(salarySection).getByText('기준 대비 -₩400,000')).toBeInTheDocument();
     expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩907,556');
+    const moreImpact = within(paymentFunding).getByLabelText('월급 변동 반영');
+    expect(moreImpact).toHaveTextContent('기준 월급 대비 -₩400,000 · 기준 이체금 ₩507,556');
+    expect(moreImpact).toHaveTextContent('+₩400,000');
+    expect(moreImpact).toHaveTextContent('더 옮김');
     expect(setFixedIncomeSpy).toHaveBeenCalledWith(budgetMonth, template.id, 5_000_000);
     expect((await repo.listIncomes(budgetMonth)).find((item) => item.name === '월급')?.amount).toBe(5_000_000);
 
@@ -387,7 +394,12 @@ describe('DashboardPage', () => {
     await user.tab();
 
     await waitFor(() => expect(within(summary).getByText('부족금액').nextElementSibling).toHaveTextContent('₩57,556'));
+    expect(within(salarySection).getByText('기준 대비 +₩600,000')).toBeInTheDocument();
     expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩0');
+    const lessImpact = within(paymentFunding).getByLabelText('월급 변동 반영');
+    expect(lessImpact).toHaveTextContent('기준 월급 대비 +₩600,000 · 기준 이체금 ₩507,556');
+    expect(lessImpact).toHaveTextContent('-₩507,556');
+    expect(lessImpact).toHaveTextContent('덜 옮김');
     expect((await repo.listIncomes(budgetMonth)).find((item) => item.name === '월급')?.amount).toBe(6_000_000);
     expect(await repo.listActuals(billingMonth)).toEqual([]);
   });

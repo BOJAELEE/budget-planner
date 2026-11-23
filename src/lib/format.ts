@@ -3,6 +3,12 @@ export function formatKRW(n: number): string {
   return `${sign}₩${Math.abs(Math.round(n)).toLocaleString('ko-KR')}`;
 }
 
+export function formatSignedKRW(n: number): string {
+  const rounded = Math.round(n);
+  if (rounded > 0) return `+${formatKRW(rounded)}`;
+  return formatKRW(rounded);
+}
+
 export function parseAmount(input: string): number {
   const cleaned = input.replace(/[^0-9-]/g, '');
   const n = parseInt(cleaned, 10);

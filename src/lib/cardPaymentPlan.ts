@@ -13,3 +13,18 @@ export function cardPaymentPlan(shortageAmount: number) {
 
   return { reserveUsed, monthlyEmergencyUsed, extraEmergencyNeeded, totalNeeded };
 }
+
+export function cardPaymentSalaryImpact(
+  shortageAmount: number,
+  remainingAmount: number,
+  salaryDelta: number,
+) {
+  const currentPlan = cardPaymentPlan(shortageAmount);
+  const baselineShortage = Math.max(-(remainingAmount - salaryDelta), 0);
+  const baselinePlan = cardPaymentPlan(baselineShortage);
+  return {
+    salaryDelta,
+    baselineTransferAmount: baselinePlan.totalNeeded,
+    transferDelta: currentPlan.totalNeeded - baselinePlan.totalNeeded,
+  };
+}

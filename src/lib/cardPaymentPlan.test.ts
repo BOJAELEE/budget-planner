@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardPaymentPlan } from './cardPaymentPlan';
+import { cardPaymentPlan, cardPaymentSalaryImpact } from './cardPaymentPlan';
 import { calculateDashboardScenario } from './calc';
 
 describe('card payment funding plan', () => {
@@ -28,5 +28,33 @@ describe('card payment funding plan', () => {
     expect(plan.extraEmergencyNeeded).toBe(scenario.uncoveredAmount);
     expect(scenario.balanceProjection.balancesAfter).toEqual(balances);
     expect(balances).toEqual({ 월급통장: 100000, 비상금통장: 200000, 여행통장: 300000 });
+  });
+
+  it('computes the transfer delta caused by salary variations against baseline salary', () => {
+    expect(cardPaymentSalaryImpact(1_316_084, -1_316_084, 200_000)).toEqual({
+      salaryDelta: 200_000,
+      baselineTransferAmount: 1_366_084,
+      transferDelta: -200_000,
+    });
+    expect(cardPaymentSalaryImpact(1_916_084, -1_916_084, -400_000)).toEqual({
+      salaryDelta: -400_000,
+      baselineTransferAmount: 1_366_084,
+      transferDelta: 400_000,
+    });
+    expect(cardPaymentSalaryImpact(0, 500_000, 1_890_000)).toEqual({
+      salaryDelta: 1_890_000,
+      baselineTransferAmount: 1_240_000,
+      transferDelta: -1_240_000,
+    });
+    expect(cardPaymentSalaryImpact(340_000, -340_000, -300_000)).toEqual({
+      salaryDelta: -300_000,
+      baselineTransferAmount: 0,
+      transferDelta: 190_000,
+    });
+    expect(cardPaymentSalaryImpact(1_516_084, -1_516_084, 0)).toEqual({
+      salaryDelta: 0,
+      baselineTransferAmount: 1_366_084,
+      transferDelta: 0,
+    });
   });
 });
