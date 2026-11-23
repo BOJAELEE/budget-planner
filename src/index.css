@@ -200,19 +200,23 @@
 .app-shell .payment-funding-route { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-top: 20px; padding: 12px; border-radius: 12px; background: #edf3ec; color: #365a42; text-align: center; font-size: 14px; font-weight: 650; }
 .app-shell .payment-funding-route > span { min-width: 0; }
 .app-shell .payment-funding-description { margin: 12px 0 20px; color: #66796d; font-size: 14px; line-height: 1.6; }
-.app-shell .payment-funding-sources { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.app-shell .payment-funding-sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
 .app-shell .payment-funding-source { min-width: 0; padding: 16px; border: 1px solid #eadcc0; border-radius: 14px; background: #fffaf0; }
+.app-shell .payment-funding-source--reserve { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; border-style: dashed; border-color: #d8cdb8; background: #fbf9f3; }
+.app-shell .payment-funding-transfer-heading { grid-column: 1 / -1; margin-top: 4px; color: #526c58; font-size: 12px; font-weight: 650; letter-spacing: 0.01em; }
 .app-shell .payment-funding-source--monthly { border-color: #d3e2d6; background: #f2f7f1; }
 .app-shell .payment-funding-source--extra { border-color: #ecd2cd; background: #fcf1ef; }
 .app-shell .payment-funding-source dt { display: flex; align-items: flex-start; gap: 8px; font-size: 15px; font-weight: 650; }
 .app-shell .payment-funding-step { display: inline-grid; place-items: center; width: 23px; height: 23px; flex-shrink: 0; border-radius: 50%; background: #ffffff; color: #66796d; font-size: 12px; }
 .app-shell .payment-funding-source small { display: block; margin-top: 4px; color: #66796d; font-size: 12px; font-weight: 400; line-height: 1.5; }
 .app-shell .payment-funding-source dd { margin: 16px 0 0 31px; font-size: clamp(17px, 2.8vw, 24px); font-weight: 750; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.app-shell .payment-funding-source--reserve dd { margin: 0 0 0 auto; color: #5f665f; }
 .app-shell .payment-funding-source--extra dd { color: #b4564c; }
 .app-shell .payment-funding-source--unused { border-color: #e2e6df; background: #f7f8f5; }
 .app-shell .payment-funding-source--unused dd { color: #718077; }
 .app-shell .payment-funding-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; margin-top: 20px; padding: 20px; border-radius: 14px; background: #eaf1ea; color: #365a42; }
 .app-shell .payment-funding-total > span { font-size: 15px; font-weight: 650; }
+.app-shell .payment-funding-total > span small { display: block; margin-top: 3px; color: #526c58; font-size: 12px; font-weight: 400; }
 .app-shell .payment-funding-total strong { font-size: clamp(26px, 4vw, 36px); line-height: 1.2; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .app-shell .payment-funding-note { margin: 12px 0 0; font-size: 14px; line-height: 1.6; color: #526c58; }
 .app-shell .payment-funding-note--extra { color: #b4564c; font-weight: 600; }
