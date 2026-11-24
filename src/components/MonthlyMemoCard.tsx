@@ -3,9 +3,10 @@ import { useRepository } from '../data/RepositoryContext';
 import { formatYearMonth } from '../lib/billing';
 import { MAX_MONTHLY_MEMO_LENGTH } from '../lib/monthlyMemo';
 
-export function MonthlyMemoCard({ yearMonth, displayYearMonth = yearMonth }: {
+export function MonthlyMemoCard({ yearMonth, displayYearMonth = yearMonth, onSaved }: {
   yearMonth: string;
   displayYearMonth?: string;
+  onSaved?: (content: string) => void;
 }) {
   const repo = useRepository();
   const [content, setContent] = useState('');
@@ -68,6 +69,7 @@ export function MonthlyMemoCard({ yearMonth, displayYearMonth = yearMonth }: {
       await repo.setMonthlyMemo(yearMonth, draft);
       if (!mounted.current) return;
       setContent(draft);
+      onSaved?.(draft);
       setEditing(false);
       setSaved(true);
     } catch {

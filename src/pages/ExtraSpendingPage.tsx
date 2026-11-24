@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRepository } from '../data/RepositoryContext';
+import { useHorizontalSwipe } from '../hooks/useHorizontalSwipe';
 import type { ExtraSpending, CardMethod } from '../types';
 import { CARD_METHODS } from '../types';
 import { AmountInput } from '../components/AmountInput';
+import { BackupButton } from '../components/BackupButton';
+import { BillingDatePicker } from '../components/BillingDatePicker';
+import { MonthBar } from '../components/MonthBar';
 import { formatKRW } from '../lib/format';
 import { extraSpendingTotal, sortedExtraSpendings } from '../lib/calc';
 import {
   billingCutoffDay, billingMonthFor, billingMonthFromBudgetMonth, budgetMonthFromBillingMonth,
-  dateInKorea, defaultBudgetYearMonth, formatYearMonth,
+  dateInKorea, defaultBudgetYearMonth, formatYearMonth, nextYearMonth, previousYearMonth,
 } from '../lib/billing';
-import { BillingDatePicker } from '../components/BillingDatePicker';
 
 export default function ExtraSpendingPage() {
   const repo = useRepository();
@@ -28,6 +31,11 @@ export default function ExtraSpendingPage() {
   const load = async () => setAllItems(await repo.listAllExtraSpendings());
   useEffect(() => { void load(); }, [repo]);
 
+  const { handlers: swipeHandlers, swipe } = useHorizontalSwipe({
+    onSwipeLeft: () => setSelectedMonth((current) => nextYearMonth(current)),
+    onSwipeRight: () => setSelectedMonth((current) => previousYearMonth(current)),
+  });
+
   const selectedBillingMonth = billingMonthFromBudgetMonth(selectedMonth);
   const months = useMemo(() => (
     [...new Set([
@@ -39,6 +47,7 @@ export default function ExtraSpendingPage() {
   const items = useMemo(() => sortedExtraSpendings(
     allItems.filter((item) => item.yearMonth === selectedBillingMonth && (cardFilter === 'all' || item.card === cardFilter)), sortByAmount,
   ), [allItems, selectedBillingMonth, cardFilter, sortByAmount]);
+  const unsettledCount = useMemo(() => items.filter((item) => !item.isSettled).length, [items]);
   const calculatedBillingMonth = billingMonthFor(card, spentOn);
   const calculatedBudgetMonth = budgetMonthFromBillingMonth(calculatedBillingMonth);
   const cutoffDay = billingCutoffDay(card);
@@ -57,7 +66,11 @@ export default function ExtraSpendingPage() {
     await load();
   };
   const remove = async (id: string) => {
-    if (confirm('삭제할까요?')) { await repo.deleteExtraSpending(id); await load(); }
+    if (confirm('삭제할까요?')) {
+      await repo.deleteExtraSpending(id);
+      setEditingId(null);
+      await load();
+    }
   };
   const toggleSettled = async (item: ExtraSpending) => {
     setBusyId(item.id);
@@ -73,32 +86,86 @@ export default function ExtraSpendingPage() {
   };
 
   return (
-    <main className="p-4 space-y-4">
-      <h1 className="text-xl font-bold">추가지출</h1>
+    <main
+      className="dashboard-swipe-area p-4 space-y-4"
+      style={swipe.offsetX !== 0 ? { transform: `translateX(${swipe.offsetX}px)` } : undefined}
+      {...swipeHandlers}
+    >
+      {swipe.direction !== null && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`dashboard-swipe-pill ${swipe.ready ? 'dashboard-swipe-pill--ready' : ''}`}
+        >
+          {swipe.direction === 'prev'
+            ? `← ${formatYearMonth(previousYearMonth(selectedMonth))}`
+            : `${formatYearMonth(nextYearMonth(selectedMonth))} →`}
+        </div>
+      )}
 
-      <section className="rounded-2xl bg-white shadow-card p-4 space-y-3" aria-label="추가지출 입력">
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-[#111827]">추가지출</h1>
+          <span className="text-xs font-medium text-[#6b7280]">결재완 항목은 합계 제외</span>
+        </div>
+        <MonthBar
+          value={selectedMonth}
+          options={months}
+          onChange={setSelectedMonth}
+          selectAriaLabel="목록 월"
+          rightSlot={<BackupButton />}
+        />
+      </div>
+
+      <div className="rounded-2xl border border-[#e4e4e7] bg-brand-soft px-4 py-3.5 flex items-center justify-between gap-2">
+        <div className="text-sm text-[#111827]">
+          <span className="block text-xs font-semibold text-[#6b7280]">{formatYearMonth(selectedMonth)} 추가지출 합계</span>
+          <b className="mt-0.5 block text-xl font-extrabold tabular-nums">{formatKRW(extraSpendingTotal(items))}</b>
+        </div>
+        <span className="rounded-full border border-[#e4e4e7] bg-white px-2.5 py-1 text-xs font-bold text-[#111827]">
+          미완료 {unsettledCount}건
+        </span>
+      </div>
+
+      <section className="rounded-2xl border border-[#e4e4e7] bg-white shadow-card p-4 space-y-3" aria-label="추가지출 입력">
         <input
-          className="w-full rounded-lg border border-gray-200 px-3 py-2"
+          className="min-h-[44px] w-full rounded-xl border border-[#d4d4d8] px-3 py-2 text-sm"
           placeholder="내용 (예: 코스트코)"
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        <div className="grid grid-cols-2 gap-2">
-          <select
-            aria-label="카드사"
-            className="rounded-lg border border-gray-200 px-2 py-2"
-            value={card}
-            onChange={(event) => setCard(event.target.value as CardMethod)}
-          >
-            {CARD_METHODS.map((value) => <option key={value}>{value}</option>)}
-          </select>
-          <BillingDatePicker card={card} value={spentOn} onChange={setSpentOn} />
+        <div role="group" aria-label="카드사" className="grid grid-cols-3 gap-2">
+          {CARD_METHODS.map((value) => {
+            const selected = card === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setCard(value)}
+                className={`min-h-[44px] rounded-xl border text-sm font-bold transition ${
+                  selected
+                    ? 'border-[#18181b] bg-[#18181b] text-white'
+                    : 'border-[#e4e4e7] bg-white text-[#4b5563] hover:bg-[#f4f4f5]'
+                }`}
+              >
+                {value.replace('카드', '')}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-[140px] flex-1">
+            <BillingDatePicker card={card} value={spentOn} onChange={setSpentOn} />
+          </div>
+          <span className="shrink-0 rounded-xl border border-[#fcd34d] bg-[#fef3c7] px-2.5 py-2 text-xs font-bold text-[#92400e]">
+            {formatYearMonth(calculatedBudgetMonth)} 반영 · 마감 {cutoffDay}일
+          </span>
         </div>
         <div><AmountInput value={amount} onCommit={setAmount} /></div>
-        <p className="text-sm font-medium text-amber-300">{card}는 매월 {cutoffDay}일까지 이번 달 반영(다음 달 1일 결제), 이후 사용분은 다음 달 반영</p>
-        <p className="text-xs text-gray-500">반영월: <b>{formatYearMonth(calculatedBudgetMonth)}</b> <span className="text-gray-400">({formatYearMonth(calculatedBillingMonth)} 결제)</span></p>
         <button
-          className="w-full rounded-lg bg-brand text-white py-2 disabled:opacity-40"
+          type="button"
+          className="w-full min-h-[48px] rounded-xl bg-brand text-white font-bold text-sm disabled:opacity-40"
           disabled={!name.trim() || amount <= 0}
           onClick={add}
         >
@@ -106,89 +173,109 @@ export default function ExtraSpendingPage() {
         </button>
       </section>
 
-      <div className="flex flex-wrap items-center justify-end gap-2 text-sm font-medium text-gray-600">
-        <label className="flex items-center gap-2">
-        목록 월
-        <select
-          className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-gray-900"
-          value={selectedMonth}
-          onChange={(event) => setSelectedMonth(event.target.value)}
-        >
-          {months.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
-          </select>
-        </label>
-        <label className="flex items-center gap-2">
-          카드사
-          <select
-            aria-label="카드사 필터"
-            className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-gray-900"
-            value={cardFilter}
-            onChange={(event) => setCardFilter(event.target.value as CardMethod | 'all')}
-          >
-            <option value="all">전체</option>
-            {CARD_METHODS.map((value) => <option key={value} value={value}>{value}</option>)}
-          </select>
-        </label>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
+        <div role="group" aria-label="카드사 필터" className="flex flex-wrap gap-1.5">
+          {(['all', ...CARD_METHODS] as const).map((value) => {
+            const active = cardFilter === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setCardFilter(value)}
+                className={`min-h-[36px] rounded-full border px-3 py-1 transition ${
+                  active
+                    ? 'border-[#18181b] bg-[#18181b] text-white'
+                    : 'border-[#e4e4e7] bg-white text-[#4b5563] hover:bg-[#f4f4f5]'
+                }`}
+              >
+                {value === 'all' ? '전체' : value.replace('카드', '')}
+              </button>
+            );
+          })}
+        </div>
         <button
           type="button"
           aria-pressed={sortByAmount}
           aria-label={sortByAmount ? '최신순으로 정렬' : '고액순으로 정렬'}
-          className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-gray-700"
+          className="min-h-[36px] rounded-full border border-[#e4e4e7] bg-white px-3 py-1 text-[#4b5563] hover:bg-[#f4f4f5]"
           onClick={() => setSortByAmount((value) => !value)}
         >
-          {sortByAmount ? '최신순' : '고액순'}
+          {sortByAmount ? '고액순 ↓' : '최신순 ↓'}
         </button>
       </div>
-      <div className="rounded-2xl bg-brand-soft p-4 text-sm">
-        {formatYearMonth(selectedMonth)} 추가지출 합계 <b>{formatKRW(extraSpendingTotal(items))}</b>
-      </div>
-      <p className="text-xs text-gray-500">결재완 항목은 기록에 남고 추가지출 합계에서는 제외됩니다.</p>
+
       {statusError && <p role="alert" className="text-sm text-neg">{statusError}</p>}
 
       {items.length === 0 ? (
-        <p className="text-gray-400 text-sm text-center py-6">선택한 월에 추가지출이 없습니다.</p>
+        <p className="text-gray-500 text-sm text-center py-6">선택한 월에 추가지출이 없습니다.</p>
       ) : (
-        items.map((item) => editingId === item.id ? (
-          <ExtraRowEditor key={item.id} item={item} onSave={(patch) => saveEdit(item.id, patch)} onCancel={() => setEditingId(null)} />
-        ) : (
-          <article key={item.id} aria-label={item.name} className={`rounded-xl shadow-card px-3 py-2.5 space-y-2 ${item.isSettled ? 'bg-gray-50' : 'bg-white'}`}>
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className={`font-medium break-words ${item.isSettled ? 'text-gray-500 line-through' : ''}`}>
+        <div className="space-y-2">
+          {items.map((item) => editingId === item.id ? (
+            <ExtraRowEditor
+              key={item.id}
+              item={item}
+              onSave={(patch) => saveEdit(item.id, patch)}
+              onDelete={() => void remove(item.id)}
+              onCancel={() => setEditingId(null)}
+            />
+          ) : (
+            <article
+              key={item.id}
+              aria-label={item.name}
+              className={`rounded-2xl border border-[#e4e4e7] shadow-card px-3.5 py-3 flex items-center justify-between gap-2.5 ${
+                item.isSettled ? 'bg-[#fafafa] opacity-75' : 'bg-white'
+              }`}
+            >
+              <button
+                type="button"
+                aria-label={`${item.name} 수정`}
+                onClick={() => setEditingId(item.id)}
+                className="min-w-0 flex-1 min-h-[48px] text-left space-y-1"
+              >
+                <div className={`font-semibold text-sm break-words ${item.isSettled ? 'text-gray-500 line-through' : 'text-[#111827]'}`}>
                   {item.name}
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-400">
-                  <span className="rounded bg-gray-100 px-1.5 py-0.5 text-gray-500">{item.card}</span>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#6b7280]">
+                  <span className="rounded bg-[#f4f4f5] px-1.5 py-0.5 font-semibold text-[#374151]">{item.card}</span>
                   <span>사용일 {item.spentOn} · 반영월 {formatYearMonth(budgetMonthFromBillingMonth(item.yearMonth))}</span>
+                  <span className={item.isSettled ? 'font-semibold text-[#15803d]' : ''}>
+                    {item.isSettled ? '결재완 · 합계 제외' : '합계 포함'}
+                  </span>
                 </div>
+              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className={`font-bold text-sm tabular-nums ${item.isSettled ? 'text-gray-400 line-through' : 'text-neg'}`}>
+                  {formatKRW(item.amount)}
+                </span>
+                <button
+                  type="button"
+                  aria-pressed={item.isSettled}
+                  disabled={busyId === item.id}
+                  className={`min-h-[40px] rounded-xl border px-2.5 py-1.5 text-xs font-bold disabled:opacity-50 ${
+                    item.isSettled
+                      ? 'border-[#bbf7d0] bg-[#dcfce7] text-[#15803d]'
+                      : 'border-[#e4e4e7] bg-white text-[#4b5563] hover:bg-[#f4f4f5]'
+                  }`}
+                  onClick={() => void toggleSettled(item)}
+                >
+                  {item.isSettled ? '완료 취소' : '결재완'}
+                </button>
               </div>
-              <span className={`shrink-0 font-semibold tabular-nums ${item.isSettled ? 'text-gray-400 line-through' : 'text-neg'}`}>{formatKRW(item.amount)}</span>
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className={item.isSettled ? 'rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-gray-600' : 'text-xs text-gray-400'}>
-                {item.isSettled ? '결재완 · 합계 제외' : '합계 포함'}
-              </span>
-              <div className="flex items-center gap-3 text-sm">
-                <button type="button" className="text-gray-500" onClick={() => setEditingId(item.id)}>수정</button>
-                <button type="button" className="text-neg" onClick={() => remove(item.id)}>삭제</button>
-                <button type="button" aria-pressed={item.isSettled} disabled={busyId === item.id}
-                  className="rounded-lg border border-gray-200 px-2 py-1 text-gray-700 disabled:opacity-50"
-                  onClick={() => void toggleSettled(item)}>{item.isSettled ? '완료 취소' : '결재완'}</button>
-              </div>
-            </div>
-          </article>
-        ))
+            </article>
+          ))}
+        </div>
       )}
-
     </main>
   );
 }
 
 function ExtraRowEditor({
-  item, onSave, onCancel,
+  item, onSave, onDelete, onCancel,
 }: {
   item: ExtraSpending;
   onSave: (patch: { card: CardMethod; name: string; amount: number; spentOn: string }) => void;
+  onDelete: () => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState(item.name);
@@ -198,19 +285,58 @@ function ExtraRowEditor({
   const nextBillingMonth = billingMonthFor(card, spentOn);
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
-      <input className="w-full rounded-lg border px-2 py-1" value={name} onChange={(event) => setName(event.target.value)} />
-      <div className="grid grid-cols-2 gap-2">
-        <select className="rounded-lg border px-2 py-1" value={card} onChange={(event) => setCard(event.target.value as CardMethod)}>
-          {CARD_METHODS.map((value) => <option key={value}>{value}</option>)}
-        </select>
-        <BillingDatePicker card={card} value={spentOn} onChange={setSpentOn} />
+    <section className="rounded-2xl border border-[#d4d4d8] bg-[#fafafa] p-3.5 space-y-2.5" aria-label={`${item.name} 편집`}>
+      <input
+        className="min-h-[42px] w-full rounded-xl border border-[#d4d4d8] px-3 py-1.5 text-sm"
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
+      <div role="group" aria-label="수정 카드사" className="grid grid-cols-3 gap-1.5">
+        {CARD_METHODS.map((value) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={card === value}
+            onClick={() => setCard(value)}
+            className={`min-h-[40px] rounded-xl border text-xs font-bold ${
+              card === value
+                ? 'border-[#18181b] bg-[#18181b] text-white'
+                : 'border-[#e4e4e7] bg-white text-[#4b5563]'
+            }`}
+          >
+            {value.replace('카드', '')}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-[130px] flex-1">
+          <BillingDatePicker card={card} value={spentOn} onChange={setSpentOn} />
+        </div>
+        <span className="shrink-0 rounded-xl border border-[#fcd34d] bg-[#fef3c7] px-2.5 py-2 text-xs font-bold text-[#92400e]">
+          {formatYearMonth(budgetMonthFromBillingMonth(nextBillingMonth))} 반영
+        </span>
       </div>
       <AmountInput value={amount} onCommit={setAmount} />
-      <p className="text-xs text-gray-500">반영월: {formatYearMonth(budgetMonthFromBillingMonth(nextBillingMonth))} ({formatYearMonth(nextBillingMonth)} 결제)</p>
-      <div className="flex gap-2 justify-end">
-        <button className="px-3 py-1 text-gray-500" onClick={onCancel}>취소</button>
-        <button className="px-3 py-1 rounded-lg bg-brand text-white" onClick={() => onSave({ card, name: name.trim(), amount, spentOn })}>저장</button>
+      <div className="flex items-center justify-between gap-2 pt-1">
+        <button
+          type="button"
+          className="min-h-[40px] rounded-xl border border-[#fecaca] bg-[#fef2f2] px-3 py-1.5 text-sm font-semibold text-neg"
+          onClick={onDelete}
+        >
+          삭제
+        </button>
+        <div className="flex gap-2">
+          <button type="button" className="min-h-[40px] rounded-xl px-3 py-1.5 text-sm font-semibold text-gray-600" onClick={onCancel}>
+            취소
+          </button>
+          <button
+            type="button"
+            className="min-h-[40px] rounded-xl bg-brand px-4 py-1.5 text-sm font-bold text-white"
+            onClick={() => onSave({ card, name: name.trim(), amount, spentOn })}
+          >
+            저장
+          </button>
+        </div>
       </div>
     </section>
   );

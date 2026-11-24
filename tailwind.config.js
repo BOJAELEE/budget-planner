@@ -4,15 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: { DEFAULT: '#769381', soft: '#EAF1EA' },
-        pos: '#78A991',
-        neg: '#C9857A',
-        sage: '#8FAE9A',
-        aqua: '#8AB8B1',
-        mist: '#98B7C7',
-        mint: '#8DB7A1',
+        brand: { DEFAULT: '#18181b', soft: '#f1f5f9' },
+        pos: '#15803d',
+        neg: '#dc2626',
+        sage: '#18181b',
+        aqua: '#52525b',
+        mist: '#6b7280',
+        mint: '#15803d',
       },
-      boxShadow: { card: '0 10px 26px rgba(55,68,59,0.07)' },
+      boxShadow: { card: '0 2px 10px rgba(17,24,39,0.05)' },
     },
   },
   plugins: [],

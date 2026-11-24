@@ -52,9 +52,6 @@ export function CardPaymentFunding({
       <div className="payment-funding-route" aria-label="이체 방향">
         <span>비상금통장</span><span aria-hidden="true">→</span><span>월급통장 (카드결제)</span>
       </div>
-      <p className="payment-funding-description">
-        현금이체 후 월급통장에 남은 월급 여유 자금(15만 원)과 26일 자동이체되는 월간 비상금(50만 원)은 제외하고, 추가로 부족한 금액만 비상금통장에서 직접 옮깁니다.
-      </p>
       <dl className="payment-funding-sources">
         <div className="payment-funding-group-heading" aria-hidden="true">이체 제외 · 자동 충당</div>
         {excludedSources.map((source, index) => (
@@ -127,7 +124,6 @@ export function CardPaymentFunding({
       <p className={`payment-funding-note ${plan.extraEmergencyNeeded > 0 ? 'payment-funding-note--extra' : ''}`}>
         {note}
       </p>
-      <p className="payment-funding-disclaimer">이체할 금액의 안내입니다. 실제 이체·통장 차감은 자동으로 처리되지 않습니다.</p>
     </section>
   );
 }

@@ -5,56 +5,56 @@
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900;
-    background: #f6f5f1;
-    color: #2f3b35;
+    background: #f4f4f5;
+    color: #111827;
   }
 
   button, input, select, textarea { font: inherit; }
 }
 
-/* Off-white Sage: low-saturation surfaces with high-contrast financial data. */
+/* High-Contrast Ink & Stone: calm stone surfaces with sharp financial legibility. */
 .app-shell {
-  background: #f6f5f1;
-  color: #2f3b35;
+  background: #f4f4f5;
+  color: #111827;
   overflow-x: clip;
 }
 
 .app-shell .bg-white { background-color: #ffffff; }
-.app-shell .bg-gray-50 { background-color: #fbfcf9; }
-.app-shell .bg-gray-100 { background-color: #eef1eb; }
-.app-shell .bg-brand-soft { background-color: #eaf1ea; color: #2f3b35; }
-.app-shell .bg-amber-100 { background-color: #f3ead8; }
-.app-shell .text-amber-700 { color: #876d43; }
+.app-shell .bg-gray-50 { background-color: #fafafa; }
+.app-shell .bg-gray-100 { background-color: #f4f4f5; }
+.app-shell .bg-brand-soft { background-color: #f1f5f9; color: #111827; }
+.app-shell .bg-amber-100 { background-color: #fef3c7; }
+.app-shell .text-amber-700 { color: #92400e; }
 
 .app-shell .text-gray-900,
-.app-shell .text-gray-700 { color: #2f3b35; }
-.app-shell .text-gray-600 { color: #52625a; }
-.app-shell .text-gray-500 { color: #718077; }
-.app-shell .text-gray-400 { color: #8d9991; }
+.app-shell .text-gray-700 { color: #111827; }
+.app-shell .text-gray-600 { color: #4b5563; }
+.app-shell .text-gray-500 { color: #6b7280; }
+.app-shell .text-gray-400 { color: #9ca3af; }
 .app-shell .border,
 .app-shell .border-gray-100,
-.app-shell .border-gray-200 { border-color: #e2e6df; }
+.app-shell .border-gray-200 { border-color: #e4e4e7; }
 
-.app-shell .shadow-card { box-shadow: 0 10px 26px rgba(55, 68, 59, 0.07); }
+.app-shell .shadow-card { box-shadow: 0 2px 10px rgba(17, 24, 39, 0.05); }
 .app-shell input,
 .app-shell textarea,
 .app-shell select {
   background: #ffffff;
-  color: #2f3b35;
-  border-color: #dce4da;
+  color: #111827;
+  border-color: #d4d4d8;
 }
 .app-shell input::placeholder,
-.app-shell textarea::placeholder { color: #97a39b; }
-.app-shell option { background: #ffffff; color: #2f3b35; }
+.app-shell textarea::placeholder { color: #9ca3af; }
+.app-shell option { background: #ffffff; color: #111827; }
 .app-shell input:focus,
 .app-shell textarea:focus,
 .app-shell select:focus {
-  border-color: #8fae9a;
-  outline: 2px solid rgba(143, 174, 154, 0.26);
+  border-color: #18181b;
+  outline: 2px solid rgba(24, 24, 27, 0.16);
   outline-offset: 1px;
 }
-.app-shell .focus\:ring-brand:focus { --tw-ring-color: #8fae9a; }
-.app-shell .focus\:ring-offset-2:focus { --tw-ring-offset-color: #f6f5f1; }
+.app-shell .focus\:ring-brand:focus { --tw-ring-color: #18181b; }
+.app-shell .focus\:ring-offset-2:focus { --tw-ring-offset-color: #f4f4f5; }
 
 .app-shell .swimming-schedule-heading {
   display: flex;
@@ -74,8 +74,8 @@
   line-height: inherit;
   white-space: nowrap;
 }
-.app-shell .swimming-schedule-note { color: #66796d; font-size: 11px; font-weight: 400; }
-.app-shell .swimming-schedule-year { color: #66796d; font-size: 12px; white-space: nowrap; }
+.app-shell .swimming-schedule-note { color: #6b7280; font-size: 11px; font-weight: 400; }
+.app-shell .swimming-schedule-year { color: #6b7280; font-size: 12px; white-space: nowrap; }
 .app-shell .swimming-schedule-months {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -91,38 +91,44 @@
   min-width: 0;
   height: 28px;
   padding: 0;
-  border-radius: 4px;
+  border-radius: 6px;
+  border: 1px solid #e4e4e7;
   background: #ffffff;
-  color: #66796d;
+  color: #6b7280;
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.app-shell .swimming-month--due { background: #fbefd7; color: #78551d; }
+.app-shell .swimming-month--due {
+  border-color: #fcd34d;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 700;
+}
 @media (max-width: 447px) {
   .app-shell .swimming-month { font-size: 11px; }
 }
 
-.app-shell .monthly-memo { border-color: #cbdaca; }
-.app-shell .memo-action { color: #526c58; }
-.app-shell .memo-action:hover { background: #dce8dc; }
+.app-shell .monthly-memo { border-color: #e4e4e7; background: #ffffff; }
+.app-shell .memo-action { color: #18181b; font-weight: 600; }
+.app-shell .memo-action:hover { background: #f1f5f9; }
 .app-shell .memo-action:focus-visible {
-  outline: 2px solid #8fae9a;
+  outline: 2px solid #18181b;
   outline-offset: 2px;
 }
 
 .app-shell .budget-overview {
-  background: #fbfcf9;
-  border-color: #e2e7df;
+  background: #fafafa;
+  border-color: #e4e4e7;
 }
 .app-shell .scenario-panel--expected {
-  background: #f1f5ef;
-  border-color: #c8d9c8;
+  background: #ffffff;
+  border-color: #e4e4e7;
 }
 .app-shell .scenario-panel--actual {
-  background: #edf4f5;
-  border-color: #bdd8d9;
+  background: #fafafa;
+  border-color: #d4d4d8;
 }
 .app-shell .scenario-panel .bg-white { background-color: #ffffff; }
 .app-shell .scenario-summary-amount {
@@ -132,22 +138,22 @@
 
 .app-shell .funding-summary {
   container-type: inline-size;
-  padding: clamp(12px, 2vw, 24px);
-  border: 1px solid #d5e0d2;
-  border-radius: 20px;
+  padding: clamp(14px, 2vw, 22px);
+  border: 1px solid #e4e4e7;
+  border-radius: 18px;
   background: #ffffff;
-  box-shadow: 0 8px 22px rgba(53, 75, 59, 0.03);
+  box-shadow: 0 2px 10px rgba(17, 24, 39, 0.04);
 }
 .app-shell .funding-summary-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 20px;
-  color: #68786e;
+  margin-bottom: 16px;
+  color: #6b7280;
   font-size: 13px;
 }
-.app-shell .funding-summary-heading h3 { margin: 0; font-weight: 500; }
+.app-shell .funding-summary-heading h3 { margin: 0; font-weight: 600; color: #111827; }
 .app-shell .funding-summary-heading > span { font-size: 12px; white-space: nowrap; }
 .app-shell .funding-summary-metrics {
   display: grid;
@@ -156,91 +162,91 @@
 }
 .app-shell .funding-summary-metrics > div { min-width: 0; padding-right: clamp(4px, 1.5cqw, 14px); }
 .app-shell .funding-summary-metrics > div + div {
-  border-left: 1px solid #dfe6dc;
+  border-left: 1px solid #e4e4e7;
   padding-left: clamp(8px, 3cqw, 24px);
 }
 .app-shell .funding-summary-metrics > div:last-child { padding-right: 0; }
-.app-shell .funding-summary-metrics dt { color: #68786e; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.app-shell .funding-summary-metrics dt { color: #6b7280; font-size: 13px; font-weight: 600; white-space: nowrap; }
 .app-shell .funding-summary-metrics dd {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   font-size: clamp(13px, var(--funding-number-size), 40px);
   line-height: 1.2;
-  font-weight: 750;
+  font-weight: 800;
   letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .app-shell .funding-summary-result dt,
-.app-shell .funding-summary-result dd { color: #436c54; }
+.app-shell .funding-summary-result dd { color: #15803d; }
 .app-shell .funding-summary-result--over dt,
-.app-shell .funding-summary-result--over dd { color: #bd6054; }
+.app-shell .funding-summary-result--over dd { color: #dc2626; }
 .app-shell .funding-summary-footer {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 20px;
-  padding-top: 14px;
-  border-top: 1px solid #dfe6dc;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e4e4e7;
   font-size: 13px;
-  color: #68786e;
+  font-weight: 600;
+  color: #6b7280;
 }
 .app-shell .funding-summary-footer > span:last-child { white-space: nowrap; }
-.app-shell .funding-summary-footer.text-neg { color: #bd6054; }
+.app-shell .funding-summary-footer.text-neg { color: #dc2626; }
+
 .app-shell .payment-funding {
-  padding: clamp(16px, 3vw, 28px);
-  border: 1px solid #cbdaca;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid #e4e4e7;
   border-radius: 20px;
   background: #ffffff;
-  box-shadow: 0 10px 26px rgba(55, 68, 59, 0.07);
+  box-shadow: 0 2px 10px rgba(17, 24, 39, 0.05);
 }
 .app-shell .payment-funding-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.app-shell .payment-funding-heading p { margin: 0 0 4px; color: #66796d; font-size: 13px; }
-.app-shell .payment-funding-heading h2 { margin: 0; font-size: 20px; font-weight: 750; }
-.app-shell .payment-funding-badge { padding: 5px 9px; border-radius: 8px; background: #edf3ec; color: #526c58; font-size: 12px; white-space: nowrap; }
-.app-shell .payment-funding-route { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-top: 20px; padding: 12px; border-radius: 12px; background: #edf3ec; color: #365a42; text-align: center; font-size: 14px; font-weight: 650; }
+.app-shell .payment-funding-heading p { margin: 0 0 4px; color: #6b7280; font-size: 13px; }
+.app-shell .payment-funding-heading h2 { margin: 0; font-size: 19px; font-weight: 800; color: #111827; }
+.app-shell .payment-funding-badge { padding: 5px 9px; border-radius: 8px; background: #f1f5f9; color: #374151; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.app-shell .payment-funding-route { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-top: 16px; margin-bottom: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid #e4e4e7; background: #f8fafc; color: #111827; text-align: center; font-size: 14px; font-weight: 700; }
 .app-shell .payment-funding-route > span { min-width: 0; }
-.app-shell .payment-funding-description { margin: 12px 0 20px; color: #66796d; font-size: 14px; line-height: 1.6; }
-.app-shell .payment-funding-sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
-.app-shell .payment-funding-source { min-width: 0; padding: 16px; border: 1px solid #eadcc0; border-radius: 14px; background: #fffaf0; }
-.app-shell .payment-funding-group-heading { grid-column: 1 / -1; color: #66796d; font-size: 12px; font-weight: 650; letter-spacing: 0.01em; }
-.app-shell .payment-funding-source--reserve { border-style: dashed; border-color: #d8cdb8; background: #fbf9f3; }
-.app-shell .payment-funding-transfer-heading { grid-column: 1 / -1; margin-top: 4px; color: #526c58; font-size: 12px; font-weight: 650; letter-spacing: 0.01em; }
-.app-shell .payment-funding-source--monthly { border-style: dashed; border-color: #c7d9ca; background: #f4f8f3; }
-.app-shell .payment-funding-source--extra { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; border-color: #ecd2cd; background: #fcf1ef; }
-.app-shell .payment-funding-source--gap { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; border-color: #dfe6dc; background: #f7f8f5; }
-.app-shell .payment-funding-source--gap-surplus { border-color: #c5dbc9; background: #edf5ef; }
-.app-shell .payment-funding-source--gap-deficit { border-color: #ecd2cd; background: #fcf1ef; }
-.app-shell .payment-funding-source dt { display: flex; align-items: flex-start; gap: 8px; font-size: 15px; font-weight: 650; }
-.app-shell .payment-funding-step { display: inline-grid; place-items: center; width: 23px; height: 23px; flex-shrink: 0; border-radius: 50%; background: #ffffff; color: #66796d; font-size: 12px; }
-.app-shell .payment-funding-source small { display: block; margin-top: 4px; color: #66796d; font-size: 12px; font-weight: 400; line-height: 1.5; }
-.app-shell .payment-funding-source dd { margin: 16px 0 0 31px; font-size: clamp(17px, 2.8vw, 24px); font-weight: 750; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.app-shell .payment-funding-sources { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.app-shell .payment-funding-source { min-width: 0; padding: 14px; border: 1px solid #e4e4e7; border-radius: 14px; background: #fafafa; }
+.app-shell .payment-funding-group-heading { grid-column: 1 / -1; color: #6b7280; font-size: 12px; font-weight: 700; letter-spacing: 0.01em; }
+.app-shell .payment-funding-source--reserve { border-style: dashed; border-color: #d4d4d8; background: #fafafa; }
+.app-shell .payment-funding-transfer-heading { grid-column: 1 / -1; margin-top: 4px; color: #111827; font-size: 12px; font-weight: 700; letter-spacing: 0.01em; }
+.app-shell .payment-funding-source--monthly { border-style: dashed; border-color: #d4d4d8; background: #fafafa; }
+.app-shell .payment-funding-source--extra { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; border-color: #fecaca; background: #fef2f2; }
+.app-shell .payment-funding-source--gap { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px; border-color: #e4e4e7; background: #fafafa; }
+.app-shell .payment-funding-source--gap-surplus { border-color: #bbf7d0; background: #f0fdf4; }
+.app-shell .payment-funding-source--gap-deficit { border-color: #fecaca; background: #fef2f2; }
+.app-shell .payment-funding-source dt { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; font-weight: 700; color: #111827; }
+.app-shell .payment-funding-step { display: inline-grid; place-items: center; width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; background: #ffffff; border: 1px solid #e4e4e7; color: #4b5563; font-size: 12px; font-weight: 700; }
+.app-shell .payment-funding-source small { display: block; margin-top: 3px; color: #6b7280; font-size: 12px; font-weight: 400; line-height: 1.45; }
+.app-shell .payment-funding-source dd { margin: 14px 0 0 30px; font-size: clamp(17px, 2.8vw, 22px); font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .app-shell .payment-funding-source--reserve dd,
-.app-shell .payment-funding-source--monthly dd { color: #5f665f; }
-.app-shell .payment-funding-source--extra dd { margin: 0 0 0 auto; color: #b4564c; }
-.app-shell .payment-funding-source--gap dd { margin: 0 0 0 auto; text-align: right; color: #3f4f45; }
-.app-shell .payment-funding-source--gap-surplus dd { color: #365a42; }
-.app-shell .payment-funding-source--gap-deficit dd { color: #b4564c; }
-.app-shell .payment-funding-source--unused { border-color: #e2e6df; background: #f7f8f5; }
-.app-shell .payment-funding-source--unused dd { color: #718077; }
-.app-shell .payment-funding-source--gap dd .payment-funding-gap-tag { margin-top: 2px; color: inherit; font-weight: 600; }
-.app-shell .payment-funding-impact { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-top: 16px; padding: 14px 16px; border: 1px solid #d5e0d2; border-radius: 14px; background: #f7f8f5; color: #3f4f45; }
-.app-shell .payment-funding-impact > div > span { display: block; font-size: 14px; font-weight: 650; }
-.app-shell .payment-funding-impact > div > small { display: block; margin-top: 2px; font-size: 12px; color: #66796d; }
-.app-shell .payment-funding-impact > strong { text-align: right; font-size: clamp(18px, 3vw, 22px); font-weight: 750; font-variant-numeric: tabular-nums; }
-.app-shell .payment-funding-impact > strong > small { display: block; font-size: 12px; font-weight: 600; }
-.app-shell .payment-funding-impact--less { border-color: #c5dbc9; background: #edf5ef; color: #365a42; }
-.app-shell .payment-funding-impact--more { border-color: #ecd2cd; background: #fcf1ef; color: #b4564c; }
-.app-shell .payment-funding-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; padding: 20px; border-radius: 14px; background: #eaf1ea; color: #365a42; }
-.app-shell .payment-funding-total > span { font-size: 15px; font-weight: 650; }
-.app-shell .payment-funding-total > span small { display: block; margin-top: 3px; color: #526c58; font-size: 12px; font-weight: 400; }
-.app-shell .payment-funding-total strong { font-size: clamp(26px, 4vw, 36px); line-height: 1.2; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.app-shell .payment-funding-note { margin: 12px 0 0; font-size: 14px; line-height: 1.6; color: #526c58; }
-.app-shell .payment-funding-note--extra { color: #b4564c; font-weight: 600; }
-.app-shell .payment-funding-disclaimer { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: #718077; }
+.app-shell .payment-funding-source--monthly dd { color: #52525b; }
+.app-shell .payment-funding-source--extra dd { margin: 0 0 0 auto; color: #dc2626; }
+.app-shell .payment-funding-source--gap dd { margin: 0 0 0 auto; text-align: right; color: #111827; }
+.app-shell .payment-funding-source--gap-surplus dd { color: #15803d; }
+.app-shell .payment-funding-source--gap-deficit dd { color: #dc2626; }
+.app-shell .payment-funding-source--unused { border-color: #e4e4e7; background: #fafafa; }
+.app-shell .payment-funding-source--unused dd { color: #6b7280; }
+.app-shell .payment-funding-source--gap dd .payment-funding-gap-tag { margin-top: 2px; color: inherit; font-weight: 700; }
+.app-shell .payment-funding-impact { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; padding: 12px 14px; border: 1px solid #e4e4e7; border-radius: 14px; background: #fafafa; color: #111827; }
+.app-shell .payment-funding-impact > div > span { display: block; font-size: 14px; font-weight: 700; }
+.app-shell .payment-funding-impact > div > small { display: block; margin-top: 2px; font-size: 12px; color: #6b7280; }
+.app-shell .payment-funding-impact > strong { text-align: right; font-size: clamp(18px, 3vw, 22px); font-weight: 800; font-variant-numeric: tabular-nums; }
+.app-shell .payment-funding-impact > strong > small { display: block; font-size: 12px; font-weight: 700; }
+.app-shell .payment-funding-impact--less { border-color: #bbf7d0; background: #f0fdf4; color: #15803d; }
+.app-shell .payment-funding-impact--more { border-color: #fecaca; background: #fef2f2; color: #dc2626; }
+.app-shell .payment-funding-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; padding: 18px; border-radius: 14px; background: #18181b; color: #ffffff; }
+.app-shell .payment-funding-total > span { font-size: 15px; font-weight: 700; }
+.app-shell .payment-funding-total > span small { display: block; margin-top: 3px; color: #d4d4d8; font-size: 12px; font-weight: 400; }
+.app-shell .payment-funding-total strong { font-size: clamp(26px, 4vw, 34px); line-height: 1.2; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.app-shell .payment-funding-note { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: #4b5563; font-weight: 500; }
+.app-shell .payment-funding-note--extra { color: #dc2626; font-weight: 700; }
 @media (max-width: 679px) {
   .app-shell .payment-funding-sources { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-  .app-shell .payment-funding-source { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 14px 12px; }
+  .app-shell .payment-funding-source { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px; }
   .app-shell .payment-funding-source dt { min-width: 0; font-size: 14px; }
   .app-shell .payment-funding-source small { font-size: 11px; }
   .app-shell .payment-funding-source dd { max-width: 100%; margin: 0 0 0 auto; font-size: 18px; }
@@ -249,24 +255,24 @@
 @media (max-width: 447px) {
   .app-shell .payment-funding-heading h2 { font-size: 18px; }
   .app-shell .payment-funding-badge { padding: 4px 6px; font-size: 11px; }
-  .app-shell .funding-summary-heading { margin-bottom: 16px; font-size: 12px; }
+  .app-shell .funding-summary-heading { margin-bottom: 14px; font-size: 12px; }
   .app-shell .funding-summary-heading > span { font-size: 11px; }
   .app-shell .funding-summary-metrics dt { font-size: 12px; }
-  .app-shell .funding-summary-footer { margin-top: 16px; font-size: 11px; }
+  .app-shell .funding-summary-footer { margin-top: 14px; font-size: 11px; }
 }
 
 .app-shell .budget-overview > * + * {
-  border-top: 1px solid #e6ebe4;
+  border-top: 1px solid #e4e4e7;
   padding-top: 1.25rem;
 }
-.app-shell .budget-label { color: #2f3b35; }
-.app-shell .budget-balance { color: #66796d; }
-.app-shell .budget-percentage { color: #52625a; }
-.app-shell .budget-track { background: #e5ebe4; }
-.app-shell .budget-detail { color: #718077; }
-.app-shell .budget-fixed-fill { background: #81a891; }
-.app-shell .budget-extra-fill { background: #d6ad66; }
-.app-shell .budget-legend { color: #52625a; }
+.app-shell .budget-label { color: #111827; }
+.app-shell .budget-balance { color: #15803d; }
+.app-shell .budget-percentage { color: #4b5563; }
+.app-shell .budget-track { background: #e4e4e7; }
+.app-shell .budget-detail { color: #6b7280; }
+.app-shell .budget-fixed-fill { background: #3f3f46; }
+.app-shell .budget-extra-fill { background: #d97706; }
+.app-shell .budget-legend { color: #4b5563; }
 .app-shell .budget-legend-dot {
   display: inline-block;
   width: 0.65rem;
@@ -275,28 +281,28 @@
   border-radius: 0.2rem;
   vertical-align: -0.02rem;
 }
-.app-shell .funding-segment--base { background: #f7ecd8; }
-.app-shell .funding-segment--emergency { background: #f3e4df; }
-.app-shell .funding-segment + .funding-segment { border-left: 3px solid #fbfcf9; }
+.app-shell .funding-segment--base { background: #e4e4e7; }
+.app-shell .funding-segment--emergency { background: #fee2e2; }
+.app-shell .funding-segment + .funding-segment { border-left: 3px solid #ffffff; }
 .app-shell .funding-fill--base,
-.app-shell .funding-segment--base .funding-fill { background: #c99c50; }
+.app-shell .funding-segment--base .funding-fill { background: #52525b; }
 .app-shell .funding-fill--emergency,
-.app-shell .funding-segment--emergency .funding-fill { background: #c9857a; }
-.app-shell .funding-source-list { color: #52625a; }
-.app-shell .text-white { color: #2f3b35; }
+.app-shell .funding-segment--emergency .funding-fill { background: #dc2626; }
+.app-shell .funding-source-list { color: #4b5563; }
+.app-shell .text-white { color: #111827; }
 .app-shell .bg-brand.text-white { color: #ffffff; }
 
-/* Additional spending is softly grouped without a heavy divider. */
+/* Additional spending column uses subtle stone highlight for sharp legibility. */
 .app-shell .card-budget-table .extra-before-cell { border-right-color: transparent; }
 .app-shell .card-budget-table .extra-header {
-  background: #fff4cc;
-  color: #625626;
+  background: #fef3c7;
+  color: #92400e;
 }
 .app-shell .card-budget-table .extra-cell {
-  background: #fffbed;
-  color: #534a28;
+  background: #fffbeb;
+  color: #111827;
 }
-.app-shell .card-budget-table tfoot .extra-cell { background: #fff8dd; }
+.app-shell .card-budget-table tfoot .extra-cell { background: #fef3c7; color: #92400e; }
 .app-shell .card-budget-table .actual-card-cell { padding-inline: 0.25rem; }
 .app-shell .card-budget-table .actual-card-input {
   min-width: 0;
@@ -320,19 +326,19 @@
   width: 42px;
   height: 42px;
   flex-shrink: 0;
-  border: 1px solid #d5e0d2;
+  border: 1px solid #d4d4d8;
   border-radius: 12px;
   background: #ffffff;
-  color: #365a42;
+  color: #111827;
   cursor: pointer;
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 .app-shell .dashboard-month-step:hover {
-  background: #eef4ee;
-  border-color: #bfd4c3;
+  background: #f4f4f5;
+  border-color: #a1a1aa;
 }
 .app-shell .dashboard-month-step:focus-visible {
-  outline: 2px solid #8fae9a;
+  outline: 2px solid #18181b;
   outline-offset: 2px;
 }
 .app-shell .dashboard-swipe-pill {
@@ -343,25 +349,25 @@
   z-index: 30;
   pointer-events: none;
   padding: 8px 16px;
-  border: 1px solid #c5dbc9;
+  border: 1px solid #d4d4d8;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.96);
-  color: #365a42;
+  background: rgba(255, 255, 255, 0.98);
+  color: #111827;
   font-size: 13px;
   font-weight: 700;
-  box-shadow: 0 8px 20px rgba(47, 59, 53, 0.14);
+  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.14);
 }
 .app-shell .dashboard-swipe-pill--ready {
-  border-color: #7ca388;
-  background: #edf5ef;
-  color: #24442f;
+  border-color: #18181b;
+  background: #18181b;
+  color: #ffffff;
 }
 
 .app-shell nav {
   width: 100%;
   margin: 0 auto;
   background: rgba(255, 255, 255, 0.96);
-  border-color: #d5dfd4;
+  border-color: #e4e4e7;
   backdrop-filter: blur(12px);
 }
 
@@ -373,7 +379,7 @@
 }
 
 @media (min-width: 448px) {
-  .app-shell { box-shadow: 0 0 48px rgba(62, 73, 65, 0.1); }
+  .app-shell { box-shadow: 0 0 48px rgba(17, 24, 39, 0.08); }
 }
 
 /* Galaxy Z Fold cover displays benefit from a larger minimum text size. */

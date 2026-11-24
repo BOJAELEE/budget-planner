@@ -83,7 +83,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="하단 메뉴"
-      className="fixed bottom-0 inset-x-0 z-30 flex items-stretch gap-1 border-t border-[#d5dfd4] bg-white/95 px-1.5 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-6px_20px_rgba(47,59,53,0.08)] backdrop-blur-md"
+      className="fixed bottom-0 inset-x-0 z-30 flex items-stretch gap-1 border-t border-[#e4e4e7] bg-white/95 px-1.5 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(17,24,39,0.06)] backdrop-blur-md"
     >
       {tabs.map((t) => (
         <NavLink
@@ -93,8 +93,8 @@ export function BottomNav() {
           className={({ isActive }) =>
             `bottom-nav-link flex-1 min-w-0 min-h-[54px] flex flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[12px] sm:text-[13px] leading-none whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage ${
               isActive
-                ? 'bg-[#e6f0e8] text-[#284b36] font-bold shadow-[inset_0_0_0_1px_#bfd4c3]'
-                : 'text-[#4d5d54] font-semibold hover:bg-[#f3f6f2] hover:text-[#284b36]'
+                ? 'bg-[#f1f5f9] text-[#111827] font-bold shadow-[inset_0_0_0_1px_#d4d4d8]'
+                : 'text-[#6b7280] font-semibold hover:bg-[#f4f4f5] hover:text-[#111827]'
             }`
           }
         >

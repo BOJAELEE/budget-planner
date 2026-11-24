@@ -12,16 +12,18 @@ import { dashboardGraphAmounts } from '../lib/dashboardGraph';
 import { loadMonthlyScenarioViews, saveMonthlyScenarioViews, type ScenarioView } from '../lib/dashboardScenarioView';
 import { AmountInput } from '../components/AmountInput';
 import { BalanceUsage } from '../components/BalanceUsage';
-import { MonthlyMemoCard } from '../components/MonthlyMemoCard';
+import { BackupButton } from '../components/BackupButton';
+import { DashboardQuickStrip } from '../components/DashboardQuickStrip';
+import { MonthBar } from '../components/MonthBar';
 import { FundingSummary } from '../components/FundingSummary';
 import { CardPaymentFunding } from '../components/CardPaymentFunding';
-import { SwimmingSchedule } from '../components/SwimmingSchedule';
 
 export default function DashboardPage() {
   const [budgetMonth, setBudgetMonth] = useState(defaultBudgetYearMonth);
   const billingMonth = billingMonthFromBudgetMonth(budgetMonth);
   const [scenarioViews, setScenarioViews] = useState(loadMonthlyScenarioViews);
   const [selectionSaveFailed, setSelectionSaveFailed] = useState(false);
+  const [quickStripOpen, setQuickStripOpen] = useState(false);
   const scenarioView = scenarioViews[billingMonth] ?? 'expected';
   const { loading, error, derived, availableMonths, setActual, setSalary } = useBudget(billingMonth);
 
@@ -58,52 +60,31 @@ export default function DashboardPage() {
       style={swipe.offsetX !== 0 ? { transform: `translateX(${swipe.offsetX}px)` } : undefined}
       {...swipeHandlers}
     >
-      <SwimmingSchedule yearMonth={budgetMonth} />
-      <section className="space-y-2">
-        {swipe.direction !== null && (
-          <div
-            role="status"
-            aria-live="polite"
-            className={`dashboard-swipe-pill ${swipe.ready ? 'dashboard-swipe-pill--ready' : ''}`}
-          >
-            {swipe.direction === 'prev'
-              ? `← ${formatYearMonth(previousYearMonth(budgetMonth))}`
-              : `${formatYearMonth(nextYearMonth(budgetMonth))} →`}
-          </div>
-        )}
-        <MonthlyMemoCard key={billingMonth} yearMonth={billingMonth} displayYearMonth={budgetMonth} />
-        <div className="dashboard-month-switcher">
-          <button
-            type="button"
-            className="dashboard-month-step"
-            aria-label="이전 달"
-            onClick={moveToPreviousMonth}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
-          <select
-            id="dashboard-billing-month"
-            aria-label="기준월"
-            className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-base text-gray-900"
-            value={budgetMonth}
-            onChange={(event) => setBudgetMonth(event.target.value)}
-          >
-            {displayAvailableMonths.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
-          </select>
-          <button
-            type="button"
-            className="dashboard-month-step"
-            aria-label="다음 달"
-            onClick={moveToNextMonth}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </button>
+      {swipe.direction !== null && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`dashboard-swipe-pill ${swipe.ready ? 'dashboard-swipe-pill--ready' : ''}`}
+        >
+          {swipe.direction === 'prev'
+            ? `← ${formatYearMonth(previousYearMonth(budgetMonth))}`
+            : `${formatYearMonth(nextYearMonth(budgetMonth))} →`}
         </div>
-      </section>
+      )}
+      <MonthBar
+        value={budgetMonth}
+        options={displayAvailableMonths}
+        onChange={setBudgetMonth}
+        selectId="dashboard-billing-month"
+        selectAriaLabel="기준월"
+        rightSlot={<BackupButton />}
+      />
+      <DashboardQuickStrip
+        yearMonth={budgetMonth}
+        billingMonth={billingMonth}
+        open={quickStripOpen}
+        onToggle={() => setQuickStripOpen((current) => !current)}
+      />
       {selectionSaveFailed && <p role="status" className="text-sm text-gray-600">선택을 브라우저에 저장하지 못했습니다. 앱을 다시 열면 초기화될 수 있습니다.</p>}
       <ScenarioPanel
         title={scenarioView === 'expected' ? '예상 카드값 기준' : '실제 카드값 기준'}

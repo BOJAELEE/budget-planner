@@ -32,9 +32,11 @@ describe('DashboardPage', () => {
     const monthSelect = await screen.findByRole('combobox', { name: '기준월' });
     expect(monthSelect).toHaveValue(defaultBudgetYearMonth());
     await user.selectOptions(monthSelect, '2026-10');
+    const quickStrip = screen.getByRole('region', { name: '메모 및 수영 일정 요약' });
+    await user.click(within(quickStrip).getByRole('button', { name: '메모 및 수영회비 일정' }));
     const schedule = await screen.findByRole('region', { name: '2026년 수영회비 납부 일정' });
     const memo = screen.getByRole('region', { name: /메모$/ });
-    expect(screen.getByRole('main').firstElementChild).toBe(schedule);
+    expect(monthSelect.compareDocumentPosition(quickStrip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(schedule.compareDocumentPosition(memo) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(screen.queryByText('청구월')).not.toBeInTheDocument();
     expect(screen.queryByText('기준월')).not.toBeInTheDocument();
@@ -50,7 +52,7 @@ describe('DashboardPage', () => {
     expect(await exportData(repo)).toBe(originalData);
   });
 
-  it('shows the unified funds headline below the memo and updates it with the selected scenario without changing data', async () => {
+  it('shows the unified funds headline below the compact strip and updates it with the selected scenario without changing data', async () => {
     const repo = new MemoryRepository();
     const month = defaultBillingYearMonth();
     const sourceMonth = previousYearMonth(month);
@@ -67,8 +69,8 @@ describe('DashboardPage', () => {
     expect(within(headline).getByText('예비자금').nextElementSibling).toHaveTextContent('650,000');
     expect(within(headline).getByText('사용금액').nextElementSibling).toHaveTextContent('727,060');
     expect(within(headline).getByText('초과금액').nextElementSibling).toHaveTextContent('-77,060');
-    const memo = screen.getByRole('region', { name: /메모$/ });
-    expect(memo.compareDocumentPosition(headline) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    const quickStrip = screen.getByRole('region', { name: '메모 및 수영 일정 요약' });
+    expect(quickStrip.compareDocumentPosition(headline) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const paymentFunding = screen.getByRole('region', { name: '카드결제 이체금' });
     const cardTable = screen.getByRole('table', { name: '카드별 예산' });
     expect(cardTable.compareDocumentPosition(paymentFunding) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
@@ -149,7 +151,7 @@ describe('DashboardPage', () => {
     expect(await screen.findByRole('region', { name: '실제 카드값 기준 대시보드' })).toBeInTheDocument();
   });
 
-  it('keeps the selected billing month memo below the schedule and above the selector and funds headline without changing totals', async () => {
+  it('keeps the selected billing month memo inside the expandable strip above the funds headline without changing totals', async () => {
     const repo = await createSavingsScenario(150000, 50000);
     const month = defaultBillingYearMonth();
     await repo.setMonthlyMemo(month, '이번 달 확인사항\n카드 대금 확인');
@@ -158,13 +160,16 @@ describe('DashboardPage', () => {
     const panel = await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
     const summaryBefore = within(panel).getByRole('region', { name: '예상 카드값 기준 요약' }).textContent;
     const tableBefore = screen.getByRole('table', { name: '카드별 예산' }).textContent;
+    const quickStrip = screen.getByRole('region', { name: '메모 및 수영 일정 요약' });
+    expect(await within(quickStrip).findByText('이번 달 확인사항')).toBeInTheDocument();
+    await user.click(within(quickStrip).getByRole('button', { name: '메모 및 수영회비 일정' }));
     const memo = await screen.findByRole('region', { name: `${formatKRW(0).replace('₩0', '')}${defaultBudgetYearMonth().slice(0, 4)}년 ${Number(defaultBudgetYearMonth().slice(5))}월 메모` });
     expect(memo).toHaveTextContent('이번 달 확인사항');
     const select = screen.getByRole('combobox', { name: '기준월' });
     const headline = screen.getByRole('region', { name: '월별 자금 핵심 요약' });
     const overview = screen.getByRole('region', { name: '예상 카드값 기준 현황' });
-    expect(memo.compareDocumentPosition(select) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-    expect(select.compareDocumentPosition(headline) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(select.compareDocumentPosition(quickStrip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(quickStrip.compareDocumentPosition(headline) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(headline.compareDocumentPosition(overview) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(within(panel).queryByRole('region', { name: /메모$/ })).not.toBeInTheDocument();
     await user.click(within(memo).getByRole('button', { name: '수정' }));
@@ -173,6 +178,9 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(within(memo).queryByRole('textbox')).not.toBeInTheDocument());
     expect(within(panel).getByRole('region', { name: '예상 카드값 기준 요약' }).textContent).toBe(summaryBefore);
     expect(screen.getByRole('table', { name: '카드별 예산' }).textContent).toBe(tableBefore);
+
+    await user.click(screen.getByRole('button', { name: '백업 및 복구' }));
+    expect(await screen.findByRole('dialog', { name: '데이터 백업 및 복구' })).toBeInTheDocument();
   });
 
   it.each([

@@ -13,7 +13,6 @@ describe('CardPaymentFunding', () => {
     expect(within(funding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩0');
     expect(within(funding).getByText('월급 여유 자금·월간 비상금 제외')).toBeInTheDocument();
     expect(within(funding).getByLabelText('이체 방향')).toHaveTextContent('비상금통장→월급통장 (카드결제)');
-    expect(within(funding).getByText(/월급 여유 자금\(15만 원\)과 26일 자동이체되는 월간 비상금\(50만 원\)은 제외/)).toBeInTheDocument();
     expect(within(funding).getByText('월급 여유 자금(₩150,000)과 월간 비상금(₩291,268, 26일 자동이체)으로 충당되어 추가로 옮길 금액이 없습니다.')).toBeInTheDocument();
     expect(within(funding).queryByText(/예비자금|여유자금|추가 충당/)).not.toBeInTheDocument();
     expect(within(funding).getByText('월급통장 정산 후 여유 자금(완충 자금)')).toBeInTheDocument();
