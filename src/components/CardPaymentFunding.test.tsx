@@ -148,4 +148,32 @@ describe('CardPaymentFunding', () => {
     expect(flatImpact).toHaveTextContent('₩0');
     expect(flatImpact).toHaveTextContent('이체 변동 없음');
   });
+
+  it('renders an optional expected/actual toggle inside its header', async () => {
+    const calls: string[] = [];
+    const { rerender } = render(
+      <CardPaymentFunding
+        shortageAmount={500_000}
+        yearMonth="2026-11"
+        variant="actual"
+        onVariantChange={(variant) => calls.push(variant)}
+      />,
+    );
+
+    const group = screen.getByRole('group', { name: '카드결제 이체금 기준' });
+    expect(within(group).getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(group).getByRole('button', { name: '예상' })).toHaveAttribute('aria-pressed', 'false');
+    within(group).getByRole('button', { name: '예상' }).click();
+    expect(calls).toEqual(['expected']);
+
+    rerender(
+      <CardPaymentFunding
+        shortageAmount={500_000}
+        yearMonth="2026-11"
+        variant="expected"
+        onVariantChange={(variant) => calls.push(variant)}
+      />,
+    );
+    expect(within(group).getByRole('button', { name: '예상' })).toHaveAttribute('aria-pressed', 'true');
+  });
 });

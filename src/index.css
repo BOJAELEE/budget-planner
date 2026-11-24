@@ -79,7 +79,7 @@
 .app-shell .swimming-schedule-months {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 3px;
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -89,13 +89,13 @@
   align-items: center;
   justify-content: center;
   min-width: 0;
-  height: 28px;
+  height: 26px;
   padding: 0;
   border-radius: 6px;
   border: 1px solid #e4e4e7;
   background: #ffffff;
   color: #6b7280;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -107,7 +107,7 @@
   font-weight: 700;
 }
 @media (max-width: 447px) {
-  .app-shell .swimming-month { font-size: 11px; }
+  .app-shell .swimming-month { font-size: 10px; }
 }
 
 .app-shell .monthly-memo { border-color: #e4e4e7; background: #ffffff; }
@@ -202,7 +202,7 @@
   background: #ffffff;
   box-shadow: 0 2px 10px rgba(17, 24, 39, 0.05);
 }
-.app-shell .payment-funding-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.app-shell .payment-funding-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 12px; }
 .app-shell .payment-funding-heading p { margin: 0 0 4px; color: #6b7280; font-size: 13px; }
 .app-shell .payment-funding-heading h2 { margin: 0; font-size: 19px; font-weight: 800; color: #111827; }
 .app-shell .payment-funding-badge { padding: 5px 9px; border-radius: 8px; background: #f1f5f9; color: #374151; font-size: 12px; font-weight: 600; white-space: nowrap; }

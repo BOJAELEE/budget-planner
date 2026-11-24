@@ -15,6 +15,7 @@ import { BalanceUsage } from '../components/BalanceUsage';
 import { BackupButton } from '../components/BackupButton';
 import { DashboardQuickStrip } from '../components/DashboardQuickStrip';
 import { MonthBar } from '../components/MonthBar';
+import { MonthlyMemoCard } from '../components/MonthlyMemoCard';
 import { FundingSummary } from '../components/FundingSummary';
 import { CardPaymentFunding } from '../components/CardPaymentFunding';
 
@@ -23,8 +24,6 @@ export default function DashboardPage() {
   const billingMonth = billingMonthFromBudgetMonth(budgetMonth);
   const [scenarioViews, setScenarioViews] = useState(loadMonthlyScenarioViews);
   const [selectionSaveFailed, setSelectionSaveFailed] = useState(false);
-  const [quickStripOpen, setQuickStripOpen] = useState(false);
-  const scenarioView = scenarioViews[billingMonth] ?? 'expected';
   const { loading, error, derived, availableMonths, setActual, setSalary } = useBudget(billingMonth);
 
   const moveToPreviousMonth = () => setBudgetMonth((current) => previousYearMonth(current));
@@ -43,7 +42,9 @@ export default function DashboardPage() {
   );
 
   const enteredCardCount = CARD_METHODS.filter((card) => derived.enteredActualByCard[card] !== undefined).length;
-  const selectedScenario = scenarioView === 'expected' ? derived.expectedScenario : derived.actualScenario;
+  const defaultBottomView: ScenarioView = enteredCardCount > 0 ? 'actual' : 'expected';
+  const bottomView = scenarioViews[billingMonth] ?? defaultBottomView;
+  const bottomScenario = bottomView === 'expected' ? derived.expectedScenario : derived.actualScenario;
   const selectScenarioView = (view: ScenarioView) => {
     const nextViews = { ...scenarioViews, [billingMonth]: view };
     setScenarioViews(nextViews);
@@ -79,21 +80,11 @@ export default function DashboardPage() {
         selectAriaLabel="기준월"
         rightSlot={<BackupButton />}
       />
-      <DashboardQuickStrip
-        yearMonth={budgetMonth}
-        billingMonth={billingMonth}
-        open={quickStripOpen}
-        onToggle={() => setQuickStripOpen((current) => !current)}
-      />
+      <DashboardQuickStrip yearMonth={budgetMonth} />
+      <MonthlyMemoCard key={billingMonth} yearMonth={billingMonth} displayYearMonth={budgetMonth} />
       {selectionSaveFailed && <p role="status" className="text-sm text-gray-600">선택을 브라우저에 저장하지 못했습니다. 앱을 다시 열면 초기화될 수 있습니다.</p>}
       <ScenarioPanel
-        title={scenarioView === 'expected' ? '예상 카드값 기준' : '실제 카드값 기준'}
-        description={scenarioView === 'expected'
-          ? '카드별 예상 금액으로 계산'
-          : `실제값 ${enteredCardCount}/${CARD_METHODS.length}건 입력 · 미입력 카드는 예상값 적용`}
-        variant={scenarioView}
-        onVariantChange={selectScenarioView}
-        scenario={selectedScenario}
+        scenario={derived.expectedScenario}
         extraTotal={derived.extraTotal}
         incomeSum={derived.incomeSum}
         fixedTotal={derived.fixedTotal}
@@ -155,7 +146,12 @@ export default function DashboardPage() {
                       ariaLabel={`${card} 실제 카드값`}
                       commitUnchanged={false}
                       className="actual-card-input"
-                      onCommit={(amount) => void setActual(card, amount)}
+                      onCommit={(amount) => {
+                        void setActual(card, amount);
+                        if (scenarioViews[billingMonth] === 'expected') {
+                          selectScenarioView('actual');
+                        }
+                      }}
                     />
                   </td>
                   <td className="border-b border-r border-gray-200 px-1 py-3 font-semibold">{formatKRW(expected)}</td>
@@ -177,26 +173,23 @@ export default function DashboardPage() {
         </table>
       </section>
       <CardPaymentFunding
-        shortageAmount={selectedScenario.shortage}
-        remainingAmount={selectedScenario.remaining}
+        shortageAmount={bottomScenario.shortage}
+        remainingAmount={bottomScenario.remaining}
         salaryDelta={derived.salaryDelta}
-        additionalSpending={selectedScenario.flexibleUsed}
+        additionalSpending={bottomScenario.flexibleUsed}
         incomeSum={derived.incomeSum}
         fixedTotal={derived.fixedTotal}
         yearMonth={budgetMonth}
-        variant={scenarioView}
+        variant={bottomView}
+        onVariantChange={selectScenarioView}
       />
     </main>
   );
 }
 
 function ScenarioPanel({
-  title, description, variant, onVariantChange, scenario, extraTotal, incomeSum, fixedTotal,
+  scenario, extraTotal, incomeSum, fixedTotal,
 }: {
-  title: string;
-  description: string;
-  variant: ScenarioView;
-  onVariantChange: (variant: ScenarioView) => void;
   scenario: DashboardScenario;
   extraTotal: number;
   incomeSum: number;
@@ -204,28 +197,13 @@ function ScenarioPanel({
 }) {
   const graph = dashboardGraphAmounts(incomeSum, fixedTotal, scenario.totalBudget);
   return (
-    <section className={`scenario-panel scenario-panel--${variant} space-y-3 rounded-2xl border p-3`} aria-label={`${title} 대시보드`}>
-      <div className="flex items-start justify-between gap-2 px-1">
-        <div className="min-w-0">
-          <h2 className="text-xl font-bold">이번 달 자금</h2>
-          <p className="text-sm text-gray-500">{title} · {description}</p>
-        </div>
-        <div className="flex shrink-0 rounded-xl border border-gray-200 bg-gray-100 p-0.5" role="group" aria-label="대시보드 기준">
-          {(['expected', 'actual'] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={variant === option}
-              onClick={() => onVariantChange(option)}
-              className={`min-h-9 rounded-lg px-2.5 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage ${variant === option ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'}`}
-            >
-              {option === 'expected' ? '예상' : '실제'}
-            </button>
-          ))}
-        </div>
+    <section className="scenario-panel scenario-panel--expected space-y-3 rounded-2xl border p-3" aria-label="예상 카드값 기준 대시보드">
+      <div className="px-1">
+        <h2 className="text-xl font-bold">이번 달 자금</h2>
+        <p className="text-sm text-gray-500">예상 카드값 기준 · 카드별 예상 금액으로 계산</p>
       </div>
       <FundingSummary availableAmount={graph.fundingCapacity} remainingAmount={scenario.reserveRemaining} />
-      <section className="grid grid-cols-2 gap-2.5" aria-label={`${title} 요약`}>
+      <section className="grid grid-cols-2 gap-2.5" aria-label="예상 카드값 기준 요약">
         <SummaryCard items={[
           { label: '총필요 예산', amount: scenario.totalBudget },
           { label: '추가 지출', amount: extraTotal },
@@ -241,7 +219,7 @@ function ScenarioPanel({
           { label: '미충당 금액', amount: scenario.uncoveredAmount, amountClassName: scenario.uncoveredAmount > 0 ? 'text-neg' : undefined },
         ]} />
       </section>
-      <section className="budget-overview rounded-2xl border p-4 shadow-card space-y-5" aria-label={`${title} 현황`}>
+      <section className="budget-overview rounded-2xl border p-4 shadow-card space-y-5" aria-label="예상 카드값 기준 현황">
         <BudgetProgress
           totalBudget={scenario.totalBudget}
           fixedTotal={fixedTotal}

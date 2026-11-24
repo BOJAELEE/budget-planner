@@ -12,6 +12,7 @@ export function CardPaymentFunding({
   fixedTotal,
   yearMonth,
   variant,
+  onVariantChange,
 }: {
   shortageAmount: number;
   remainingAmount?: number;
@@ -21,6 +22,7 @@ export function CardPaymentFunding({
   fixedTotal?: number;
   yearMonth: string;
   variant: ScenarioView;
+  onVariantChange?: (variant: ScenarioView) => void;
 }) {
   const plan = cardPaymentPlan(shortageAmount);
   const salaryImpact = cardPaymentSalaryImpact(shortageAmount, remainingAmount, salaryDelta);
@@ -47,7 +49,26 @@ export function CardPaymentFunding({
           <p>{formatYearMonth(yearMonth)} · {variant === 'expected' ? '예상' : '실제'} 기준</p>
           <h2>카드결제 이체금</h2>
         </div>
-        <span className="payment-funding-badge">월급 여유 자금·월간 비상금 제외</span>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {onVariantChange && (
+            <div className="flex shrink-0 rounded-xl border border-gray-200 bg-gray-100 p-0.5" role="group" aria-label="카드결제 이체금 기준">
+              {(['expected', 'actual'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={variant === option}
+                  onClick={() => onVariantChange(option)}
+                  className={`min-h-8 rounded-lg px-2.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage ${
+                    variant === option ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'
+                  }`}
+                >
+                  {option === 'expected' ? '예상' : '실제'}
+                </button>
+              ))}
+            </div>
+          )}
+          <span className="payment-funding-badge">월급 여유 자금·월간 비상금 제외</span>
+        </div>
       </header>
       <div className="payment-funding-route" aria-label="이체 방향">
         <span>비상금통장</span><span aria-hidden="true">→</span><span>월급통장 (카드결제)</span>

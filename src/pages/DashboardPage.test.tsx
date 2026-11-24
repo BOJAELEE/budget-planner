@@ -11,12 +11,16 @@ import {
 import { fixedCostsTotal, incomeTotal } from '../lib/calc';
 import { formatKRW } from '../lib/format';
 import { DASHBOARD_SCENARIO_VIEWS_KEY } from '../lib/dashboardScenarioView';
+import { MONTHLY_EMERGENCY_RESERVE_BALANCE_KEY } from '../lib/monthlyEmergencyReserve';
 import { exportData } from '../lib/backup';
 import { CARD_METHODS } from '../types';
 import DashboardPage from './DashboardPage';
 
 describe('DashboardPage', () => {
-  beforeEach(() => localStorage.removeItem(DASHBOARD_SCENARIO_VIEWS_KEY));
+  beforeEach(() => {
+    localStorage.removeItem(DASHBOARD_SCENARIO_VIEWS_KEY);
+    localStorage.removeItem(MONTHLY_EMERGENCY_RESERVE_BALANCE_KEY);
+  });
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -32,27 +36,28 @@ describe('DashboardPage', () => {
     const monthSelect = await screen.findByRole('combobox', { name: '기준월' });
     expect(monthSelect).toHaveValue(defaultBudgetYearMonth());
     await user.selectOptions(monthSelect, '2026-10');
-    const quickStrip = screen.getByRole('region', { name: '메모 및 수영 일정 요약' });
-    await user.click(within(quickStrip).getByRole('button', { name: '메모 및 수영회비 일정' }));
-    const schedule = await screen.findByRole('region', { name: '2026년 수영회비 납부 일정' });
-    const memo = screen.getByRole('region', { name: /메모$/ });
+    const quickStrip = screen.getByRole('region', { name: '수영회비 및 월간 비상금 요약' });
+    const schedule = within(quickStrip).getByRole('region', { name: '2026년 수영회비 납부 일정' });
+    const memo = await screen.findByRole('region', { name: '2026년 10월 메모' });
     expect(monthSelect.compareDocumentPosition(quickStrip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(quickStrip.compareDocumentPosition(memo) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(schedule.compareDocumentPosition(memo) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(screen.queryByText('청구월')).not.toBeInTheDocument();
     expect(screen.queryByText('기준월')).not.toBeInTheDocument();
-    expect(within(schedule).getByText('해당 월말에 납부')).toBeInTheDocument();
+    expect(within(schedule).getByText('수영 미납부')).toBeInTheDocument();
     const tableBefore = screen.getByRole('table', { name: '카드별 예산' }).textContent;
     await user.click(within(schedule).getByRole('listitem', { name: '2026년 5월 수영회비 해당 월말에 납부' }));
     expect(screen.getByRole('combobox', { name: '기준월' })).toHaveValue('2026-10');
     expect(screen.getByRole('table', { name: '카드별 예산' }).textContent).toBe(tableBefore);
     await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2027-01');
-    const nextYearSchedule = await screen.findByRole('region', { name: '2027년 수영회비 납부 일정' });
+    const nextYearSchedule = await within(screen.getByRole('region', { name: '수영회비 및 월간 비상금 요약' }))
+      .findByRole('region', { name: '2027년 수영회비 납부 일정' });
     expect(within(nextYearSchedule).getAllByRole('listitem').filter((cell) => cell.classList.contains('swimming-month--due'))
       .map((cell) => cell.textContent)).toEqual(['2', '3', '5', '6', '8', '9', '11', '12']);
     expect(await exportData(repo)).toBe(originalData);
   });
 
-  it('shows the unified funds headline below the compact strip and updates it with the selected scenario without changing data', async () => {
+  it('keeps the top dashboard on expected totals while auto-switching bottom funding to actual when entered', async () => {
     const repo = new MemoryRepository();
     const month = defaultBillingYearMonth();
     const sourceMonth = previousYearMonth(month);
@@ -65,72 +70,74 @@ describe('DashboardPage', () => {
     const originalData = await exportData(repo);
     const user = userEvent.setup();
     renderDashboard(repo);
-    const headline = await screen.findByRole('region', { name: '월별 자금 핵심 요약' });
+
+    const topPanel = await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
+    expect(within(topPanel).queryByRole('group', { name: '대시보드 기준' })).not.toBeInTheDocument();
+    const headline = screen.getByRole('region', { name: '월별 자금 핵심 요약' });
     expect(within(headline).getByText('예비자금').nextElementSibling).toHaveTextContent('650,000');
     expect(within(headline).getByText('사용금액').nextElementSibling).toHaveTextContent('727,060');
     expect(within(headline).getByText('초과금액').nextElementSibling).toHaveTextContent('-77,060');
-    const quickStrip = screen.getByRole('region', { name: '메모 및 수영 일정 요약' });
-    expect(quickStrip.compareDocumentPosition(headline) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+
     const paymentFunding = screen.getByRole('region', { name: '카드결제 이체금' });
     const cardTable = screen.getByRole('table', { name: '카드별 예산' });
     expect(cardTable.compareDocumentPosition(paymentFunding) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(screen.getByRole('main').lastElementChild).toBe(paymentFunding);
-    expect(within(paymentFunding).getByText('월급 여유 자금').closest('dt')?.nextElementSibling).toHaveTextContent('₩150,000');
-    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩7,556');
-    expect(within(paymentFunding).getByText('추가 지출').closest('dt')?.nextElementSibling).toHaveTextContent('₩77,060');
-    await user.click(screen.getByRole('button', { name: '실제' }));
-    expect(within(headline).getByText('사용금액').nextElementSibling).toHaveTextContent('510,772');
-    expect(within(headline).getByText('잔액', { exact: true }).nextElementSibling).toHaveTextContent('139,228');
-    expect(within(headline).queryByText('초과금액')).not.toBeInTheDocument();
+    expect(within(paymentFunding).getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
     expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩0');
     expect(within(paymentFunding).getByText('월간 비상금').closest('dt')?.nextElementSibling).toHaveTextContent('₩291,268');
     expect(within(paymentFunding).getByText('추가 지출').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
+
+    await user.click(within(paymentFunding).getByRole('button', { name: '예상' }));
+    expect(within(paymentFunding).getByText('월급 여유 자금').closest('dt')?.nextElementSibling).toHaveTextContent('₩150,000');
+    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩7,556');
+    expect(within(paymentFunding).getByText('추가 지출').closest('dt')?.nextElementSibling).toHaveTextContent('₩77,060');
     expect(await exportData(repo)).toBe(originalData);
   });
 
-  it('remembers each month independently and defaults new months to expected even with actual values entered', async () => {
+  it('defaults bottom funding to actual when actuals exist and remembers manual overrides per month', async () => {
     const repo = await createSavingsScenario(150000, 50000);
     await repo.addExtraSpending({ card: '현대카드', name: '4월 항목', amount: 1000, spentOn: '2026-04-01' });
     await repo.addExtraSpending({ card: '현대카드', name: '5월 항목', amount: 2000, spentOn: '2026-05-01' });
-    await repo.setActual('2026-05', '현대카드', 9000);
+    await repo.setActual('2026-06', '현대카드', 9000);
     const originalActuals = await repo.listAllActuals();
     const user = userEvent.setup();
     renderDashboard(repo);
+
     expect(await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '실제' }));
+    expect(within(screen.getByRole('region', { name: '카드결제 이체금' })).getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
 
     await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-04');
-    expect(await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: '카드결제 이체금' })).getByText('2026년 4월 · 예상 기준')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '실제' }));
-    await user.click(screen.getByRole('button', { name: '예상' }));
+    const aprilFunding = await screen.findByRole('region', { name: '카드결제 이체금' });
+    expect(within(aprilFunding).getByText('2026년 4월 · 예상 기준')).toBeInTheDocument();
+    await user.click(within(aprilFunding).getByRole('button', { name: '실제' }));
+
     await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-05');
-    expect(await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '실제' }));
+    const mayFunding = await screen.findByRole('region', { name: '카드결제 이체금' });
+    expect(within(mayFunding).getByText('2026년 5월 · 실제 기준')).toBeInTheDocument();
+    await user.click(within(mayFunding).getByRole('button', { name: '예상' }));
 
     await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-04');
-    expect(await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
+    expect(await within(screen.getByRole('region', { name: '카드결제 이체금' })).findByText('2026년 4월 · 실제 기준')).toBeInTheDocument();
     await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-05');
-    expect(await screen.findByRole('region', { name: '실제 카드값 기준 대시보드' })).toBeInTheDocument();
+    expect(await within(screen.getByRole('region', { name: '카드결제 이체금' })).findByText('2026년 5월 · 예상 기준')).toBeInTheDocument();
     expect(await repo.listAllActuals()).toEqual(originalActuals);
   });
 
-  it('restores monthly choices after reopening the dashboard', async () => {
+  it('restores monthly bottom-funding choices after reopening the dashboard', async () => {
     const repo = createSeededMemoryRepository();
     await repo.addExtraSpending({ card: '현대카드', name: '4월 항목', amount: 1000, spentOn: '2026-04-01' });
     const user = userEvent.setup();
     const view = renderDashboard(repo);
-    await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
-    await user.click(screen.getByRole('button', { name: '실제' }));
+    const initialFunding = await screen.findByRole('region', { name: '카드결제 이체금' });
+    await user.click(within(initialFunding).getByRole('button', { name: '실제' }));
     await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-04');
-    await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
-    await user.click(screen.getByRole('button', { name: '예상' }));
+    await within(screen.getByRole('region', { name: '카드결제 이체금' })).findByText('2026년 4월 · 예상 기준');
     view.unmount();
 
     renderDashboard(repo);
-    expect(await screen.findByRole('region', { name: '실제 카드값 기준 대시보드' })).toBeInTheDocument();
+    expect(within(await screen.findByRole('region', { name: '카드결제 이체금' })).getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
     await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-04');
-    expect(await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
+    expect(await within(screen.getByRole('region', { name: '카드결제 이체금' })).findByText('2026년 4월 · 예상 기준')).toBeInTheDocument();
   });
 
   it('keeps monthly choices in memory and explains when browser storage fails', async () => {
@@ -141,17 +148,17 @@ describe('DashboardPage', () => {
     await repo.addExtraSpending({ card: '현대카드', name: '현재 월 항목', amount: 2000, spentOn: `${defaultBudgetYearMonth()}-01` });
     const user = userEvent.setup();
     renderDashboard(repo);
-    await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
-    await user.click(screen.getByRole('button', { name: '실제' }));
-    expect(screen.getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
+    const funding = await screen.findByRole('region', { name: '카드결제 이체금' });
+    await user.click(within(funding).getByRole('button', { name: '실제' }));
+    expect(within(funding).getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('선택을 브라우저에 저장하지 못했습니다. 앱을 다시 열면 초기화될 수 있습니다.')).toBeInTheDocument();
     await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), '2026-04');
-    await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
+    await within(screen.getByRole('region', { name: '카드결제 이체금' })).findByText('2026년 4월 · 예상 기준');
     await user.selectOptions(screen.getByRole('combobox', { name: '기준월' }), defaultBudgetYearMonth());
-    expect(await screen.findByRole('region', { name: '실제 카드값 기준 대시보드' })).toBeInTheDocument();
+    expect(within(await screen.findByRole('region', { name: '카드결제 이체금' })).getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('keeps the selected billing month memo inside the expandable strip above the funds headline without changing totals', async () => {
+  it('keeps the selected billing month memo always expanded above the funds headline without changing totals', async () => {
     const repo = await createSavingsScenario(150000, 50000);
     const month = defaultBillingYearMonth();
     await repo.setMonthlyMemo(month, '이번 달 확인사항\n카드 대금 확인');
@@ -160,16 +167,15 @@ describe('DashboardPage', () => {
     const panel = await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
     const summaryBefore = within(panel).getByRole('region', { name: '예상 카드값 기준 요약' }).textContent;
     const tableBefore = screen.getByRole('table', { name: '카드별 예산' }).textContent;
-    const quickStrip = screen.getByRole('region', { name: '메모 및 수영 일정 요약' });
-    expect(await within(quickStrip).findByText('이번 달 확인사항')).toBeInTheDocument();
-    await user.click(within(quickStrip).getByRole('button', { name: '메모 및 수영회비 일정' }));
+    const quickStrip = screen.getByRole('region', { name: '수영회비 및 월간 비상금 요약' });
     const memo = await screen.findByRole('region', { name: `${formatKRW(0).replace('₩0', '')}${defaultBudgetYearMonth().slice(0, 4)}년 ${Number(defaultBudgetYearMonth().slice(5))}월 메모` });
     expect(memo).toHaveTextContent('이번 달 확인사항');
     const select = screen.getByRole('combobox', { name: '기준월' });
     const headline = screen.getByRole('region', { name: '월별 자금 핵심 요약' });
     const overview = screen.getByRole('region', { name: '예상 카드값 기준 현황' });
     expect(select.compareDocumentPosition(quickStrip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
-    expect(quickStrip.compareDocumentPosition(headline) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(quickStrip.compareDocumentPosition(memo) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(memo.compareDocumentPosition(headline) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(headline.compareDocumentPosition(overview) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(within(panel).queryByRole('region', { name: /메모$/ })).not.toBeInTheDocument();
     await user.click(within(memo).getByRole('button', { name: '수정' }));
@@ -192,13 +198,12 @@ describe('DashboardPage', () => {
     { savings: 150000, shortage: 800000 },
     { savings: 0, shortage: 50000 },
     { savings: 400000, shortage: 200000 },
-  ])('uses income after fixed costs with savings $savings and shortage $shortage', async ({ savings, shortage }) => {
+  ])('keeps expected summary at top and reflects actual card bills in bottom funding for savings $savings and shortage $shortage', async ({ savings, shortage }) => {
     const user = userEvent.setup();
     const repo = await createSavingsScenario(savings, shortage);
     renderDashboard(repo);
     const expectedPanel = await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
-    expect(screen.queryByRole('region', { name: '실제 카드값 기준 대시보드' })).not.toBeInTheDocument();
-    expect(within(expectedPanel).getByRole('button', { name: '예상' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(expectedPanel).queryByRole('group', { name: '대시보드 기준' })).not.toBeInTheDocument();
     const fixedTotal = 990000 + savings;
     const income = 1030000 + savings - shortage;
     const effectiveBase = Math.min(income, fixedTotal);
@@ -210,54 +215,24 @@ describe('DashboardPage', () => {
     expect(within(expectedSummary).getByText('미충당 금액').nextElementSibling).toHaveTextContent(formatKRW(Math.max(1040000 + savings - effectiveBase - 650000, 0)));
     const expectedOverview = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 현황' });
     expect(within(expectedOverview).getByText(`사용 ${formatKRW(1040000 + savings)} / 가용 ${formatKRW(effectiveBase + 650000)}`)).toBeInTheDocument();
-    await user.click(within(expectedPanel).getByRole('button', { name: '실제' }));
-    const actualPanel = screen.getByRole('region', { name: '실제 카드값 기준 대시보드' });
-    expect(screen.queryByRole('region', { name: '예상 카드값 기준 대시보드' })).not.toBeInTheDocument();
-    expect(within(actualPanel).getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
-    const summary = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 요약' });
-    const actualReserveRemaining = effectiveBase + 650000 - (1030000 + savings);
-    const expectedTotals = {
-      '총필요 예산': 1030000 + savings,
-      '추가 지출': 50000,
-      '수입': income,
-      '부족금액': shortage,
-      '잔액/저축액': actualReserveRemaining,
-      '미충당 금액': Math.max(-actualReserveRemaining, 0),
-    };
-    for (const [label, value] of Object.entries(expectedTotals)) {
-      const amount = within(summary).getByText(label).nextElementSibling;
-      expect(amount?.textContent).toBe(formatKRW(value));
-    }
+    expect(within(expectedOverview).getAllByRole('progressbar')).toHaveLength(2);
+    expect(within(expectedOverview).getByText(`고정비 ${formatKRW(fixedTotal)}`)).toBeInTheDocument();
+    expect(within(expectedOverview).getByText(`추가지출 ${formatKRW(50000)}`)).toBeInTheDocument();
+
     const table = screen.getByRole('table', { name: '카드별 예산' });
     const totals = within(table).getByRole('row', { name: /^합계/ });
     expect(within(totals).getAllByRole('cell').map((cell) => cell.textContent))
       .toEqual([180000, 190000, 140000, 50000].map(formatKRW));
-    const overview = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 현황' });
-    expect(within(overview).getAllByRole('progressbar')).toHaveLength(2);
-    expect(within(overview).getByRole('progressbar', { name: '예산 사용' }))
-      .toHaveAttribute('aria-valuetext', `${formatKRW(1030000 + savings)} / ${formatKRW(effectiveBase + 650000)}`);
-    expect(within(overview).getByText(`고정비 ${formatKRW(990000 + savings)}`)).toBeInTheDocument();
-    expect(within(overview).getByText(`추가지출 ${formatKRW(40000)}`)).toBeInTheDocument();
-    const reserveUsed = Math.max(1030000 + savings - effectiveBase, 0);
-    const baseUsed = Math.min(reserveUsed, 150000);
-    const emergencyUsed = Math.min(Math.max(reserveUsed - 150000, 0), 500000);
-    const fundingUsed = baseUsed + emergencyUsed;
-    const fundingCapacity = 650000;
-    expect(within(overview).getByRole('progressbar', { name: '예비 자금 사용' }))
-      .toHaveAttribute('aria-valuetext', `${formatKRW(fundingUsed)} / ${formatKRW(fundingCapacity)}`);
-    expect(within(overview).queryByText('여유 자금')).not.toBeInTheDocument();
-    expect(within(overview).getByText('월급 여유 자금')).toBeInTheDocument();
-    expect(within(overview).getByText('월간 비상금')).toBeInTheDocument();
-    expect(within(overview).getByText(`${formatKRW(baseUsed)} / ${formatKRW(150000)}`)).toBeInTheDocument();
-    expect(within(overview).getByText(`${formatKRW(emergencyUsed)} / ${formatKRW(500000)}`)).toBeInTheDocument();
-    expect(within(overview).queryByText('저축 잔액')).not.toBeInTheDocument();
-    expect(within(overview).queryByText(/여행 저금/)).not.toBeInTheDocument();
-    await user.click(within(actualPanel).getByRole('button', { name: '예상' }));
-    expect(screen.getByRole('region', { name: '예상 카드값 기준 대시보드' })).toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: '실제 카드값 기준 대시보드' })).not.toBeInTheDocument();
+
+    const paymentFunding = screen.getByRole('region', { name: '카드결제 이체금' });
+    expect(within(paymentFunding).getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent(formatKRW(Math.max(shortage - 650000, 0)));
+
+    await user.click(within(paymentFunding).getByRole('button', { name: '예상' }));
+    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent(formatKRW(Math.max(shortage + 10000 - 650000, 0)));
   });
 
-  it('shows the combined dashboard summary cards', async () => {
+  it('shows the combined dashboard summary cards on expected totals by default', async () => {
     const yearMonth = defaultBillingYearMonth();
     const spendingMonth = new Date(`${yearMonth}-01T00:00:00Z`);
     spendingMonth.setUTCMonth(spendingMonth.getUTCMonth() - 1);
@@ -272,9 +247,7 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
 
     const expectedPanel = screen.getByRole('region', { name: '예상 카드값 기준 대시보드' });
-    await userEvent.setup().click(within(expectedPanel).getByRole('button', { name: '실제' }));
-    const actualPanel = screen.getByRole('region', { name: '실제 카드값 기준 대시보드' });
-    const summary = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 요약' });
+    const summary = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 요약' });
     expect(within(summary).getByText('총필요 예산')).toBeInTheDocument();
     expect(within(summary).getByText('추가 지출')).toBeInTheDocument();
     expect(within(summary).getByText('수입')).toBeInTheDocument();
@@ -295,7 +268,7 @@ describe('DashboardPage', () => {
     expect(within(summary).getByText(formatKRW(income))).toBeInTheDocument();
     expect(within(summary).getByText(formatKRW(shortage))).toHaveClass('text-neg');
     expect(within(summary).getByText('잔액/저축액').nextElementSibling).toHaveTextContent(formatKRW(reserveRemaining));
-    const overview = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 현황' });
+    const overview = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 현황' });
     expect(within(overview).queryByText('여유 자금')).not.toBeInTheDocument();
     expect(within(overview).queryByText('수입보다 고정비가 커서 여유 자금 구간은 0원입니다.')).not.toBeInTheDocument();
     expect(within(overview).getByText('월급 여유 자금')).toBeInTheDocument();
@@ -305,13 +278,17 @@ describe('DashboardPage', () => {
     expect(within(overview).queryByText(/통장 추가 충당/)).not.toBeInTheDocument();
     expect(within(overview).queryByText('예비금 사용')).not.toBeInTheDocument();
     expect(within(overview).queryByText('저축 사용')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: '카드결제 이체금' })).getByRole('button', { name: '예상' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('uses an entered actual card amount in the total budget', async () => {
+  it('auto-switches bottom funding to actual when a card amount is entered while keeping top dashboard on expected', async () => {
     const user = userEvent.setup();
     const repo = createSeededMemoryRepository();
     await prepareFixedCostsForDefaultBilling(repo);
     renderDashboard(repo);
+
+    const paymentFunding = await screen.findByRole('region', { name: '카드결제 이체금' });
+    expect(within(paymentFunding).getByRole('button', { name: '예상' })).toHaveAttribute('aria-pressed', 'true');
 
     const card = CARD_METHODS[0];
     const cardRow = await screen.findByRole('row', { name: new RegExp(card.replace('카드', '')) });
@@ -321,16 +298,16 @@ describe('DashboardPage', () => {
     await user.tab();
 
     const sourceFixedCosts = await repo.listFixedCosts(previousYearMonth(defaultBillingYearMonth()));
+    const income = incomeTotal(await repo.listIncomes(previousYearMonth(defaultBillingYearMonth())));
     const originalCardAmount = sourceFixedCosts
       .filter((item) => item.paymentMethod === card && item.active)
       .reduce((total, item) => total + item.amount, 0);
-    const expectedTotal = fixedCostsTotal(sourceFixedCosts) - originalCardAmount + 200000;
+    const actualTotal = fixedCostsTotal(sourceFixedCosts) - originalCardAmount + 200000;
     const expectedPanel = screen.getByRole('region', { name: '예상 카드값 기준 대시보드' });
     expect(within(expectedPanel).getByText('총필요 예산').nextElementSibling).toHaveTextContent(formatKRW(fixedCostsTotal(sourceFixedCosts)));
-    await user.click(within(expectedPanel).getByRole('button', { name: '실제' }));
-    const actualPanel = screen.getByRole('region', { name: '실제 카드값 기준 대시보드' });
-    await waitFor(() => expect(within(actualPanel).getByText(formatKRW(expectedTotal))).toBeInTheDocument());
-    expect(within(actualPanel).getByText('총필요 예산').nextElementSibling).toHaveTextContent(formatKRW(expectedTotal));
+    await waitFor(() => expect(within(paymentFunding).getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true'));
+    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong'))
+      .toHaveTextContent(formatKRW(Math.max(actualTotal - income - 650000, 0)));
     expect(within(cardRow).getByRole('textbox', { name: `${card} 실제 카드값` })).toHaveValue('200,000');
   });
 
@@ -531,6 +508,35 @@ describe('DashboardPage', () => {
 
     await user.click(screen.getByRole('button', { name: '이전 달' }));
     expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2026-12');
+  });
+
+  it('tracks dedicated monthly emergency reserve balance and calculates funded month around the 28th cutoff', async () => {
+    const dateSpy = vi.spyOn(billing, 'dateInKorea').mockReturnValue('2026-11-24');
+    const user = userEvent.setup();
+    const repo = createSeededMemoryRepository();
+    const view = renderDashboard(repo);
+
+    const emergencySection = await screen.findByRole('region', { name: '월간 비상금 충당 현황' });
+    expect(within(emergencySection).getByText('잔액을 입력하세요')).toBeInTheDocument();
+
+    await user.click(within(emergencySection).getByRole('button', { name: '월간 비상금 잔액 입력' }));
+    await user.type(within(emergencySection).getByRole('textbox', { name: '월간 비상금 통장 잔액' }), '1500000');
+    await user.click(within(emergencySection).getByRole('button', { name: '저장' }));
+
+    expect(within(emergencySection).getByText('2027년 1월 충당금까지')).toBeInTheDocument();
+    view.unmount();
+
+    dateSpy.mockReturnValue('2026-11-28');
+    renderDashboard(repo);
+    const reloadedSection = await screen.findByRole('region', { name: '월간 비상금 충당 현황' });
+    expect(within(reloadedSection).getByText('2027년 2월 충당금까지')).toBeInTheDocument();
+
+    await user.click(within(reloadedSection).getByRole('button', { name: '월간 비상금 잔액 입력' }));
+    const input = within(reloadedSection).getByRole('textbox', { name: '월간 비상금 통장 잔액' });
+    await user.clear(input);
+    await user.type(input, '1000000');
+    await user.click(within(reloadedSection).getByRole('button', { name: '저장' }));
+    expect(within(reloadedSection).getByText('2027년 1월 충당금까지')).toBeInTheDocument();
   });
 });
 
