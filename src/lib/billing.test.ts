@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   billingCutoffDay, billingMonthFor, billingMonthFromBudgetMonth, budgetMonthFromBillingMonth, defaultBillingYearMonth,
-  defaultBudgetYearMonth, nextYearMonth, previousYearMonth, spentOnFromCreatedAt,
+  defaultBudgetYearMonth, isDualMonthSplitPeriod, nextYearMonth, previousYearMonth, spentOnFromCreatedAt,
 } from './billing';
 
 describe('billingMonthFor', () => {
@@ -75,5 +75,15 @@ describe('budget month helpers', () => {
     expect(budgetMonthFromBillingMonth('2026-12')).toBe('2026-11');
     expect(billingMonthFromBudgetMonth('2026-12')).toBe('2027-01');
     expect(billingMonthFromBudgetMonth('2026-11')).toBe('2026-12');
+  });
+
+  it.each([
+    ['2026-11-19T12:00:00.000Z', false],
+    ['2026-11-20T00:00:00.000Z', true],
+    ['2026-11-30T12:00:00.000Z', true],
+    ['2026-12-01T12:00:00.000Z', true],
+    ['2026-12-02T12:00:00.000Z', false],
+  ])('detects the post-cutoff dual-month split period in Korea time: %s -> %s', (date, expected) => {
+    expect(isDualMonthSplitPeriod(new Date(date))).toBe(expected);
   });
 });

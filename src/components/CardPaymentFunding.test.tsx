@@ -9,13 +9,13 @@ describe('CardPaymentFunding', () => {
     expect(within(funding).getByText('2026년 11월 · 실제 기준')).toBeInTheDocument();
     expect(within(funding).getByText('월급 여유 자금').closest('dt')?.nextElementSibling).toHaveTextContent('₩150,000');
     expect(within(funding).getByText('월간 비상금').closest('dt')?.nextElementSibling).toHaveTextContent('₩291,268');
-    expect(within(funding).getByText('추가 충당').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
+    expect(within(funding).getByText('추가 지출').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
     expect(within(funding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩0');
     expect(within(funding).getByText('월급 여유 자금·월간 비상금 제외')).toBeInTheDocument();
     expect(within(funding).getByLabelText('이체 방향')).toHaveTextContent('비상금통장→월급통장 (카드결제)');
     expect(within(funding).getByText(/월급 여유 자금\(15만 원\)과 26일 자동이체되는 월간 비상금\(50만 원\)은 제외/)).toBeInTheDocument();
     expect(within(funding).getByText('월급 여유 자금(₩150,000)과 월간 비상금(₩291,268, 26일 자동이체)으로 충당되어 추가로 옮길 금액이 없습니다.')).toBeInTheDocument();
-    expect(within(funding).queryByText(/예비자금|여유자금/)).not.toBeInTheDocument();
+    expect(within(funding).queryByText(/예비자금|여유자금|추가 충당/)).not.toBeInTheDocument();
     expect(within(funding).getByText('월급통장 정산 후 여유 자금(완충 자금)')).toBeInTheDocument();
     expect(within(funding).getByText('월간 비상금(26일 자동이체)')).toBeInTheDocument();
   });
@@ -24,7 +24,7 @@ describe('CardPaymentFunding', () => {
     render(<CardPaymentFunding shortageAmount={1516084} yearMonth="2026-12" variant="expected" />);
     expect(screen.getByText('월급 여유 자금').closest('dt')?.nextElementSibling).toHaveTextContent('₩150,000');
     expect(screen.getByText('월간 비상금').closest('dt')?.nextElementSibling).toHaveTextContent('₩500,000');
-    const extra = screen.getByText('추가 충당').closest('dt');
+    const extra = screen.getByText('추가 지출').closest('dt');
     expect(extra?.nextElementSibling).toHaveTextContent('₩866,084');
     expect(extra?.parentElement).toHaveClass('payment-funding-source--extra');
     expect(screen.getByText('월급 여유 자금(15만 원)·월간 비상금(50만 원, 26일 자동이체) 외에 ₩866,084을 추가로 옮겨야 합니다.')).toHaveClass('payment-funding-note--extra');
@@ -35,7 +35,7 @@ describe('CardPaymentFunding', () => {
     render(<CardPaymentFunding shortageAmount={120000} yearMonth="2026-11" variant="expected" />);
     expect(screen.getByText('월급 여유 자금').closest('dt')?.nextElementSibling).toHaveTextContent('₩120,000');
     expect(screen.getByText('월간 비상금').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
-    expect(screen.getByText('추가 충당').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
+    expect(screen.getByText('추가 지출').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
     expect(screen.getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩0');
     expect(screen.getByText('월급통장에 남은 월급 여유 자금(₩120,000)으로 충당되어 추가로 옮길 금액이 없습니다.')).toBeInTheDocument();
   });
@@ -49,25 +49,33 @@ describe('CardPaymentFunding', () => {
     expect(screen.queryByLabelText('수입·고정비 차액')).not.toBeInTheDocument();
   });
 
-  it('displays the income minus fixed-cost gap when income and fixed totals are provided', () => {
+  it('shows step 3 extra spending beyond 650,000 won above step 4 income-fixed cost gap', () => {
     const { rerender } = render(
       <CardPaymentFunding
         shortageAmount={1_516_084}
+        additionalSpending={1_515_926}
         incomeSum={5_610_000}
         fixedTotal={5_610_158}
         yearMonth="2026-11"
         variant="expected"
       />,
     );
+    expect(screen.getAllByRole('term')).toHaveLength(4);
+    const step3 = screen.getByText('추가 지출').closest('dt');
+    expect(step3?.nextElementSibling).toHaveTextContent('₩865,926');
     const deficitGap = screen.getByLabelText('수입·고정비 차액');
-    expect(deficitGap).toHaveClass('payment-funding-gap--deficit');
+    expect(step3!.compareDocumentPosition(deficitGap) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(deficitGap).toHaveClass('payment-funding-source--gap-deficit');
+    expect(deficitGap).toHaveTextContent('4');
     expect(deficitGap).toHaveTextContent('수입 ₩5,610,000 − 고정비 ₩5,610,158 · 고정비 초과분 포함');
     expect(deficitGap).toHaveTextContent('-₩158');
     expect(deficitGap).toHaveTextContent('고정비 초과');
+    expect(screen.getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩866,084');
 
     rerender(
       <CardPaymentFunding
         shortageAmount={1_316_084}
+        additionalSpending={1_515_926}
         incomeSum={5_810_000}
         fixedTotal={5_610_158}
         yearMonth="2026-11"
@@ -75,7 +83,7 @@ describe('CardPaymentFunding', () => {
       />,
     );
     const surplusGap = screen.getByLabelText('수입·고정비 차액');
-    expect(surplusGap).toHaveClass('payment-funding-gap--surplus');
+    expect(surplusGap).toHaveClass('payment-funding-source--gap-surplus');
     expect(surplusGap).toHaveTextContent('수입 ₩5,810,000 − 고정비 ₩5,610,158 · 수입 여유분 반영');
     expect(surplusGap).toHaveTextContent('+₩199,842');
     expect(surplusGap).toHaveTextContent('수입 여유');
@@ -83,6 +91,7 @@ describe('CardPaymentFunding', () => {
     rerender(
       <CardPaymentFunding
         shortageAmount={1_515_926}
+        additionalSpending={1_515_926}
         incomeSum={5_610_000}
         fixedTotal={5_610_000}
         yearMonth="2026-11"
@@ -90,6 +99,7 @@ describe('CardPaymentFunding', () => {
       />,
     );
     const zeroGap = screen.getByLabelText('수입·고정비 차액');
+    expect(zeroGap).toHaveClass('payment-funding-source--unused');
     expect(zeroGap).toHaveTextContent('₩0');
     expect(zeroGap).toHaveTextContent('차액 없음');
   });

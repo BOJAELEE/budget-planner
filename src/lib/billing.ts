@@ -75,6 +75,12 @@ export function defaultBudgetYearMonth(date: Date = new Date()): string {
   return budgetMonthFromBillingMonth(defaultBillingYearMonth(date));
 }
 
+/** Whether today is after the 19th card cutoff (20th through next month's 1st payment day) in Korea time. */
+export function isDualMonthSplitPeriod(date: Date = new Date()): boolean {
+  const [, , day] = dateInKorea(date).split('-').map(Number);
+  return day >= 20 || day === 1;
+}
+
 export function spentOnFromCreatedAt(createdAt: string | undefined): string {
   const date = createdAt ? new Date(createdAt) : new Date();
   return Number.isNaN(date.getTime()) ? dateInKorea() : dateInKorea(date);

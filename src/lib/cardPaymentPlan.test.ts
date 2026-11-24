@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardPaymentPlan, cardPaymentSalaryImpact } from './cardPaymentPlan';
+import { cardPaymentPlan, cardPaymentSalaryImpact, extraSpendingBeyondAllowance } from './cardPaymentPlan';
 import { calculateDashboardScenario } from './calc';
 
 describe('card payment funding plan', () => {
@@ -58,5 +58,12 @@ describe('card payment funding plan', () => {
       baselineTransferAmount: 866_084,
       transferDelta: 0,
     });
+  });
+
+  it('calculates additional spending beyond the combined 650,000 won allowance', () => {
+    expect(extraSpendingBeyondAllowance(1_515_926)).toBe(865_926);
+    expect(extraSpendingBeyondAllowance(650_000)).toBe(0);
+    expect(extraSpendingBeyondAllowance(200_000)).toBe(0);
+    expect(extraSpendingBeyondAllowance(-50_000)).toBe(0);
   });
 });

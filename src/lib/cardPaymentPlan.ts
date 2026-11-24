@@ -29,3 +29,8 @@ export function cardPaymentSalaryImpact(
     transferDelta: currentPlan.totalNeeded - baselinePlan.totalNeeded,
   };
 }
+
+/** Additional spending (beyond fixed costs) that exceeds the combined 650,000 won monthly allowance. */
+export function extraSpendingBeyondAllowance(additionalSpending: number): number {
+  return Math.max(additionalSpending - MONTHLY_FLEXIBLE_BASE - MONTHLY_EMERGENCY_AMOUNT, 0);
+}

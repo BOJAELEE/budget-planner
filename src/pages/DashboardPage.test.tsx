@@ -1,9 +1,10 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RepositoryProvider } from '../data/RepositoryContext';
 import { createSeededMemoryRepository, MemoryRepository } from '../data/memoryRepository';
+import * as billing from '../lib/billing';
 import {
   defaultBillingYearMonth, defaultBudgetYearMonth, nextYearMonth, previousYearMonth,
 } from '../lib/billing';
@@ -16,7 +17,10 @@ import DashboardPage from './DashboardPage';
 
 describe('DashboardPage', () => {
   beforeEach(() => localStorage.removeItem(DASHBOARD_SCENARIO_VIEWS_KEY));
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
 
   it('shows the compact schedule above the memo without navigating months or changing financial data', async () => {
     const repo = await createSavingsScenario(150000, 50000);
@@ -71,14 +75,14 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('main').lastElementChild).toBe(paymentFunding);
     expect(within(paymentFunding).getByText('월급 여유 자금').closest('dt')?.nextElementSibling).toHaveTextContent('₩150,000');
     expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩7,556');
-    expect(within(paymentFunding).getByText('추가 충당').closest('dt')?.nextElementSibling).toHaveTextContent('₩7,556');
+    expect(within(paymentFunding).getByText('추가 지출').closest('dt')?.nextElementSibling).toHaveTextContent('₩77,060');
     await user.click(screen.getByRole('button', { name: '실제' }));
     expect(within(headline).getByText('사용금액').nextElementSibling).toHaveTextContent('510,772');
     expect(within(headline).getByText('잔액', { exact: true }).nextElementSibling).toHaveTextContent('208,732');
     expect(within(headline).queryByText('초과금액')).not.toBeInTheDocument();
     expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩0');
     expect(within(paymentFunding).getByText('월간 비상금').closest('dt')?.nextElementSibling).toHaveTextContent('₩291,268');
-    expect(within(paymentFunding).getByText('추가 충당').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
+    expect(within(paymentFunding).getByText('추가 지출').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
     expect(await exportData(repo)).toBe(originalData);
   });
 
@@ -365,7 +369,11 @@ describe('DashboardPage', () => {
     expect(salaryInput).toHaveValue('5,400,000');
     expect(within(salarySection).queryByText(/기준 대비/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText('월급 변동 반영')).not.toBeInTheDocument();
-    const initialGap = within(screen.getByRole('region', { name: '카드결제 이체금' })).getByLabelText('수입·고정비 차액');
+    const initialPaymentFunding = screen.getByRole('region', { name: '카드결제 이체금' });
+    const initialStep3 = within(initialPaymentFunding).getByText('추가 지출').closest('dt');
+    expect(initialStep3?.nextElementSibling).toHaveTextContent('₩77,060');
+    const initialGap = within(initialPaymentFunding).getByLabelText('수입·고정비 차액');
+    expect(initialStep3!.compareDocumentPosition(initialGap) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(initialGap).toHaveTextContent('+₩69,504');
     expect(initialGap).toHaveTextContent('수입 여유');
 
@@ -410,7 +418,121 @@ describe('DashboardPage', () => {
     expect((await repo.listIncomes(budgetMonth)).find((item) => item.name === '월급')?.amount).toBe(6_000_000);
     expect(await repo.listActuals(billingMonth)).toEqual([]);
   });
+
+  it('absorbs fixed-cost increases exceeding 5,610,000 won income into top reserve usage and keeps excess synced', async () => {
+    const repo = new MemoryRepository();
+    const budgetMonth = defaultBudgetYearMonth();
+    await repo.addIncome({ yearMonth: budgetMonth, type: '고정수입', name: '월급', amount: 5_400_000, active: true });
+    await repo.addIncome({ yearMonth: budgetMonth, type: '고정수입', name: '아동수당', amount: 210_000, active: true });
+    const base = { yearMonth: budgetMonth, variability: '고정' as const, active: true, sortOrder: 0 };
+    await repo.addFixedCost({ ...base, paymentMethod: '현금이체', category: '생활비', name: '현금 고정비', amount: 5_410_000 });
+    await repo.addFixedCost({ ...base, paymentMethod: '현대카드', category: '기타', name: '카드 고정비', amount: 300_000 });
+    await repo.addExtraSpending({ card: '현대카드', name: '추가 지출 1', amount: 200_000, spentOn: `${budgetMonth}-01` });
+
+    const view = renderDashboard(repo);
+    const headline = await screen.findByRole('region', { name: '월별 자금 핵심 요약' });
+    const overview = screen.getByRole('region', { name: '예상 카드값 기준 현황' });
+    const paymentFunding = screen.getByRole('region', { name: '카드결제 이체금' });
+
+    expect(within(headline).getByText('예비자금').nextElementSibling).toHaveTextContent('650,000');
+    expect(within(headline).getByText('사용금액').nextElementSibling).toHaveTextContent('300,000');
+    expect(within(headline).getByText('잔액').nextElementSibling).toHaveTextContent('350,000');
+    expect(within(overview).getByText('₩150,000 / ₩150,000')).toBeInTheDocument();
+    expect(within(overview).getByText('₩150,000 / ₩500,000')).toBeInTheDocument();
+    expect(within(paymentFunding).getByText('추가 지출').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
+    expect(within(paymentFunding).getByLabelText('수입·고정비 차액')).toHaveTextContent('-₩100,000');
+    expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩0');
+    view.unmount();
+
+    await repo.addExtraSpending({ card: '현대카드', name: '추가 지출 2', amount: 400_000, spentOn: `${budgetMonth}-02` });
+    renderDashboard(repo);
+    const headline2 = await screen.findByRole('region', { name: '월별 자금 핵심 요약' });
+    const paymentFunding2 = screen.getByRole('region', { name: '카드결제 이체금' });
+    expect(within(headline2).getByText('사용금액').nextElementSibling).toHaveTextContent('700,000');
+    expect(within(headline2).getByText('초과금액').nextElementSibling).toHaveTextContent('-50,000');
+    expect(within(paymentFunding2).getByText('추가 지출').closest('dt')?.nextElementSibling).toHaveTextContent('₩0');
+    expect(within(paymentFunding2).getByLabelText('수입·고정비 차액')).toHaveTextContent('-₩100,000');
+    expect(within(paymentFunding2).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩50,000');
+  });
+
+  it('shows previous month left and next month right when unfolded after the 19th, and supports maximizing and restoring split view', async () => {
+    const media = mockUnfoldedViewport(true);
+    vi.spyOn(billing, 'isDualMonthSplitPeriod').mockReturnValue(true);
+    vi.spyOn(billing, 'defaultBudgetYearMonth').mockReturnValue('2026-11');
+
+    const repo = createSeededMemoryRepository();
+    await repo.setMonthlyMemo('2026-12', '11월 대시보드 메모');
+    await repo.setMonthlyMemo('2027-01', '12월 대시보드 메모');
+    const user = userEvent.setup();
+    renderDashboard(repo);
+
+    const leftPane = await screen.findByRole('region', { name: '전달 대시보드 (2026년 11월)' });
+    const rightPane = await screen.findByRole('region', { name: '다음달 대시보드 (2026년 12월)' });
+    expect(await within(leftPane).findByText('11월 대시보드 메모')).toBeInTheDocument();
+    expect(await within(rightPane).findByText('12월 대시보드 메모')).toBeInTheDocument();
+    expect(within(leftPane).getByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
+    expect(within(rightPane).getByRole('combobox', { name: '기준월' })).toHaveValue('2026-12');
+
+    // Maximize right pane (next month)
+    await user.click(within(rightPane).getByRole('button', { name: '2026년 12월 최대화' }));
+    expect(screen.queryByRole('region', { name: /전달 대시보드/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '기준월' })).toHaveValue('2026-12');
+    expect(await screen.findByText('12월 대시보드 메모')).toBeInTheDocument();
+
+    // Restore split view
+    await user.click(screen.getByRole('button', { name: '분할 보기로 돌아가기' }));
+    const restoredLeft = await screen.findByRole('region', { name: '전달 대시보드 (2026년 11월)' });
+    expect(await screen.findByRole('region', { name: '다음달 대시보드 (2026년 12월)' })).toBeInTheDocument();
+
+    // Maximize left pane (closing month)
+    await user.click(within(restoredLeft).getByRole('button', { name: '2026년 11월 최대화' }));
+    expect(screen.queryByRole('region', { name: /다음달 대시보드/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
+    expect(await screen.findByText('11월 대시보드 메모')).toBeInTheDocument();
+
+    // Folding live collapses to single pane without split controls
+    await user.click(screen.getByRole('button', { name: '분할 보기로 돌아가기' }));
+    expect(await screen.findByRole('region', { name: '다음달 대시보드 (2026년 12월)' })).toBeInTheDocument();
+    act(() => media.setMatches(false));
+    expect(screen.queryByRole('region', { name: /다음달 대시보드/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /최대화/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /분할 보기/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
+  });
+
+  it('keeps a single pane even when unfolded before the 20th', async () => {
+    mockUnfoldedViewport(true);
+    vi.spyOn(billing, 'isDualMonthSplitPeriod').mockReturnValue(false);
+    vi.spyOn(billing, 'defaultBudgetYearMonth').mockReturnValue('2026-11');
+
+    renderDashboard(createSeededMemoryRepository());
+    expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
+    expect(screen.queryByRole('region', { name: /전달 대시보드/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /최대화/ })).not.toBeInTheDocument();
+  });
 });
+
+function mockUnfoldedViewport(initialMatches: boolean) {
+  let matches = initialMatches;
+  const listeners = new Set<(event: MediaQueryListEvent) => void>();
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    get matches() { return matches; },
+    media: query,
+    onchange: null,
+    addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.add(listener),
+    removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.delete(listener),
+    addListener: (listener: (event: MediaQueryListEvent) => void) => listeners.add(listener),
+    removeListener: (listener: (event: MediaQueryListEvent) => void) => listeners.delete(listener),
+    dispatchEvent: () => true,
+  }));
+  return {
+    setMatches(next: boolean) {
+      matches = next;
+      const event = { matches: next, media: '(min-width: 660px)' } as MediaQueryListEvent;
+      for (const listener of listeners) listener(event);
+    },
+  };
+}
 
 function renderDashboard(repo: ReturnType<typeof createSeededMemoryRepository>) {
   return render(

@@ -10,7 +10,7 @@ import HistoryPage from './pages/HistoryPage';
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <div className="app-shell min-h-screen w-full pb-20">
+      <div className="app-shell min-h-screen w-full pb-24">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/extra" element={<ExtraSpendingPage />} />

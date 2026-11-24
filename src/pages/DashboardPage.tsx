@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useBudget } from '../hooks/useBudget';
+import { useUnfoldedViewport } from '../hooks/useUnfoldedViewport';
 import { CARD_METHODS } from '../types';
 import { formatKRW, formatSignedKRW } from '../lib/format';
 import {
-  billingMonthFromBudgetMonth, budgetMonthFromBillingMonth, defaultBudgetYearMonth, formatYearMonth,
+  billingMonthFromBudgetMonth, budgetMonthFromBillingMonth, defaultBudgetYearMonth,
+  formatYearMonth, isDualMonthSplitPeriod, nextYearMonth,
 } from '../lib/billing';
 import { displayPercentage, type DashboardScenario } from '../lib/calc';
 import { dashboardGraphAmounts } from '../lib/dashboardGraph';
@@ -16,22 +18,107 @@ import { CardPaymentFunding } from '../components/CardPaymentFunding';
 import { SwimmingSchedule } from '../components/SwimmingSchedule';
 
 export default function DashboardPage() {
-  const [budgetMonth, setBudgetMonth] = useState(defaultBudgetYearMonth);
-  const billingMonth = billingMonthFromBudgetMonth(budgetMonth);
+  const [leftMonth, setLeftMonth] = useState(defaultBudgetYearMonth);
+  const [rightMonth, setRightMonth] = useState(() => nextYearMonth(defaultBudgetYearMonth()));
+  const [maximizedPane, setMaximizedPane] = useState<'left' | 'right' | null>(null);
   const [scenarioViews, setScenarioViews] = useState(loadMonthlyScenarioViews);
   const [selectionSaveFailed, setSelectionSaveFailed] = useState(false);
-  const scenarioView = scenarioViews[billingMonth] ?? 'expected';
-  const { loading, error, derived, availableMonths, setActual, setSalary } = useBudget(billingMonth);
 
-  const selectScenarioView = (view: ScenarioView) => {
+  const isUnfolded = useUnfoldedViewport();
+  const canSplit = isUnfolded && isDualMonthSplitPeriod();
+  const isSplitView = canSplit && maximizedPane === null;
+  const activeSingleMonth = canSplit && maximizedPane === 'right' ? rightMonth : leftMonth;
+  const setActiveSingleMonth = canSplit && maximizedPane === 'right' ? setRightMonth : setLeftMonth;
+
+  const selectScenarioView = (billingMonth: string, view: ScenarioView) => {
     const nextViews = { ...scenarioViews, [billingMonth]: view };
     setScenarioViews(nextViews);
     setSelectionSaveFailed(!saveMonthlyScenarioViews(nextViews));
   };
 
+  return (
+    <main className="p-4 space-y-4">
+      <SwimmingSchedule yearMonth={isSplitView ? leftMonth : activeSingleMonth} />
+      {isSplitView ? (
+        <div className="dashboard-split-grid" aria-label="전달·다음달 분할 대시보드">
+          <div
+            className="dashboard-pane dashboard-pane--split"
+            role="region"
+            aria-label={`전달 대시보드 (${formatYearMonth(leftMonth)})`}
+          >
+            <DashboardMonthPane
+              budgetMonth={leftMonth}
+              onBudgetMonthChange={setLeftMonth}
+              scenarioViews={scenarioViews}
+              onSelectScenarioView={selectScenarioView}
+              selectionSaveFailed={selectionSaveFailed}
+              isSplitPane
+              paneLabel="전달"
+              onMaximize={() => setMaximizedPane('left')}
+            />
+          </div>
+          <div
+            className="dashboard-pane dashboard-pane--split"
+            role="region"
+            aria-label={`다음달 대시보드 (${formatYearMonth(rightMonth)})`}
+          >
+            <DashboardMonthPane
+              budgetMonth={rightMonth}
+              onBudgetMonthChange={setRightMonth}
+              scenarioViews={scenarioViews}
+              onSelectScenarioView={selectScenarioView}
+              selectionSaveFailed={selectionSaveFailed}
+              isSplitPane
+              paneLabel="다음달"
+              onMaximize={() => setMaximizedPane('right')}
+            />
+          </div>
+        </div>
+      ) : (
+        <DashboardMonthPane
+          budgetMonth={activeSingleMonth}
+          onBudgetMonthChange={setActiveSingleMonth}
+          scenarioViews={scenarioViews}
+          onSelectScenarioView={selectScenarioView}
+          selectionSaveFailed={selectionSaveFailed}
+          canReturnToSplit={canSplit && maximizedPane !== null}
+          onRestoreSplit={() => setMaximizedPane(null)}
+        />
+      )}
+    </main>
+  );
+}
+
+function DashboardMonthPane({
+  budgetMonth,
+  onBudgetMonthChange,
+  scenarioViews,
+  onSelectScenarioView,
+  selectionSaveFailed,
+  isSplitPane = false,
+  paneLabel,
+  onMaximize,
+  canReturnToSplit = false,
+  onRestoreSplit,
+}: {
+  budgetMonth: string;
+  onBudgetMonthChange: (month: string) => void;
+  scenarioViews: ReturnType<typeof loadMonthlyScenarioViews>;
+  onSelectScenarioView: (billingMonth: string, view: ScenarioView) => void;
+  selectionSaveFailed: boolean;
+  isSplitPane?: boolean;
+  paneLabel?: string;
+  onMaximize?: () => void;
+  canReturnToSplit?: boolean;
+  onRestoreSplit?: () => void;
+}) {
+  const billingMonth = billingMonthFromBudgetMonth(budgetMonth);
+  const scenarioView = scenarioViews[billingMonth] ?? 'expected';
+  const { loading, error, derived, availableMonths, setActual, setSalary } = useBudget(billingMonth);
+
   if (loading) return <div className="p-8 text-center text-gray-400">불러오는 중입니다.</div>;
   if (error) return (
-    <div className="p-6 m-4 rounded-2xl bg-white shadow-card text-sm">
+    <div className="p-6 m-2 rounded-2xl bg-white shadow-card text-sm">
       <div className="font-semibold text-neg mb-2">데이터를 불러오지 못했습니다.</div>
       <div className="text-gray-500 break-all">{error}</div>
     </div>
@@ -40,18 +127,54 @@ export default function DashboardPage() {
   const enteredCardCount = CARD_METHODS.filter((card) => derived.enteredActualByCard[card] !== undefined).length;
   const selectedScenario = scenarioView === 'expected' ? derived.expectedScenario : derived.actualScenario;
   const displayAvailableMonths = [...new Set(availableMonths.map(budgetMonthFromBillingMonth))];
+  const selectId = isSplitPane ? `dashboard-billing-month-${paneLabel}` : 'dashboard-billing-month';
 
   return (
-    <main className="p-4 space-y-4">
-      <SwimmingSchedule yearMonth={budgetMonth} />
+    <>
       <section className="space-y-2">
+        {(isSplitPane || canReturnToSplit) && (
+          <div className="dashboard-pane-toolbar">
+            {isSplitPane && paneLabel ? (
+              <span className="dashboard-pane-badge">{paneLabel}</span>
+            ) : (
+              <span className="dashboard-pane-badge">전체 화면</span>
+            )}
+            {isSplitPane && onMaximize && (
+              <button
+                type="button"
+                className="dashboard-pane-action"
+                aria-label={`${formatYearMonth(budgetMonth)} 최대화`}
+                onClick={onMaximize}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                </svg>
+                <span>최대화</span>
+              </button>
+            )}
+            {canReturnToSplit && onRestoreSplit && (
+              <button
+                type="button"
+                className="dashboard-pane-action"
+                aria-label="분할 보기로 돌아가기"
+                onClick={onRestoreSplit}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M12 4v16" />
+                </svg>
+                <span>분할 보기</span>
+              </button>
+            )}
+          </div>
+        )}
         <MonthlyMemoCard key={billingMonth} yearMonth={billingMonth} displayYearMonth={budgetMonth} />
         <select
-          id="dashboard-billing-month"
+          id={selectId}
           aria-label="기준월"
           className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base text-gray-900"
           value={budgetMonth}
-          onChange={(event) => setBudgetMonth(event.target.value)}
+          onChange={(event) => onBudgetMonthChange(event.target.value)}
         >
           {displayAvailableMonths.map((month) => <option key={month} value={month}>{formatYearMonth(month)}</option>)}
         </select>
@@ -63,7 +186,7 @@ export default function DashboardPage() {
           ? '카드별 예상 금액으로 계산'
           : `실제값 ${enteredCardCount}/${CARD_METHODS.length}건 입력 · 미입력 카드는 예상값 적용`}
         variant={scenarioView}
-        onVariantChange={selectScenarioView}
+        onVariantChange={(view) => onSelectScenarioView(billingMonth, view)}
         scenario={selectedScenario}
         extraTotal={derived.extraTotal}
         incomeSum={derived.incomeSum}
@@ -151,12 +274,13 @@ export default function DashboardPage() {
         shortageAmount={selectedScenario.shortage}
         remainingAmount={selectedScenario.remaining}
         salaryDelta={derived.salaryDelta}
+        additionalSpending={selectedScenario.flexibleUsed}
         incomeSum={derived.incomeSum}
         fixedTotal={derived.fixedTotal}
         yearMonth={budgetMonth}
         variant={scenarioView}
       />
-    </main>
+    </>
   );
 }
 
