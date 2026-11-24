@@ -289,8 +289,6 @@
 .app-shell .funding-fill--emergency,
 .app-shell .funding-segment--emergency .funding-fill { background: #dc2626; }
 .app-shell .funding-source-list { color: #4b5563; }
-.app-shell .text-white { color: #111827; }
-.app-shell .bg-brand.text-white { color: #ffffff; }
 
 /* Additional spending column uses subtle stone highlight for sharp legibility. */
 .app-shell .card-budget-table .extra-before-cell { border-right-color: transparent; }
