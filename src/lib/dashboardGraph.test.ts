@@ -2,17 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { dashboardGraphAmounts } from './dashboardGraph';
 
 describe('dashboard graph breakdown', () => {
-  it('separates fixed costs and additional spending within income plus both allowances', () => {
+  it('separates fixed costs and additional spending within fixed costs plus both allowances when income > fixed costs', () => {
     expect(dashboardGraphAmounts(5_610_000, 5_460_000, 6_049_506)).toMatchObject({
-      budgetCapacity: 6_260_000,
-      budgetRemaining: 210_494,
+      budgetCapacity: 6_110_000,
+      budgetRemaining: 60_494,
       fixedSpent: 5_460_000,
       additionalSpent: 589_506,
-      incomeMargin: 150_000,
-      incomeMarginUsed: 150_000,
+      incomeMargin: 0,
+      incomeMarginUsed: 0,
       flexibleBaseUsed: 150_000,
-      emergencyUsed: 289_506,
-      fundingCapacity: 800_000,
+      emergencyUsed: 439_506,
+      fundingCapacity: 650_000,
     });
   });
 
@@ -23,14 +23,15 @@ describe('dashboard graph breakdown', () => {
       incomeMarginUsed: 0,
       flexibleBaseUsed: 150_000,
       emergencyUsed: 100_000,
+      fundingCapacity: 650_000,
     });
   });
 
-  it('caps displayed use at section limits and leaves account shortages to the existing calculation', () => {
+  it('caps displayed use at section limits without adding income surplus to the top dashboard', () => {
     expect(dashboardGraphAmounts(1_000_000, 900_000, 1_800_000)).toMatchObject({
-      budgetCapacity: 1_650_000,
-      budgetRemaining: -150_000,
-      incomeMarginUsed: 100_000,
+      budgetCapacity: 1_550_000,
+      budgetRemaining: -250_000,
+      incomeMarginUsed: 0,
       flexibleBaseUsed: 150_000,
       emergencyUsed: 500_000,
     });

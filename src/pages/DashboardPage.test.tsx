@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -64,9 +64,9 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     renderDashboard(repo);
     const headline = await screen.findByRole('region', { name: '월별 자금 핵심 요약' });
-    expect(within(headline).getByText('예비자금').nextElementSibling).toHaveTextContent('719,504');
+    expect(within(headline).getByText('예비자금').nextElementSibling).toHaveTextContent('650,000');
     expect(within(headline).getByText('사용금액').nextElementSibling).toHaveTextContent('727,060');
-    expect(within(headline).getByText('초과금액').nextElementSibling).toHaveTextContent('-7,556');
+    expect(within(headline).getByText('초과금액').nextElementSibling).toHaveTextContent('-77,060');
     const memo = screen.getByRole('region', { name: /메모$/ });
     expect(memo.compareDocumentPosition(headline) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const paymentFunding = screen.getByRole('region', { name: '카드결제 이체금' });
@@ -78,7 +78,7 @@ describe('DashboardPage', () => {
     expect(within(paymentFunding).getByText('추가 지출').closest('dt')?.nextElementSibling).toHaveTextContent('₩77,060');
     await user.click(screen.getByRole('button', { name: '실제' }));
     expect(within(headline).getByText('사용금액').nextElementSibling).toHaveTextContent('510,772');
-    expect(within(headline).getByText('잔액', { exact: true }).nextElementSibling).toHaveTextContent('208,732');
+    expect(within(headline).getByText('잔액', { exact: true }).nextElementSibling).toHaveTextContent('139,228');
     expect(within(headline).queryByText('초과금액')).not.toBeInTheDocument();
     expect(within(paymentFunding).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩0');
     expect(within(paymentFunding).getByText('월간 비상금').closest('dt')?.nextElementSibling).toHaveTextContent('₩291,268');
@@ -191,27 +191,30 @@ describe('DashboardPage', () => {
     const expectedPanel = await screen.findByRole('region', { name: '예상 카드값 기준 대시보드' });
     expect(screen.queryByRole('region', { name: '실제 카드값 기준 대시보드' })).not.toBeInTheDocument();
     expect(within(expectedPanel).getByRole('button', { name: '예상' })).toHaveAttribute('aria-pressed', 'true');
+    const fixedTotal = 990000 + savings;
+    const income = 1030000 + savings - shortage;
+    const effectiveBase = Math.min(income, fixedTotal);
     const expectedSummary = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 요약' });
     expect(within(expectedSummary).getByText('총필요 예산').nextElementSibling).toHaveTextContent(formatKRW(1040000 + savings));
     expect(within(expectedSummary).getByText('부족금액').nextElementSibling).toHaveTextContent(formatKRW(shortage + 10000));
-    expect(within(expectedSummary).getByText('잔액/저축액').nextElementSibling).toHaveTextContent(formatKRW(640000 - shortage));
+    expect(within(expectedSummary).getByText('잔액/저축액').nextElementSibling).toHaveTextContent(formatKRW(effectiveBase + 650000 - (1040000 + savings)));
     expect(within(expectedSummary).getAllByText('잔액/저축액')).toHaveLength(1);
-    expect(within(expectedSummary).getByText('미충당 금액').nextElementSibling).toHaveTextContent(formatKRW(Math.max(shortage - 640000, 0)));
+    expect(within(expectedSummary).getByText('미충당 금액').nextElementSibling).toHaveTextContent(formatKRW(Math.max(1040000 + savings - effectiveBase - 650000, 0)));
     const expectedOverview = within(expectedPanel).getByRole('region', { name: '예상 카드값 기준 현황' });
-    const income = 1030000 + savings - shortage;
-    expect(within(expectedOverview).getByText(`사용 ${formatKRW(1040000 + savings)} / 가용 ${formatKRW(income + 650000)}`)).toBeInTheDocument();
+    expect(within(expectedOverview).getByText(`사용 ${formatKRW(1040000 + savings)} / 가용 ${formatKRW(effectiveBase + 650000)}`)).toBeInTheDocument();
     await user.click(within(expectedPanel).getByRole('button', { name: '실제' }));
     const actualPanel = screen.getByRole('region', { name: '실제 카드값 기준 대시보드' });
     expect(screen.queryByRole('region', { name: '예상 카드값 기준 대시보드' })).not.toBeInTheDocument();
     expect(within(actualPanel).getByRole('button', { name: '실제' })).toHaveAttribute('aria-pressed', 'true');
     const summary = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 요약' });
+    const actualReserveRemaining = effectiveBase + 650000 - (1030000 + savings);
     const expectedTotals = {
       '총필요 예산': 1030000 + savings,
       '추가 지출': 50000,
-      '수입': 1030000 + savings - shortage,
+      '수입': income,
       '부족금액': shortage,
-      '잔액/저축액': 650000 - shortage,
-      '미충당 금액': Math.max(shortage - 650000, 0),
+      '잔액/저축액': actualReserveRemaining,
+      '미충당 금액': Math.max(-actualReserveRemaining, 0),
     };
     for (const [label, value] of Object.entries(expectedTotals)) {
       const amount = within(summary).getByText(label).nextElementSibling;
@@ -224,11 +227,12 @@ describe('DashboardPage', () => {
     const overview = within(actualPanel).getByRole('region', { name: '실제 카드값 기준 현황' });
     expect(within(overview).getAllByRole('progressbar')).toHaveLength(2);
     expect(within(overview).getByRole('progressbar', { name: '예산 사용' }))
-      .toHaveAttribute('aria-valuetext', `${formatKRW(1030000 + savings)} / ${formatKRW(income + 650000)}`);
+      .toHaveAttribute('aria-valuetext', `${formatKRW(1030000 + savings)} / ${formatKRW(effectiveBase + 650000)}`);
     expect(within(overview).getByText(`고정비 ${formatKRW(990000 + savings)}`)).toBeInTheDocument();
     expect(within(overview).getByText(`추가지출 ${formatKRW(40000)}`)).toBeInTheDocument();
-    const baseUsed = Math.min(shortage, 150000);
-    const emergencyUsed = Math.min(Math.max(shortage - 150000, 0), 500000);
+    const reserveUsed = Math.max(1030000 + savings - effectiveBase, 0);
+    const baseUsed = Math.min(reserveUsed, 150000);
+    const emergencyUsed = Math.min(Math.max(reserveUsed - 150000, 0), 500000);
     const fundingUsed = baseUsed + emergencyUsed;
     const fundingCapacity = 650000;
     expect(within(overview).getByRole('progressbar', { name: '예비 자금 사용' }))
@@ -274,9 +278,10 @@ describe('DashboardPage', () => {
     const sourceMonth = previousYearMonth(yearMonth);
     const sourceFixedCosts = await repo.listFixedCosts(sourceMonth);
     const income = incomeTotal(await repo.listIncomes(sourceMonth));
-    const total = fixedCostsTotal(sourceFixedCosts) + 150000;
+    const fixed = fixedCostsTotal(sourceFixedCosts);
+    const total = fixed + 150000;
     const shortage = Math.max(total - income, 0);
-    const reserveRemaining = income - total + 150000 + 500000;
+    const reserveRemaining = Math.min(income, fixed) - total + 150000 + 500000;
     expect(within(summary).getByText(formatKRW(total))).toBeInTheDocument();
     expect(within(summary).getByText(formatKRW(150000))).toBeInTheDocument();
     expect(within(summary).getByText(formatKRW(income))).toBeInTheDocument();
@@ -455,84 +460,71 @@ describe('DashboardPage', () => {
     expect(within(paymentFunding2).getByText('옮길 금액 합계').closest('div')?.querySelector('strong')).toHaveTextContent('₩50,000');
   });
 
-  it('shows previous month left and next month right when unfolded after the 19th, and supports maximizing and restoring split view', async () => {
-    const media = mockUnfoldedViewport(true);
-    vi.spyOn(billing, 'isDualMonthSplitPeriod').mockReturnValue(true);
+  it('switches to next month on left swipe and previous month on right swipe without split view', async () => {
     vi.spyOn(billing, 'defaultBudgetYearMonth').mockReturnValue('2026-11');
 
     const repo = createSeededMemoryRepository();
     await repo.setMonthlyMemo('2026-12', '11월 대시보드 메모');
     await repo.setMonthlyMemo('2027-01', '12월 대시보드 메모');
-    const user = userEvent.setup();
     renderDashboard(repo);
 
-    const leftPane = await screen.findByRole('region', { name: '전달 대시보드 (2026년 11월)' });
-    const rightPane = await screen.findByRole('region', { name: '다음달 대시보드 (2026년 12월)' });
-    expect(await within(leftPane).findByText('11월 대시보드 메모')).toBeInTheDocument();
-    expect(await within(rightPane).findByText('12월 대시보드 메모')).toBeInTheDocument();
-    expect(within(leftPane).getByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
-    expect(within(rightPane).getByRole('combobox', { name: '기준월' })).toHaveValue('2026-12');
-
-    // Maximize right pane (next month)
-    await user.click(within(rightPane).getByRole('button', { name: '2026년 12월 최대화' }));
-    expect(screen.queryByRole('region', { name: /전달 대시보드/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: '기준월' })).toHaveValue('2026-12');
-    expect(await screen.findByText('12월 대시보드 메모')).toBeInTheDocument();
-
-    // Restore split view
-    await user.click(screen.getByRole('button', { name: '분할 보기로 돌아가기' }));
-    const restoredLeft = await screen.findByRole('region', { name: '전달 대시보드 (2026년 11월)' });
-    expect(await screen.findByRole('region', { name: '다음달 대시보드 (2026년 12월)' })).toBeInTheDocument();
-
-    // Maximize left pane (closing month)
-    await user.click(within(restoredLeft).getByRole('button', { name: '2026년 11월 최대화' }));
-    expect(screen.queryByRole('region', { name: /다음달 대시보드/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
     expect(await screen.findByText('11월 대시보드 메모')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
+    expect(screen.queryByRole('region', { name: /분할 대시보드/ })).not.toBeInTheDocument();
 
-    // Folding live collapses to single pane without split controls
-    await user.click(screen.getByRole('button', { name: '분할 보기로 돌아가기' }));
-    expect(await screen.findByRole('region', { name: '다음달 대시보드 (2026년 12월)' })).toBeInTheDocument();
-    act(() => media.setMatches(false));
-    expect(screen.queryByRole('region', { name: /다음달 대시보드/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /최대화/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /분할 보기/ })).not.toBeInTheDocument();
-    expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
+    const main = screen.getByRole('main');
+    fireEvent.touchStart(main, { touches: [{ clientX: 260, clientY: 200 }] });
+    fireEvent.touchMove(main, { touches: [{ clientX: 190, clientY: 204 }] });
+    expect(screen.getByText('2026년 12월 →')).toBeInTheDocument();
+    fireEvent.touchEnd(main, { changedTouches: [{ clientX: 140, clientY: 205 }] });
+
+    expect(await screen.findByText('12월 대시보드 메모')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '기준월' })).toHaveValue('2026-12');
+
+    const updatedMain = screen.getByRole('main');
+    fireEvent.touchStart(updatedMain, { touches: [{ clientX: 120, clientY: 200 }] });
+    fireEvent.touchMove(updatedMain, { touches: [{ clientX: 200, clientY: 202 }] });
+    expect(screen.getByText('← 2026년 11월')).toBeInTheDocument();
+    fireEvent.touchEnd(updatedMain, { changedTouches: [{ clientX: 240, clientY: 204 }] });
+
+    expect(await screen.findByText('11월 대시보드 메모')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
   });
 
-  it('keeps a single pane even when unfolded before the 20th', async () => {
-    mockUnfoldedViewport(true);
-    vi.spyOn(billing, 'isDualMonthSplitPeriod').mockReturnValue(false);
+  it('ignores vertical scrolling and swipes started inside input controls', async () => {
     vi.spyOn(billing, 'defaultBudgetYearMonth').mockReturnValue('2026-11');
 
     renderDashboard(createSeededMemoryRepository());
-    expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
-    expect(screen.queryByRole('region', { name: /전달 대시보드/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /최대화/ })).not.toBeInTheDocument();
+    const select = await screen.findByRole('combobox', { name: '기준월' });
+    expect(select).toHaveValue('2026-11');
+
+    const main = screen.getByRole('main');
+    fireEvent.touchStart(main, { touches: [{ clientX: 180, clientY: 300 }] });
+    fireEvent.touchMove(main, { touches: [{ clientX: 195, clientY: 180 }] });
+    fireEvent.touchEnd(main, { changedTouches: [{ clientX: 195, clientY: 120 }] });
+    expect(screen.getByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
+
+    const salaryInput = screen.getByRole('textbox', { name: '실제 월급' });
+    fireEvent.touchStart(salaryInput, { touches: [{ clientX: 260, clientY: 200 }] });
+    fireEvent.touchMove(salaryInput, { touches: [{ clientX: 180, clientY: 200 }] });
+    fireEvent.touchEnd(salaryInput, { changedTouches: [{ clientX: 120, clientY: 200 }] });
+    expect(screen.getByRole('combobox', { name: '기준월' })).toHaveValue('2026-11');
+  });
+
+  it('switches months across year boundaries with previous and next buttons', async () => {
+    vi.spyOn(billing, 'defaultBudgetYearMonth').mockReturnValue('2026-12');
+
+    const user = userEvent.setup();
+    renderDashboard(createSeededMemoryRepository());
+    expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2026-12');
+
+    await user.click(screen.getByRole('button', { name: '다음 달' }));
+    expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2027-01');
+
+    await user.click(screen.getByRole('button', { name: '이전 달' }));
+    expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2026-12');
   });
 });
-
-function mockUnfoldedViewport(initialMatches: boolean) {
-  let matches = initialMatches;
-  const listeners = new Set<(event: MediaQueryListEvent) => void>();
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    get matches() { return matches; },
-    media: query,
-    onchange: null,
-    addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.add(listener),
-    removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => listeners.delete(listener),
-    addListener: (listener: (event: MediaQueryListEvent) => void) => listeners.add(listener),
-    removeListener: (listener: (event: MediaQueryListEvent) => void) => listeners.delete(listener),
-    dispatchEvent: () => true,
-  }));
-  return {
-    setMatches(next: boolean) {
-      matches = next;
-      const event = { matches: next, media: '(min-width: 660px)' } as MediaQueryListEvent;
-      for (const listener of listeners) listener(event);
-    },
-  };
-}
 
 function renderDashboard(repo: ReturnType<typeof createSeededMemoryRepository>) {
   return render(

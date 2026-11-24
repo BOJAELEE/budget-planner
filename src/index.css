@@ -16,6 +16,7 @@
 .app-shell {
   background: #f6f5f1;
   color: #2f3b35;
+  overflow-x: clip;
 }
 
 .app-shell .bg-white { background-color: #ffffff; }
@@ -303,79 +304,58 @@
   font-size: 1rem;
 }
 
-.app-shell .dashboard-split-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  align-items: start;
+.app-shell .dashboard-swipe-area {
+  touch-action: pan-y;
+  transition: transform 140ms ease-out;
 }
-.app-shell .dashboard-pane--split {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 10px;
-  border: 1px solid #d5e0d2;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.55);
-}
-.app-shell .dashboard-pane-toolbar {
+.app-shell .dashboard-month-switcher {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
 }
-.app-shell .dashboard-pane-badge {
+.app-shell .dashboard-month-step {
   display: inline-flex;
   align-items: center;
-  padding: 5px 10px;
-  border-radius: 9999px;
-  background: #edf3ec;
-  color: #365a42;
-  font-size: 12px;
-  font-weight: 700;
-}
-.app-shell .dashboard-pane-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 36px;
-  padding: 6px 12px;
-  border: 1px solid #bfd4c3;
-  border-radius: 10px;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: 1px solid #d5e0d2;
+  border-radius: 12px;
   background: #ffffff;
-  color: #284b36;
-  font-size: 13px;
-  font-weight: 700;
+  color: #365a42;
   cursor: pointer;
-  transition: background-color 150ms ease;
+  transition: background-color 150ms ease, border-color 150ms ease;
 }
-.app-shell .dashboard-pane-action:hover {
-  background: #e6f0e8;
+.app-shell .dashboard-month-step:hover {
+  background: #eef4ee;
+  border-color: #bfd4c3;
 }
-.app-shell .dashboard-pane-action:focus-visible {
+.app-shell .dashboard-month-step:focus-visible {
   outline: 2px solid #8fae9a;
   outline-offset: 2px;
 }
-.app-shell .dashboard-pane--split .payment-funding { padding: 14px; }
-.app-shell .dashboard-pane--split .payment-funding-sources { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-.app-shell .dashboard-pane--split .payment-funding-source {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px;
+.app-shell .dashboard-swipe-pill {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  pointer-events: none;
+  padding: 8px 16px;
+  border: 1px solid #c5dbc9;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #365a42;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgba(47, 59, 53, 0.14);
 }
-.app-shell .dashboard-pane--split .payment-funding-source dt { min-width: 0; font-size: 13px; }
-.app-shell .dashboard-pane--split .payment-funding-source small { font-size: 11px; }
-.app-shell .dashboard-pane--split .payment-funding-source dd { max-width: 100%; margin: 0 0 0 auto; font-size: 16px; }
-.app-shell .dashboard-pane--split .payment-funding-total { padding: 14px; }
-.app-shell .dashboard-pane--split .payment-funding-total strong { font-size: 24px; }
-.app-shell .dashboard-pane--split .card-budget-table { font-size: 12px; }
-.app-shell .dashboard-pane--split .card-budget-table th,
-.app-shell .dashboard-pane--split .card-budget-table td { padding-inline: 2px; }
-.app-shell .dashboard-pane--split .card-budget-table .actual-card-input { font-size: 0.875rem; padding-inline: 4px; }
+.app-shell .dashboard-swipe-pill--ready {
+  border-color: #7ca388;
+  background: #edf5ef;
+  color: #24442f;
+}
 
 .app-shell nav {
   width: 100%;

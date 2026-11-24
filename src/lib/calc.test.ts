@@ -168,24 +168,25 @@ describe('balance usage projection', () => {
 });
 
 describe('flexible funds', () => {
-  it('adds 150,000 won to the income remaining after all fixed costs', () => {
-    expect(flexibleFunds(5610000, 5470000)).toBe(290000);
-    expect(flexibleFundsRemaining(5610000, 5470000, 6950000)).toBe(-1190000);
+  it('excludes income surplus over fixed costs while deducting fixed-cost excess from 150,000 won', () => {
+    expect(flexibleFunds(5610000, 5470000)).toBe(150000);
+    expect(flexibleFundsRemaining(5610000, 5470000, 6950000)).toBe(-1330000);
+    expect(flexibleFunds(500000, 550000)).toBe(100000);
     expect(flexibleFunds(500000, 650000)).toBe(0);
   });
 });
 
 describe('dashboard scenario comparison', () => {
-  it('combines income after fixed costs with the monthly 150,000 won', () => {
+  it('deducts extra spending directly from the monthly 150,000 won and 500,000 won without adding income surplus', () => {
     const balances = { '월급통장': 0, '비상금통장': 0, '여행통장': 0 };
     const scenario = calculateDashboardScenario(5470000, 1480000, 5610000, 5470000, balances);
 
-    expect(scenario.flexibleAvailable).toBe(290000);
+    expect(scenario.flexibleAvailable).toBe(150000);
     expect(scenario.flexibleUsed).toBe(1480000);
-    expect(scenario.flexibleRemaining).toBe(-1190000);
-    expect(scenario.reserveRemaining).toBe(-690000);
+    expect(scenario.flexibleRemaining).toBe(-1330000);
+    expect(scenario.reserveRemaining).toBe(-830000);
     expect(scenario.emergencyUsed).toBe(500000);
-    expect(scenario.uncoveredAmount).toBe(690000);
+    expect(scenario.uncoveredAmount).toBe(830000);
     expect(scenario.balanceProjection.uncoveredAmount).toBe(0);
   });
 
@@ -226,10 +227,10 @@ describe('dashboard scenario comparison', () => {
     const balances = { '월급통장': 0, '비상금통장': 0, '여행통장': 0 };
     const scenario = calculateDashboardScenario(500000, 50000, 650000, 600000, balances);
 
-    expect(scenario.flexibleAvailable).toBe(200000);
+    expect(scenario.flexibleAvailable).toBe(150000);
     expect(scenario.flexibleUsed).toBe(-50000);
-    expect(scenario.flexibleRemaining).toBe(250000);
-    expect(scenario.reserveRemaining).toBe(750000);
+    expect(scenario.flexibleRemaining).toBe(200000);
+    expect(scenario.reserveRemaining).toBe(700000);
     expect(scenario.emergencyUsed).toBe(0);
     expect(scenario.balanceProjection.uncoveredAmount).toBe(0);
   });
@@ -239,8 +240,8 @@ describe('dashboard scenario comparison', () => {
     const scenario = calculateDashboardScenario(5_523_256, 526_250, 5_610_000, 5_523_256, balances);
 
     expect(scenario.totalBudget).toBe(6_049_506);
-    expect(scenario.flexibleRemaining).toBe(-289_506);
-    expect(scenario.reserveRemaining).toBe(210_494);
+    expect(scenario.flexibleRemaining).toBe(-376_250);
+    expect(scenario.reserveRemaining).toBe(123_750);
     expect(scenario.uncoveredAmount).toBe(0);
   });
 });

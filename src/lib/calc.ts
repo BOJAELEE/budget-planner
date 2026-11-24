@@ -44,9 +44,9 @@ export function fixedCostsTotal(fixedCosts: FixedCost[]): number {
 
 export const MONTHLY_FLEXIBLE_BASE = 150_000;
 
-/** Available funds after fixed costs, including the monthly savings allowance. */
+/** Available monthly reserve (150,000 won), deducting only fixed-cost excess when income < fixed costs. */
 export function flexibleFunds(incomeAmount: number, fixedCostAmount: number): number {
-  return incomeAmount - fixedCostAmount + MONTHLY_FLEXIBLE_BASE;
+  return Math.min(incomeAmount - fixedCostAmount, 0) + MONTHLY_FLEXIBLE_BASE;
 }
 
 /** Amount remaining after the flexible funds are used. */

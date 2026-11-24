@@ -19,16 +19,21 @@ describe('card payment funding plan', () => {
     expect(plan.extraEmergencyNeeded).toBe(plan.totalNeeded);
   });
 
-  it('matches the existing uncovered amount and does not deduct account balances', () => {
+  it('reflects income surplus only at settlement and matches uncovered amount on fixed-cost deficit', () => {
     const balances = { 월급통장: 100000, 비상금통장: 200000, 여행통장: 300000 };
-    const scenario = calculateDashboardScenario(5240496, 1393216, 5610000, 5540496, balances);
-    const plan = cardPaymentPlan(scenario.shortage);
-    expect(plan.reserveUsed).toBe(150000);
-    expect(plan.monthlyEmergencyUsed).toBe(500000);
-    expect(plan.totalNeeded).toBe(373712);
-    expect(plan.extraEmergencyNeeded).toBe(scenario.uncoveredAmount);
-    expect(plan.totalNeeded).toBe(scenario.uncoveredAmount);
-    expect(scenario.balanceProjection.balancesAfter).toEqual(balances);
+    const surplusScenario = calculateDashboardScenario(5240496, 1393216, 5610000, 5540496, balances);
+    const surplusPlan = cardPaymentPlan(surplusScenario.shortage);
+    expect(surplusScenario.uncoveredAmount).toBe(443216);
+    expect(surplusPlan.reserveUsed).toBe(150000);
+    expect(surplusPlan.monthlyEmergencyUsed).toBe(500000);
+    expect(surplusPlan.totalNeeded).toBe(373712);
+    expect(surplusPlan.extraEmergencyNeeded).toBe(373712);
+
+    const deficitScenario = calculateDashboardScenario(5240496, 1393216, 5400000, 5540496, balances);
+    const deficitPlan = cardPaymentPlan(deficitScenario.shortage);
+    expect(deficitPlan.extraEmergencyNeeded).toBe(deficitScenario.uncoveredAmount);
+    expect(deficitPlan.totalNeeded).toBe(deficitScenario.uncoveredAmount);
+    expect(surplusScenario.balanceProjection.balancesAfter).toEqual(balances);
     expect(balances).toEqual({ 월급통장: 100000, 비상금통장: 200000, 여행통장: 300000 });
   });
 
