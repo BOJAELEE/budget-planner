@@ -510,7 +510,7 @@ describe('DashboardPage', () => {
     expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2026-12');
   });
 
-  it('tracks dedicated monthly emergency reserve balance and calculates funded month around the 28th cutoff', async () => {
+  it('tracks dedicated monthly emergency reserve balance, anchors funded month, and warns on uncovered months', async () => {
     const dateSpy = vi.spyOn(billing, 'dateInKorea').mockReturnValue('2026-11-24');
     const user = userEvent.setup();
     const repo = createSeededMemoryRepository();
@@ -520,23 +520,49 @@ describe('DashboardPage', () => {
     expect(within(emergencySection).getByText('잔액을 입력하세요')).toBeInTheDocument();
 
     await user.click(within(emergencySection).getByRole('button', { name: '월간 비상금 잔액 입력' }));
-    await user.type(within(emergencySection).getByRole('textbox', { name: '월간 비상금 통장 잔액' }), '1500000');
+    await user.type(within(emergencySection).getByRole('textbox', { name: '월간 비상금 통장 잔액' }), '300000');
     await user.click(within(emergencySection).getByRole('button', { name: '저장' }));
+    expect(within(emergencySection).getByText('충당 못하는 달')).toBeInTheDocument();
 
+    await user.click(within(emergencySection).getByRole('button', { name: '월간 비상금 잔액 입력' }));
+    const initialInput = within(emergencySection).getByRole('textbox', { name: '월간 비상금 통장 잔액' });
+    await user.clear(initialInput);
+    await user.type(initialInput, '1500000');
+    await user.click(within(emergencySection).getByRole('button', { name: '저장' }));
     expect(within(emergencySection).getByText('2027년 1월 충당금까지')).toBeInTheDocument();
     view.unmount();
 
     dateSpy.mockReturnValue('2026-11-28');
     renderDashboard(repo);
     const reloadedSection = await screen.findByRole('region', { name: '월간 비상금 충당 현황' });
-    expect(within(reloadedSection).getByText('2027년 2월 충당금까지')).toBeInTheDocument();
-
-    await user.click(within(reloadedSection).getByRole('button', { name: '월간 비상금 잔액 입력' }));
-    const input = within(reloadedSection).getByRole('textbox', { name: '월간 비상금 통장 잔액' });
-    await user.clear(input);
-    await user.type(input, '1000000');
-    await user.click(within(reloadedSection).getByRole('button', { name: '저장' }));
     expect(within(reloadedSection).getByText('2027년 1월 충당금까지')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '다음 달' }));
+    expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2026-12');
+
+    await user.click(screen.getByRole('button', { name: '다음 달' }));
+    expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2027-01');
+    const janSection = await screen.findByRole('region', { name: '월간 비상금 충당 현황' });
+    expect(within(janSection).getByText('2027년 1월 충당금까지')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '다음 달' }));
+    expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2027-02');
+    const febSection = await screen.findByRole('region', { name: '월간 비상금 충당 현황' });
+    expect(within(febSection).getByText('충당 못하는 달')).toBeInTheDocument();
+    expect(within(febSection).getByText('(2027년 1월까지)')).toBeInTheDocument();
+
+    await user.click(within(febSection).getByRole('button', { name: '월간 비상금 잔액 입력' }));
+    const input = within(febSection).getByRole('textbox', { name: '월간 비상금 통장 잔액' });
+    await user.clear(input);
+    await user.type(input, '1500000');
+    await user.click(within(febSection).getByRole('button', { name: '저장' }));
+    expect(within(febSection).getByText('2027년 2월 충당금까지')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '다음 달' }));
+    expect(await screen.findByRole('combobox', { name: '기준월' })).toHaveValue('2027-03');
+    const marSection = await screen.findByRole('region', { name: '월간 비상금 충당 현황' });
+    expect(within(marSection).getByText('충당 못하는 달')).toBeInTheDocument();
+    expect(within(marSection).getByText('(2027년 2월까지)')).toBeInTheDocument();
   });
 });
 

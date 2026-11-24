@@ -1,35 +1,49 @@
 import { useState } from 'react';
+import { dateInKorea } from '../lib/billing';
 import { formatKRW, parseAmount } from '../lib/format';
 import {
   calculateEmergencyReserveCoverage,
-  loadMonthlyEmergencyReserveBalance,
-  saveMonthlyEmergencyReserveBalance,
+  emergencyReserveStatusForMonth,
+  loadMonthlyEmergencyReserveRecord,
+  saveMonthlyEmergencyReserveRecord,
+  type MonthlyEmergencyReserveRecord,
 } from '../lib/monthlyEmergencyReserve';
 import { isSwimmingPaymentMonth } from '../lib/swimmingSchedule';
 
 export function DashboardQuickStrip({ yearMonth }: { yearMonth: string }) {
-  const [balance, setBalance] = useState<number | null>(loadMonthlyEmergencyReserveBalance);
+  const [record, setRecord] = useState<MonthlyEmergencyReserveRecord | null>(() => loadMonthlyEmergencyReserveRecord());
   const [editing, setEditing] = useState(false);
   const [draftText, setDraftText] = useState('');
   const [saveFailed, setSaveFailed] = useState(false);
 
   const isDue = isSwimmingPaymentMonth(yearMonth);
   const year = yearMonth.slice(0, 4);
-  const coverage = balance !== null ? calculateEmergencyReserveCoverage(balance) : null;
+  const status = emergencyReserveStatusForMonth(record, yearMonth);
 
   const toggleEditing = () => {
     if (editing) {
       setEditing(false);
       return;
     }
-    setDraftText(balance !== null && balance > 0 ? balance.toLocaleString('ko-KR') : '');
+    setDraftText(record !== null && record.balance > 0 ? record.balance.toLocaleString('ko-KR') : '');
     setEditing(true);
   };
 
   const handleSave = () => {
     const nextAmount = parseAmount(draftText);
-    setBalance(nextAmount);
-    setSaveFailed(!saveMonthlyEmergencyReserveBalance(nextAmount));
+    const saved = saveMonthlyEmergencyReserveRecord(nextAmount);
+    if (saved) {
+      setRecord(saved);
+      setSaveFailed(false);
+    } else {
+      const coverage = calculateEmergencyReserveCoverage(nextAmount);
+      setRecord({
+        balance: Math.max(0, Math.round(nextAmount)),
+        updatedOn: dateInKorea(),
+        coveredUntilYearMonth: coverage.coveredUntilYearMonth,
+      });
+      setSaveFailed(true);
+    }
     setEditing(false);
   };
 
@@ -65,21 +79,36 @@ export function DashboardQuickStrip({ yearMonth }: { yearMonth: string }) {
       </div>
 
       <div role="region" aria-label="월간 비상금 충당 현황" className="border-t border-[#e4e4e7] pt-2.5 space-y-2">
-        <div className="flex items-center justify-between gap-2">
+        <div
+          className={`flex items-center justify-between gap-2 ${
+            status?.isUncovered ? 'rounded-xl border border-[#fecaca] bg-[#fef2f2] px-2.5 py-2' : ''
+          }`}
+        >
           <div className="flex min-w-0 items-center gap-2">
-            <span className="shrink-0 rounded-md border border-[#e4e4e7] bg-[#f4f4f5] px-2 py-0.5 text-[11px] font-bold text-[#374151]">
+            <span
+              className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                status?.isUncovered
+                  ? 'border border-[#fca5a5] bg-white text-neg'
+                  : 'border border-[#e4e4e7] bg-[#f4f4f5] text-[#374151]'
+              }`}
+            >
               월간 비상금
             </span>
-            {coverage === null ? (
+            {status === null ? (
               <span className="truncate text-sm font-medium text-[#6b7280]">잔액을 입력하세요</span>
             ) : (
-              <strong
-                className={`truncate text-sm font-bold ${
-                  coverage.coveredUntilYearMonth === null ? 'text-neg' : 'text-[#111827]'
-                }`}
-              >
-                {coverage.label}
-              </strong>
+              <div className="flex min-w-0 items-baseline gap-1.5">
+                <strong
+                  className={`truncate text-sm font-bold ${
+                    status.isUncovered ? 'text-neg' : 'text-[#111827]'
+                  }`}
+                >
+                  {status.label}
+                </strong>
+                {status.detail && (
+                  <span className="shrink-0 text-xs font-semibold text-neg">({status.detail})</span>
+                )}
+              </div>
             )}
           </div>
           <button
@@ -89,7 +118,7 @@ export function DashboardQuickStrip({ yearMonth }: { yearMonth: string }) {
             onClick={toggleEditing}
             className="min-h-[34px] shrink-0 rounded-lg border border-[#d4d4d8] bg-white px-2.5 text-xs font-bold text-[#111827] hover:bg-[#f4f4f5]"
           >
-            {editing ? '닫기' : balance === null ? '잔액 입력' : '잔액 수정'}
+            {editing ? '닫기' : record === null ? '잔액 입력' : '잔액 수정'}
           </button>
         </div>
 
